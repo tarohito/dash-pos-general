@@ -1,0 +1,311 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  :root {
+    font-family: var(--font-sans);
+    letter-spacing: normal;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html, body, #root {
+    height: 100%;
+    height: 100dvh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-size: 0.875rem; /* 14px enterprise default */
+    line-height: 1.5;
+    color: #111827;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sans);
+  }
+
+  code, kbd, samp, pre, .font-mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  button:focus:not(:focus-visible) {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Flat Minimalist: Strip all shadows for a lightweight, clean appearance */
+  *, *::before, *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Remove default number input spin arrows (up/down) across all browsers */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield !important;
+    appearance: textfield !important;
+  }
+}
+
+/* Hide scrollbars globally where needed */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.tippy-box {
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 500;
+  border-radius: 6px;
+  background-color: #1f2937;
+  color: #f9fafb;
+}
+
+.tippy-box[data-placement^='top'] > .tippy-arrow::before {
+  border-top-color: #1f2937;
+}
+.tippy-box[data-placement^='bottom'] > .tippy-arrow::before {
+  border-bottom-color: #1f2937;
+}
+.tippy-box[data-placement^='left'] > .tippy-arrow::before {
+  border-left-color: #1f2937;
+}
+.tippy-box[data-placement^='right'] > .tippy-arrow::before {
+  border-right-color: #1f2937;
+}
+
+.text-gradient-brand {
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #ea580c;
+}
+
+@keyframes laser-sweep {
+  0% {
+    top: 8%;
+    opacity: 0.6;
+  }
+  50% {
+    top: 90%;
+    opacity: 1;
+  }
+  100% {
+    top: 8%;
+    opacity: 0.6;
+  }
+}
+
+.animate-laser {
+  animation: laser-sweep 1.8s ease-in-out infinite;
+}
+
+@keyframes kpi-wave-forward {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes kpi-wave-reverse {
+  0% {
+    transform: translate3d(-50%, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes kpi-wave-swell {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scaleY(1);
+  }
+  50% {
+    transform: translate3d(0, 3px, 0) scaleY(1.16);
+  }
+}
+
+.animate-kpi-wave {
+  animation: kpi-wave-forward 2.2s linear infinite;
+}
+
+.animate-kpi-wave-mid {
+  animation: kpi-wave-reverse 2.9s linear infinite;
+}
+
+.animate-kpi-wave-back {
+  animation: kpi-wave-forward 3.6s linear infinite;
+}
+
+.animate-kpi-wave-swell {
+  transform-origin: bottom center;
+  animation: kpi-wave-swell 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-kpi-wave,
+  .animate-kpi-wave-mid,
+  .animate-kpi-wave-back,
+  .animate-kpi-wave-swell {
+    animation: none;
+  }
+}
+
+/* Screen mode: hide print-only element */
+.print-only {
+  display: none !important;
+}
+
+/* Official Gold Invoice Print Styles */
+@media print {
+  @page {
+    size: auto;
+    margin: 4mm;
+  }
+
+  html, body, #root {
+    background: white !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Hide everything inside body */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Show only the printable receipt elements */
+  .print-only,
+  .print-only * {
+    visibility: visible !important;
+  }
+
+  .print-only {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+    border: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .gold-invoice-sheet {
+    border: none !important;
+    border-radius: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 2mm 3mm !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .gold-invoice-sheet[data-paper='a6'] {
+    padding: 1.5mm 2mm !important;
+    font-size: 9px !important;
+  }
+
+  .gold-invoice-sheet[data-paper='80mm'] {
+    max-width: 76mm !important;
+    margin: 0 auto !important;
+    padding: 1.5mm 2mm !important;
+    font-size: 9px !important;
+  }
+
+  body.printing-sale #printable-buyback-receipt,
+  body.printing-sale #printable-buyback-receipt *,
+  body.printing-sale #printable-shift-report,
+  body.printing-sale #printable-shift-report *,
+  body.printing-sale #printable-barcode-sheet,
+  body.printing-sale #printable-barcode-sheet * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  body.printing-buyback #printable-receipt,
+  body.printing-buyback #printable-receipt *,
+  body.printing-buyback #printable-shift-report,
+  body.printing-buyback #printable-shift-report *,
+  body.printing-buyback #printable-barcode-sheet,
+  body.printing-buyback #printable-barcode-sheet * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  body.printing-barcode #printable-receipt,
+  body.printing-barcode #printable-receipt *,
+  body.printing-barcode #printable-buyback-receipt,
+  body.printing-barcode #printable-buyback-receipt *,
+  body.printing-barcode #printable-shift-report,
+  body.printing-barcode #printable-shift-report * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  body.printing-shift #printable-receipt,
+  body.printing-shift #printable-receipt *,
+  body.printing-shift #printable-buyback-receipt,
+  body.printing-shift #printable-buyback-receipt *,
+  body.printing-shift #printable-barcode-sheet,
+  body.printing-shift #printable-barcode-sheet * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  body:not(.printing-sale) #printable-receipt,
+  body:not(.printing-sale) #printable-receipt * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  body:not(.printing-buyback) #printable-buyback-receipt,
+  body:not(.printing-buyback) #printable-buyback-receipt * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  body:not(.printing-barcode) #printable-barcode-sheet,
+  body:not(.printing-barcode) #printable-barcode-sheet * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  body:not(.printing-shift) #printable-shift-report,
+  body:not(.printing-shift) #printable-shift-report * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
+
+
+
