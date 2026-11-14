@@ -8,10 +8,10 @@ export const MODAL_FOOTER_END_CLASS =
   'flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2';
 
 export const MODAL_BTN_SECONDARY_CLASS =
-  'h-9 px-4 text-xs sm:text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs disabled:opacity-50 disabled:cursor-not-allowed';
+  'h-9 px-4 text-xs sm:text-sm font-semibold text-zinc-700 bg-white border border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.03)] disabled:opacity-50 disabled:cursor-not-allowed';
 
 export const MODAL_BTN_PRIMARY_CLASS =
-  'h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed';
+  'h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.08)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed';
 
 const SIZE_CLASSES: Record<ModalSize, string> = {
   sm: 'max-w-md',
@@ -85,25 +85,25 @@ export const ModalShell: React.FC<ModalShellProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
     >
       <div
-        className={`bg-white rounded-xl border border-gray-200 w-full ${SIZE_CLASSES[size]} overflow-hidden flex flex-col max-h-[92vh] shadow-2xl animate-in zoom-in-95 duration-150`}
+        className={`bg-white rounded-2xl border border-zinc-200 shadow-xl w-full ${SIZE_CLASSES[size]} overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-150`}
       >
         {/* Unified Modal Header */}
-        <div className="px-4 sm:px-5 py-3.5 border-b border-gray-100 flex items-center justify-between gap-3 bg-gray-50/80 shrink-0">
+        <div className="px-4 sm:px-5 py-3.5 border-b border-zinc-200 flex items-center justify-between gap-3 bg-zinc-50 shrink-0">
           <div className="min-w-0 flex-1">
             <h3
               id={titleId}
-              className="text-sm sm:text-base font-bold text-gray-900 leading-tight"
+              className="text-sm sm:text-base font-bold text-zinc-950 leading-tight"
             >
               {title}
             </h3>
             {subtitle && (
-              <p className="text-xs text-gray-500 mt-0.5 leading-snug">{subtitle}</p>
+              <p className="text-xs text-zinc-500 mt-0.5 leading-snug">{subtitle}</p>
             )}
           </div>
 
@@ -115,7 +115,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
                 onClick={onClose}
                 disabled={disableEscapeClose}
                 aria-label="Tutup modal"
-                className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200/60 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-800 hover:bg-zinc-200/70 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <X size={18} />
               </button>
@@ -128,7 +128,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
 
         {/* Unified Modal Footer */}
         {footer && (
-          <div className="px-4 sm:px-5 py-3.5 bg-gray-50/90 border-t border-gray-100 shrink-0">
+          <div className="px-4 sm:px-5 py-3.5 bg-zinc-50 border-t border-zinc-200 shrink-0">
             {footer}
           </div>
         )}

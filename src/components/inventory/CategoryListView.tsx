@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Gem,
+  Package,
   Layers,
   Loader2,
   Pencil,
@@ -171,16 +171,16 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
   return (
     <div className="space-y-4 pb-8">
       {/* Top Header Card */}
-      <div className="bg-white rounded-xl border border-gray-200/90 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">
-              Daftar Kategori Perhiasan
+            <h3 className="text-base sm:text-lg font-bold text-zinc-950 leading-tight">
+              Daftar Kategori Produk
             </h3>
-            {isLoading && <Loader2 size={14} className="animate-spin text-orange-500" />}
+            {isLoading && <Loader2 size={14} className="animate-spin text-zinc-900" />}
           </div>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Kelola klasifikasi etalase perhiasan emas serta pantau sebaran model SKU, stok fisik, dan gramasi.
+          <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
+            Kelola klasifikasi kategori produk serta pantau sebaran model SKU, stok fisik, dan total netto.
           </p>
         </div>
 
@@ -188,7 +188,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
           <button
             type="button"
             onClick={onOpenAddCategoryModal}
-            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
+            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
           >
             <Plus size={16} />
             <span>Tambah Kategori</span>
@@ -197,15 +197,15 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
       </div>
 
       {/* Search, Filter & Table Workspace */}
-      <div className="bg-white rounded-xl border border-gray-200/90 p-4 sm:p-5">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 mb-4">
           <SearchInput
             value={search}
             onChange={handleSearchChange}
-            placeholder="Cari nama kategori perhiasan..."
+            placeholder="Cari nama kategori produk..."
           />
 
-          <div className="inline-flex h-9 p-0.5 bg-gray-100 rounded-lg border border-gray-200 items-center overflow-x-auto max-w-full shrink-0">
+          <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-xl border border-zinc-200 items-center overflow-x-auto max-w-full shrink-0">
             {[
               { id: 'all' as const, label: `Semua (${summary.totalCategories})` },
               { id: 'filled' as const, label: `Terisi (${summary.filledCount})` },
@@ -215,10 +215,10 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => handleStatusFilterChange(tab.id)}
-                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-md transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
+                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   statusFilter === tab.id
-                    ? 'bg-orange-500 text-white shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                    : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >
                 {tab.label}
@@ -236,28 +236,28 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
         )}
 
         {/* Inner Table & Mobile Cards Container */}
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-2xs">
+        <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
           {/* MOBILE LIST CARDS (md:hidden) */}
-          <div className="md:hidden divide-y divide-gray-100">
+          <div className="md:hidden divide-y divide-zinc-100">
             {isLoading && rows.length === 0 ? (
-              <div className="py-12 px-4 flex items-center justify-center gap-2 text-xs text-gray-400">
-                <Loader2 size={18} className="animate-spin text-orange-500" />
+              <div className="py-12 px-4 flex items-center justify-center gap-2 text-xs text-zinc-400">
+                <Loader2 size={18} className="animate-spin text-zinc-900" />
                 <span>Memuat daftar kategori...</span>
               </div>
             ) : paginatedItems.length === 0 ? (
-              <div className="py-12 px-4 text-center text-gray-400">
-                <Layers size={36} className="mx-auto mb-2 text-gray-300" />
-                <p className="text-sm font-semibold text-gray-600">Tidak ada kategori perhiasan</p>
-                <p className="text-xs text-gray-400 mt-0.5">
+              <div className="py-12 px-4 text-center text-zinc-400">
+                <Layers size={36} className="mx-auto mb-2 text-zinc-300" />
+                <p className="text-sm font-semibold text-zinc-600">Tidak ada kategori produk</p>
+                <p className="text-xs text-zinc-400 mt-0.5">
                   {hasActiveFilter
                     ? 'Coba ubah filter status atau kata kunci pencarian.'
-                    : 'Belum ada kategori terdaftar di etalase toko.'}
+                    : 'Belum ada kategori terdaftar di toko.'}
                 </p>
                 {!hasActiveFilter && (
                   <button
                     type="button"
                     onClick={onOpenAddCategoryModal}
-                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors cursor-pointer border border-orange-200"
+                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-800 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors cursor-pointer border border-zinc-200"
                   >
                     <Plus size={14} />
                     <span>Tambah Kategori Baru</span>
@@ -271,12 +271,12 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                 return (
                   <div
                     key={row.name}
-                    className="p-4 flex flex-col gap-3 hover:bg-orange-50/25 transition-colors"
+                    className="p-4 flex flex-col gap-3 hover:bg-zinc-50/70 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className="w-10 h-10 rounded-lg bg-orange-50/80 text-orange-600 border border-orange-100 flex items-center justify-center shrink-0">
-                          <Gem size={18} />
+                        <span className="w-10 h-10 rounded-xl bg-zinc-50 text-zinc-700 border border-zinc-200/80 flex items-center justify-center shrink-0">
+                          <Package size={18} />
                         </span>
                         <div className="min-w-0">
                           <h4 className="text-sm sm:text-base font-bold text-gray-900 truncate">{row.name}</h4>
@@ -306,9 +306,9 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                           </strong>
                         </span>
                         <span>
-                          Gramasi:{' '}
-                          <strong className="text-orange-600 font-mono tabular-nums">
-                            {row.totalGram.toFixed(2)} gr
+                          Netto:{' '}
+                          <strong className="text-zinc-950 font-mono tabular-nums">
+                            {Number(row.totalGram.toFixed(2))} gr
                           </strong>
                         </span>
                       </div>
@@ -347,7 +347,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
               <thead className="bg-gray-50/80 border-b border-gray-200 text-gray-500 uppercase font-semibold tracking-wider text-xs">
                 <tr>
                   <SortableTh
-                    label="Kategori Perhiasan"
+                    label="Kategori Produk"
                     sortKey="name"
                     currentSortBy={sortBy}
                     currentSortDir={sortDir}
@@ -373,7 +373,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                     className="py-3 px-3 sm:px-4"
                   />
                   <SortableTh
-                    label="Total Gramasi"
+                    label="Total Netto"
                     sortKey="totalGram"
                     currentSortBy={sortBy}
                     currentSortDir={sortDir}
@@ -388,30 +388,30 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
               <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
                 {isLoading && rows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-gray-400">
+                    <td colSpan={6} className="py-12 text-center text-zinc-400">
                       <div className="inline-flex items-center gap-2">
-                        <Loader2 size={18} className="animate-spin text-orange-500" />
+                        <Loader2 size={18} className="animate-spin text-zinc-900" />
                         <span>Memuat daftar kategori...</span>
                       </div>
                     </td>
                   </tr>
                 ) : paginatedItems.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-gray-400">
-                      <Layers size={36} className="mx-auto mb-2 text-gray-300" />
-                      <p className="text-sm font-semibold text-gray-600">
-                        Tidak ada kategori perhiasan
+                    <td colSpan={6} className="py-12 text-center text-zinc-400">
+                      <Layers size={36} className="mx-auto mb-2 text-zinc-300" />
+                      <p className="text-sm font-semibold text-zinc-600">
+                        Tidak ada kategori produk
                       </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs text-zinc-400 mt-0.5">
                         {hasActiveFilter
                           ? 'Coba ubah filter status atau kata kunci pencarian.'
-                          : 'Belum ada kategori terdaftar di etalase toko.'}
+                          : 'Belum ada kategori terdaftar di toko.'}
                       </p>
                       {!hasActiveFilter && (
                         <button
                           type="button"
                           onClick={onOpenAddCategoryModal}
-                          className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors cursor-pointer border border-orange-200"
+                          className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-800 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors cursor-pointer border border-zinc-200"
                         >
                           <Plus size={14} />
                           <span>Tambah Kategori Baru</span>
@@ -424,35 +424,35 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                     const sharePercent =
                       summary.totalSku > 0 ? Math.round((row.count / summary.totalSku) * 100) : 0;
                     return (
-                      <tr key={row.name} className="hover:bg-orange-50/25 transition-colors">
+                      <tr key={row.name} className="hover:bg-zinc-50/80 transition-colors">
                         <td className="py-3.5 px-3.5 sm:px-4">
                           <div className="flex items-center gap-3">
-                            <span className="w-9 h-9 rounded-lg bg-orange-50/80 text-orange-600 border border-orange-100 flex items-center justify-center shrink-0">
-                              <Gem size={16} />
+                            <span className="w-9 h-9 rounded-lg bg-zinc-50 text-zinc-700 border border-zinc-200/80 flex items-center justify-center shrink-0">
+                              <Package size={16} />
                             </span>
                             <div className="min-w-0">
-                              <span className="font-bold text-gray-900 text-xs sm:text-sm block truncate">
+                              <span className="font-bold text-zinc-950 text-xs sm:text-sm block truncate">
                                 {row.name}
                               </span>
-                              <span className="text-xs text-gray-400 font-normal block mt-0.5">
-                                {sharePercent}% porsi koleksi etalase
+                              <span className="text-xs text-zinc-400 font-normal block mt-0.5">
+                                {sharePercent}% porsi katalog produk
                               </span>
                             </div>
                           </div>
                         </td>
                         <td className="py-3.5 px-3 sm:px-4 text-center whitespace-nowrap">
-                          <span className="font-mono font-bold text-gray-900 text-xs sm:text-sm tabular-nums">
+                          <span className="font-mono font-bold text-zinc-900 text-xs sm:text-sm tabular-nums">
                             {row.count} SKU
                           </span>
                         </td>
                         <td className="py-3.5 px-3 sm:px-4 text-center whitespace-nowrap">
-                          <span className="font-mono font-semibold text-gray-800 text-xs sm:text-sm tabular-nums">
+                          <span className="font-mono font-semibold text-zinc-800 text-xs sm:text-sm tabular-nums">
                             {row.totalStok} pcs
                           </span>
                         </td>
                         <td className="py-3.5 px-3 sm:px-4 text-right whitespace-nowrap">
-                          <span className="font-mono font-bold text-orange-600 text-xs sm:text-sm tabular-nums">
-                            {row.totalGram.toFixed(2)} gr
+                          <span className="font-mono font-bold text-zinc-950 text-xs sm:text-sm tabular-nums">
+                            {Number(row.totalGram.toFixed(2))} gr
                           </span>
                         </td>
                         <td className="py-3.5 px-3 sm:px-4 text-center whitespace-nowrap">
@@ -511,7 +511,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
 
       <ConfirmModal
         isOpen={!!deletingCategory}
-        title="Hapus Kategori Perhiasan"
+        title="Hapus Kategori Produk"
         description={
           deletingCategory
             ? `Apakah Anda yakin ingin menghapus kategori "${deletingCategory}"? Kategori hanya dapat dihapus jika tidak ada barang yang menggunakannya.`

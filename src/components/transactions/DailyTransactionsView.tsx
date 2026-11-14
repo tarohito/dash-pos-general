@@ -200,7 +200,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
       case 'qris':
         return {
           label: 'QRIS GPN',
-          badgeClass: 'bg-amber-50 text-amber-800 border border-amber-200/80',
+          badgeClass: 'bg-zinc-100 text-zinc-800 border border-zinc-200/80',
         };
       default:
         return {
@@ -213,13 +213,13 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
   return (
     <div className="space-y-4 pb-8">
       {/* Top Header Card */}
-      <div className="bg-white rounded-xl border border-gray-200/90 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">
+          <h3 className="text-base sm:text-lg font-bold text-zinc-950 leading-tight tracking-tight">
             Daftar Transaksi Penjualan (Kasir POS)
           </h3>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Arsip dan riwayat penjualan perhiasan, rincian pembayaran, serta cetak ulang bukti nota resmi toko.
+          <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
+            Arsip dan riwayat penjualan produk, rincian pembayaran, serta cetak ulang bukti nota resmi toko.
           </p>
         </div>
 
@@ -227,7 +227,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
           <button
             type="button"
             onClick={onNavigateToPos}
-            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-[0.98]"
+            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-[0.98]"
           >
             <Plus size={16} />
             <span>Transaksi Penjualan Baru</span>
@@ -239,50 +239,47 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <KpiCard
           title="Total Omzet Penjualan"
-          accent="orange"
           icon={<Coins size={16} strokeWidth={2} />}
           value={
             <MoneyAmount
               value={stats?.totalOmzetPenjualan ?? 0}
               maxFontPx={24}
               minFontPx={13}
-              className="font-bold font-mono text-gray-900 group-hover:text-white tracking-tight tabular-nums transition-colors duration-200"
+              className="font-bold font-mono text-zinc-950 tracking-tight tabular-nums"
             />
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
+            <p className="text-xs text-zinc-500 mt-1 truncate">
               Uang masuk penjualan aktif
             </p>
           }
         />
 
         <KpiCard
-          title="Total Berat Emas"
-          accent="amber"
+          title="Total Netto Produk"
           icon={<Scale size={16} strokeWidth={2} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 group-hover:text-white tracking-tight truncate tabular-nums transition-colors duration-200">
-              {(stats?.totalBeratTerjual ?? 0).toFixed(2)} gr
+            <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
+              {Number((stats?.totalBeratTerjual ?? 0).toFixed(2))} gr
             </div>
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
-              Fisik emas keluar terjual
+            <p className="text-xs text-zinc-500 mt-1 truncate">
+              Akumulasi netto item terjual
             </p>
           }
         />
 
         <KpiCard
           title="Total Transaksi"
-          accent="blue"
           icon={<ReceiptText size={16} strokeWidth={2} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 group-hover:text-white tracking-tight truncate tabular-nums transition-colors duration-200">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
               {stats?.totalTransaksi ?? 0} Nota
             </div>
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
+            <p className="text-xs text-zinc-500 mt-1 truncate">
               Lunas &amp; terverifikasi
             </p>
           }
@@ -290,18 +287,17 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
 
         <KpiCard
           title="Rata-rata / Nota"
-          accent="emerald"
           icon={<Building2 size={16} strokeWidth={2} />}
           value={
             <MoneyAmount
               value={stats?.avgPerTransaksi ?? 0}
               maxFontPx={24}
               minFontPx={13}
-              className="font-bold font-mono text-gray-900 group-hover:text-white tracking-tight tabular-nums transition-colors duration-200"
+              className="font-bold font-mono text-zinc-950 tracking-tight tabular-nums"
             />
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
+            <p className="text-xs text-zinc-500 mt-1 truncate">
               Rata-rata per pelanggan
             </p>
           }
@@ -309,16 +305,16 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
       </div>
 
       {/* Table Workspace Card */}
-      <div className="bg-white rounded-xl border border-gray-200/90 p-4 sm:p-5">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 mb-4">
           <SearchInput
             value={txSearchQuery}
             onChange={setTxSearchQuery}
-            placeholder="Cari no nota, pelanggan, kasir, perhiasan/SKU..."
+            placeholder="Cari no nota, pelanggan, kasir, produk/SKU..."
           />
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-            <div className="inline-flex h-9 p-0.5 bg-gray-100 rounded-lg border border-gray-200 items-center overflow-x-auto max-w-full">
+            <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-xl border border-zinc-200 items-center overflow-x-auto max-w-full">
               {[
                 { id: 'semua', label: 'Semua' },
                 { id: 'cash', label: 'Tunai' },
@@ -330,10 +326,10 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                   key={tab.id}
                   type="button"
                   onClick={() => setTxFilterMethod(tab.id)}
-                  className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-md transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
+                  className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                     txFilterMethod === tab.id
-                      ? 'bg-orange-500 text-white shadow-xs'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                      : 'text-zinc-500 hover:text-zinc-900'
                   }`}
                 >
                   {tab.label}
@@ -351,17 +347,17 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
           />
         )}
 
-        <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+        <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
           {isLoading && items.length === 0 ? (
-            <div className="py-12 px-4 flex items-center justify-center gap-2 text-xs sm:text-sm text-gray-400">
-              <Loader2 size={18} className="animate-spin text-orange-500" />
+            <div className="py-12 px-4 flex items-center justify-center gap-2 text-xs sm:text-sm text-zinc-400">
+              <Loader2 size={18} className="animate-spin text-zinc-900" />
               <span>Memuat transaksi penjualan...</span>
             </div>
           ) : items.length === 0 ? (
-            <div className="py-12 px-4 text-center text-gray-400">
-              <ReceiptText size={36} className="mx-auto mb-2 text-gray-300" />
-              <p className="text-sm font-semibold text-gray-600">Tidak ada transaksi penjualan</p>
-              <p className="text-xs text-gray-400 mt-0.5">
+            <div className="py-12 px-4 text-center text-zinc-400">
+              <ReceiptText size={36} className="mx-auto mb-2 text-zinc-300" />
+              <p className="text-sm font-semibold text-zinc-700">Tidak ada transaksi penjualan</p>
+              <p className="text-xs text-zinc-400 mt-0.5">
                 {txSearchQuery
                   ? 'Coba gunakan kata kunci pencarian yang lain.'
                   : 'Belum ada transaksi penjualan kasir yang tercatat.'}
@@ -370,7 +366,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                 <button
                   type="button"
                   onClick={onNavigateToPos}
-                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors cursor-pointer border border-orange-200"
+                  className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-zinc-900 bg-zinc-100 hover:bg-zinc-200 rounded-xl transition-colors cursor-pointer border border-zinc-200"
                 >
                   <Plus size={14} />
                   <span>Buat Transaksi Penjualan Baru</span>
@@ -380,7 +376,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
           ) : (
             <>
               {/* MOBILE CARDS (md:hidden) */}
-              <div className="md:hidden divide-y divide-gray-100">
+              <div className="md:hidden divide-y divide-zinc-100">
                 {items.map(tx => {
                   const isVoid = tx.status === 'void';
                   const firstItem = tx.items[0];
@@ -390,7 +386,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                     <div
                       key={tx.id}
                       className={`p-4 space-y-2.5 transition-colors ${
-                        isVoid ? 'bg-red-50/20 opacity-80' : 'hover:bg-orange-50/25'
+                        isVoid ? 'bg-red-50/20 opacity-80' : 'hover:bg-zinc-50/80'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -425,7 +421,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                             {remainingItems > 0 ? ` (+${remainingItems} lain)` : ''}
                           </span>
                           <span className="font-mono font-bold text-gray-800 shrink-0">
-                            {tx.totalQty} pcs &bull; {tx.totalBerat.toFixed(2)} gr
+                            {tx.totalQty} pcs &bull; {Number(tx.totalBerat.toFixed(2))} gr
                           </span>
                         </div>
                       </div>
@@ -498,7 +494,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                         className="py-3 px-4 min-w-[165px]"
                       />
                       <SortableTh
-                        label="Item Perhiasan"
+                        label="Daftar Produk"
                         sortKey="paymentMethod"
                         currentSortBy={sortBy}
                         currentSortDir={sortDir}
@@ -506,7 +502,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                         className="py-3 px-4 min-w-[220px]"
                       />
                       <SortableTh
-                        label="Berat"
+                        label="Netto"
                         sortKey="totalBerat"
                         currentSortBy={sortBy}
                         currentSortDir={sortDir}
@@ -536,7 +532,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                         <tr
                           key={tx.id}
                           className={`transition-colors ${
-                            isVoid ? 'bg-red-50/20 opacity-80' : 'hover:bg-orange-50/30'
+                            isVoid ? 'bg-red-50/20 opacity-80' : 'hover:bg-zinc-50/80'
                           }`}
                         >
                           <td className="py-3.5 px-4 whitespace-nowrap align-middle">
@@ -579,7 +575,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                               >
                                 {firstItem ? firstItem.name : '-'}
                               </span>
-                              <span className="text-xs bg-amber-50 text-amber-800 font-bold px-1.5 py-0.5 rounded border border-amber-200 font-mono shrink-0">
+                              <span className="text-xs bg-zinc-100 text-zinc-800 font-bold px-1.5 py-0.5 rounded-md border border-zinc-200/80 font-mono shrink-0">
                                 {tx.totalQty} pcs
                               </span>
                             </div>
@@ -600,7 +596,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                           </td>
 
                           <td className="py-3.5 px-4 text-right whitespace-nowrap align-middle font-mono font-bold text-gray-900 text-xs sm:text-sm tabular-nums">
-                            {tx.totalBerat.toFixed(2)} gr
+                            {Number(tx.totalBerat.toFixed(2))} gr
                           </td>
 
                           <td className="py-3.5 px-4 text-right whitespace-nowrap align-middle">

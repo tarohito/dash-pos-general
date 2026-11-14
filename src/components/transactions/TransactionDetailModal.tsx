@@ -73,9 +73,9 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
           )}
 
           {/* Highlight Banner */}
-          <div className="bg-gradient-to-r from-orange-500 to-amber-600 p-4 rounded-xl text-white shadow-xs flex items-center justify-between gap-4">
+          <div className="bg-zinc-900 p-4 rounded-2xl text-white shadow-xs flex items-center justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <span className="text-xs font-semibold uppercase tracking-wider text-orange-100 block">
+              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 block">
                 {transaction.tax > 0
                   ? 'Total Nilai Transaksi (Termasuk PPN)'
                   : 'Total Nilai Transaksi (Non-PKP / Bebas PPN)'}
@@ -88,16 +88,16 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   className="font-bold font-mono tracking-tight text-white tabular-nums"
                 />
               </div>
-              <p className="text-xs text-orange-100 mt-1">
+              <p className="text-xs text-zinc-300 mt-1">
                 Metode: <strong className="text-white">{methodLabel}</strong>
               </p>
             </div>
             <div className="hidden sm:flex flex-col items-end text-right shrink-0">
-              <span className="text-xs text-orange-100">Total Berat Emas</span>
+              <span className="text-xs text-zinc-400">Total Netto</span>
               <span className="text-xl font-bold font-mono text-white">
-                {transaction.totalBerat.toFixed(2)} gr
+                {transaction.totalBerat.toFixed(0)} gr
               </span>
-              <span className="text-xs text-orange-200 mt-0.5 font-medium">
+              <span className="text-xs text-zinc-300 mt-0.5 font-medium">
                 Jumlah Item: {transaction.totalQty} pcs
               </span>
             </div>
@@ -230,7 +230,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Card 3: Daftar Perhiasan & Rincian Harga */}
+          {/* Card 3: Daftar Produk & Rincian Harga */}
           <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl p-3.5">
             <div className="text-xs font-bold text-gray-800 pb-2 border-b border-gray-200/60 mb-2.5">
               Rincian Barang &amp; Kalkulasi Harga
@@ -242,7 +242,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-semibold text-gray-900 truncate">{item.name}</span>
-                      <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono text-xs font-bold">
+                      <span className="px-1.5 py-0.5 rounded-md bg-zinc-100 text-zinc-800 border border-zinc-200 font-mono text-xs font-bold">
                         {item.berat.toFixed(2)} gr
                       </span>
                     </div>
@@ -274,7 +274,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               </div>
               <div className="pt-2 border-t border-gray-200 flex justify-between items-center text-sm">
                 <span className="font-bold text-gray-900">Grand Total Pembayaran</span>
-                <span className="font-mono font-bold text-orange-600 text-base tabular-nums">
+                <span className="font-mono font-bold text-zinc-950 text-base tabular-nums">
                   {formatIDR(transaction.grandTotal)}
                 </span>
               </div>

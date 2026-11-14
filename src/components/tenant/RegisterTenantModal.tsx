@@ -50,7 +50,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
     const cleanEmail = email.trim();
 
     if (!cleanName || cleanName.length < 3) {
-      failValidation('Nama bisnis / toko emas wajib diisi (minimal 3 karakter).');
+      failValidation('Nama bisnis / toko wajib diisi (minimal 3 karakter).');
       return;
     }
     if (!cleanBranch || cleanBranch.length < 3) {
@@ -70,9 +70,9 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
       .split(' ')
       .slice(0, 2)
       .map(w => w[0]?.toUpperCase() || '')
-      .join('') || 'EP';
+      .join('') || 'LP';
 
-    const cleanSlug = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') + '.epaper.id';
+    const cleanSlug = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') + '.logicpos.id';
     const code = 'TEN-' + Math.floor(100 + Math.random() * 900);
 
     const newTenant: Tenant = {
@@ -166,11 +166,11 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
           <div>
             <h3 className="text-lg sm:text-xl font-bold text-gray-900">Selamat! Tenant Berhasil Terdaftar</h3>
             <p className="text-xs sm:text-sm text-gray-500 mt-1 max-w-sm mx-auto">
-              Bisnis Anda telah resmi bergabung ke dalam cloud multi-tenant e.paper POS. Sistem kini aktif untuk tenant ini.
+              Bisnis Anda telah resmi bergabung ke dalam cloud multi-tenant LogicPOS. Sistem kini aktif untuk tenant ini.
             </p>
           </div>
 
-          <div className="bg-orange-50/70 border border-orange-200/80 rounded-lg p-4 text-left space-y-2 text-xs sm:text-sm">
+          <div className="bg-zinc-50 border border-zinc-200/80 rounded-xl p-4 text-left space-y-2 text-xs sm:text-sm">
             <div className="flex justify-between">
               <span className="text-gray-500 font-medium">Nama Bisnis:</span>
               <span className="font-bold text-gray-900">{createdTenant.name}</span>
@@ -181,7 +181,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500 font-medium">Kode Tenant:</span>
-              <span className="font-mono font-bold text-orange-600">{createdTenant.code}</span>
+              <span className="font-mono font-bold text-zinc-950">{createdTenant.code}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500 font-medium">Domain POS:</span>
@@ -206,22 +206,22 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
               <div>
                 <p className="font-bold text-xs sm:text-sm">Multi-Tenant Cloud Isolation</p>
                 <p className="text-xs text-amber-800/90 mt-0.5 leading-relaxed">
-                  Setiap tenant toko emas memiliki database terisolasi, hak akses kasir terpisah, stok mandiri, dan laporan omzet real-time.
+                  Setiap tenant memiliki database terisolasi, hak akses kasir terpisah, stok mandiri, dan laporan omzet real-time.
                 </p>
               </div>
             </div>
 
             <div>
               <label className="font-semibold text-gray-800 block mb-1.5 text-xs sm:text-sm">
-                Nama Bisnis / Toko Emas <span className="text-red-500">*</span>
+                Nama Bisnis / Toko <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 required
-                placeholder="Cth: Toko Mas Berlian Abadi"
+                placeholder="Cth: Toko Maju Abadi"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-orange-500 focus:bg-white text-sm font-semibold"
+                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 focus:bg-white text-sm font-semibold"
               />
             </div>
 
@@ -236,7 +236,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                   placeholder="Cth: Cabang Mall Kelapa Gading"
                   value={branchName}
                   onChange={e => setBranchName(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-orange-500 focus:bg-white text-sm font-medium"
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 focus:bg-white text-sm font-medium"
                 />
               </div>
 
@@ -247,7 +247,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                   placeholder="Cth: Jakarta Utara"
                   value={city}
                   onChange={e => setCity(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-orange-500 focus:bg-white text-sm font-medium"
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 focus:bg-white text-sm font-medium"
                 />
               </div>
             </div>
@@ -259,7 +259,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                 placeholder="Cth: Jl. Boulevard Raya Blok M No. 8, Mall Kelapa Gading Lt. Dasar"
                 value={address}
                 onChange={e => setAddress(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-orange-500 focus:bg-white text-sm font-medium"
+                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 focus:bg-white text-sm font-medium"
               />
             </div>
 
@@ -271,7 +271,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                   placeholder="Cth: Ibu Veronica"
                   value={ownerName}
                   onChange={e => setOwnerName(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-orange-500 focus:bg-white text-sm font-medium"
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 focus:bg-white text-sm font-medium"
                 />
               </div>
 
@@ -282,7 +282,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                   placeholder="0812-xxxx-xxxx"
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-orange-500 focus:bg-white text-sm font-mono"
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 focus:bg-white text-sm font-mono"
                 />
               </div>
 
@@ -290,16 +290,16 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                 <label className="font-semibold text-gray-800 block mb-1.5 text-xs sm:text-sm">Email Toko</label>
                 <input
                   type="email"
-                  placeholder="admin@tokoemas.com"
+                  placeholder="admin@tokobaru.id"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-orange-500 focus:bg-white text-sm font-medium"
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 focus:bg-white text-sm font-medium"
                 />
               </div>
             </div>
 
             <div>
-              <label className="font-semibold text-gray-800 block mb-1.5 text-xs sm:text-sm">Pilihan Paket Kemitraan e.paper</label>
+              <label className="font-semibold text-gray-800 block mb-1.5 text-xs sm:text-sm">Pilihan Paket Layanan LogicPOS</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {[
                   {
@@ -317,10 +317,10 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                 ].map(item => (
                   <label
                     key={item.id}
-                    className={`p-3 rounded-md border cursor-pointer transition-all flex flex-col justify-between ${
+                    className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
                       plan === item.id
-                        ? 'border-orange-500 bg-orange-50/70 text-orange-950 font-bold'
-                        : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
+                        ? 'border-zinc-900 ring-1 ring-zinc-900 bg-zinc-50 text-zinc-950 font-bold'
+                        : 'border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -330,7 +330,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                         name="plan"
                         checked={plan === item.id}
                         onChange={() => setPlan(item.id)}
-                        className="w-4 h-4 accent-orange-500 cursor-pointer"
+                        className="w-4 h-4 accent-zinc-900 cursor-pointer"
                       />
                     </div>
                     <p className="text-xs text-gray-500 mt-1 font-normal leading-relaxed">{item.desc}</p>

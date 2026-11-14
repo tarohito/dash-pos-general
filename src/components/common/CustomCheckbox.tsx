@@ -34,14 +34,14 @@ export const CustomCheckbox: React.FC<CustomCheckboxProps> = ({
       />
       <span
         aria-hidden="true"
-        className={`w-[18px] h-[18px] rounded-[5px] border flex items-center justify-center transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-orange-500 ${
+        className={`w-[18px] h-[18px] rounded-[5px] border flex items-center justify-center transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-zinc-900 ${
           disabled
             ? checked
-              ? 'bg-orange-300 border-orange-300 text-white cursor-not-allowed'
-              : 'bg-gray-100 border-gray-200 text-transparent cursor-not-allowed'
+              ? 'bg-zinc-400 border-zinc-400 text-white cursor-not-allowed'
+              : 'bg-zinc-100 border-zinc-200 text-transparent cursor-not-allowed'
             : checked
-            ? 'bg-orange-500 border-orange-500 text-white cursor-pointer'
-            : 'bg-white border-gray-300 hover:border-orange-400 text-transparent cursor-pointer'
+            ? 'bg-zinc-900 border-zinc-900 text-white cursor-pointer'
+            : 'bg-white border-zinc-300 hover:border-zinc-500 text-transparent cursor-pointer'
         }`}
       >
         <Check size={12} strokeWidth={3} className={checked ? 'opacity-100' : 'opacity-0'} />

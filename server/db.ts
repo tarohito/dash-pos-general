@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import fs from 'fs';
 import path from 'path';
 import type {
+  AppThemeId,
   BroadcastAudienceMode,
   BroadcastCustomerAudienceItem,
   BroadcastDeliveryMode,
@@ -231,31 +232,31 @@ db.exec(`
     goldPrice22kBuyback INTEGER NOT NULL DEFAULT 1950000,
     goldPrice18kBuyback INTEGER NOT NULL DEFAULT 1420000,
     goldPrice16kBuyback INTEGER NOT NULL DEFAULT 1180000,
-    receiptTagline TEXT NOT NULL DEFAULT 'GOLD & JEWELLERY',
-    receiptFooterNote TEXT NOT NULL DEFAULT 'Barang yang sudah dibeli dapat dijual kembali (buyback) dengan menyertakan surat nota resmi ini.',
-    receiptSaleTitle TEXT NOT NULL DEFAULT 'FAKTUR PENJUALAN EMAS',
-    receiptBuybackTitle TEXT NOT NULL DEFAULT 'SURAT PEMBELIAN KEMBALI (BUYBACK)',
+    receiptTagline TEXT NOT NULL DEFAULT '',
+    receiptFooterNote TEXT NOT NULL DEFAULT 'Terima kasih telah berbelanja di {TOKO}.',
+    receiptSaleTitle TEXT NOT NULL DEFAULT '',
+    receiptBuybackTitle TEXT NOT NULL DEFAULT 'SURAT PEMBELIAN KEMBALI',
     receiptHeaderExtra TEXT NOT NULL DEFAULT '',
-    receiptTheme TEXT NOT NULL DEFAULT 'classic_gold',
+    receiptTheme TEXT NOT NULL DEFAULT 'midnight_navy',
     receiptDefaultPaperSize TEXT NOT NULL DEFAULT 'a5',
-    receiptLogoPreset TEXT NOT NULL DEFAULT 'crown',
+    receiptLogoPreset TEXT NOT NULL DEFAULT 'monogram',
     receiptCustomLogoUrl TEXT NOT NULL DEFAULT '',
-    receiptShowWatermark INTEGER NOT NULL DEFAULT 1,
+    receiptShowWatermark INTEGER NOT NULL DEFAULT 0,
     receiptWatermarkOpacity INTEGER NOT NULL DEFAULT 6,
     receiptShowStoreAddress INTEGER NOT NULL DEFAULT 1,
-    receiptShowBarcode INTEGER NOT NULL DEFAULT 1,
-    receiptShowQrCode INTEGER NOT NULL DEFAULT 1,
-    receiptShowPhoto INTEGER NOT NULL DEFAULT 1,
-    receiptShowItemSku INTEGER NOT NULL DEFAULT 1,
+    receiptShowBarcode INTEGER NOT NULL DEFAULT 0,
+    receiptShowQrCode INTEGER NOT NULL DEFAULT 0,
+    receiptShowPhoto INTEGER NOT NULL DEFAULT 0,
+    receiptShowItemSku INTEGER NOT NULL DEFAULT 0,
     receiptShowTaxLine INTEGER NOT NULL DEFAULT 1,
     receiptShowCashierName INTEGER NOT NULL DEFAULT 1,
-    receiptShowTerms INTEGER NOT NULL DEFAULT 1,
-    receiptTermsTitle TEXT NOT NULL DEFAULT 'Perhatian :',
+    receiptShowTerms INTEGER NOT NULL DEFAULT 0,
+    receiptTermsTitle TEXT NOT NULL DEFAULT 'Catatan:',
     receiptTermsText TEXT NOT NULL DEFAULT '',
-    receiptShowSignatures INTEGER NOT NULL DEFAULT 1,
+    receiptShowSignatures INTEGER NOT NULL DEFAULT 0,
     receiptSignatureGreeting TEXT NOT NULL DEFAULT 'Hormat Kami,',
-    receiptCustomerSignLabel TEXT NOT NULL DEFAULT 'Customer',
-    receiptCashierSignLabel TEXT NOT NULL DEFAULT 'Kasir / Gold Advisor',
+    receiptCustomerSignLabel TEXT NOT NULL DEFAULT 'Pelanggan',
+    receiptCashierSignLabel TEXT NOT NULL DEFAULT 'Kasir',
     autoPrintReceipt INTEGER NOT NULL DEFAULT 0,
     requireCustomerOnSale INTEGER NOT NULL DEFAULT 0,
     updatedAt TEXT NOT NULL,
@@ -478,6 +479,668 @@ function safeJsonParse<T>(raw: string | null | undefined, fallback: T): T {
   }
 }
 
+const RETAIL_IMG = {
+  parfum: '/assets/products/parfum.jpg',
+  serum: '/assets/products/serum.jpg',
+  cream: '/assets/products/cream.jpg',
+  bodycare: '/assets/products/bodycare.jpg',
+  makeup: '/assets/products/makeup.jpg',
+};
+
+const RETAIL_CATEGORIES = [
+  'Parfum',
+  'Skincare',
+  'Body Care',
+  'Make Up',
+  'Hair Care',
+  'Paket Bundling',
+  'Aksesoris',
+];
+
+const RETAIL_PRODUCTS: Array<Omit<Product, 'isPromo' | 'promoDiscountPercent' | 'promoLabel'>> = [
+  // Parfum (1 - 8)
+  { id: 1, sku: 'PF-001', name: 'Eau de Parfum Vanilla Noir 50ml', berat: 50, harga: 285000, stok: 18, category: 'Parfum', image: RETAIL_IMG.parfum },
+  { id: 2, sku: 'PF-002', name: 'Eau de Parfum White Musk 100ml', berat: 100, harga: 395000, stok: 12, category: 'Parfum', image: RETAIL_IMG.parfum },
+  { id: 3, sku: 'PF-003', name: 'Eau de Parfum Oud & Amber 50ml', berat: 50, harga: 345000, stok: 9, category: 'Parfum', image: RETAIL_IMG.parfum },
+  { id: 4, sku: 'PF-004', name: 'Eau de Parfum Bergamot Cedar 30ml', berat: 30, harga: 195000, stok: 24, category: 'Parfum', image: RETAIL_IMG.parfum },
+  { id: 5, sku: 'PF-005', name: 'Extrait de Parfum Velvet Rose 50ml', berat: 50, harga: 450000, stok: 7, category: 'Parfum', image: RETAIL_IMG.parfum },
+  { id: 6, sku: 'PF-006', name: 'Eau de Toilette Fresh Neroli 100ml', berat: 100, harga: 265000, stok: 14, category: 'Parfum', image: RETAIL_IMG.parfum },
+  { id: 7, sku: 'PF-007', name: 'Body Mist Sakura Bloom 150ml', berat: 150, harga: 115000, stok: 30, category: 'Parfum', image: RETAIL_IMG.parfum },
+  { id: 8, sku: 'PF-008', name: 'Unisex Parfum Woody Vetiver 50ml', berat: 50, harga: 325000, stok: 11, category: 'Parfum', image: RETAIL_IMG.parfum },
+
+  // Skincare (9 - 18)
+  { id: 9, sku: 'SK-001', name: 'Niacinamide 10% + Zinc Serum 30ml', berat: 30, harga: 139000, stok: 26, category: 'Skincare', image: RETAIL_IMG.serum },
+  { id: 10, sku: 'SK-002', name: 'Vitamin C Brightening Serum 30ml', berat: 30, harga: 159000, stok: 22, category: 'Skincare', image: RETAIL_IMG.serum },
+  { id: 11, sku: 'SK-003', name: 'Encapsulated Retinol Night Serum 20ml', berat: 20, harga: 175000, stok: 15, category: 'Skincare', image: RETAIL_IMG.serum },
+  { id: 12, sku: 'SK-004', name: 'Hyaluronic Acid Hydration Serum 30ml', berat: 30, harga: 145000, stok: 19, category: 'Skincare', image: RETAIL_IMG.serum },
+  { id: 13, sku: 'SK-005', name: '5X Ceramide Barrier Moisturizer 50g', berat: 50, harga: 149000, stok: 28, category: 'Skincare', image: RETAIL_IMG.cream },
+  { id: 14, sku: 'SK-006', name: 'Centella Asiatica Soothing Gel 80g', berat: 80, harga: 125000, stok: 20, category: 'Skincare', image: RETAIL_IMG.cream },
+  { id: 15, sku: 'SK-007', name: 'UV Shield Aqua Sunscreen SPF 50 PA++++ 40ml', berat: 40, harga: 118000, stok: 32, category: 'Skincare', image: RETAIL_IMG.cream },
+  { id: 16, sku: 'SK-008', name: 'Amino Acid Low pH Facial Wash 100ml', berat: 100, harga: 89000, stok: 25, category: 'Skincare', image: RETAIL_IMG.bodycare },
+  { id: 17, sku: 'SK-009', name: 'Hydro Essence Soothing Toner 120ml', berat: 120, harga: 112000, stok: 16, category: 'Skincare', image: RETAIL_IMG.serum },
+  { id: 18, sku: 'SK-010', name: 'Mugwort Clay Pore Clarifying Mask 60g', berat: 60, harga: 109000, stok: 14, category: 'Skincare', image: RETAIL_IMG.cream },
+
+  // Body Care (19 - 23)
+  { id: 19, sku: 'BC-001', name: 'Botanical Shea Body Lotion 250ml', berat: 250, harga: 129000, stok: 18, category: 'Body Care', image: RETAIL_IMG.bodycare },
+  { id: 20, sku: 'BC-002', name: 'Coffee & Almond Brightening Body Scrub 200g', berat: 200, harga: 98000, stok: 21, category: 'Body Care', image: RETAIL_IMG.cream },
+  { id: 21, sku: 'BC-003', name: 'Eucalyptus Relaxing Shower Gel 300ml', berat: 300, harga: 95000, stok: 17, category: 'Body Care', image: RETAIL_IMG.bodycare },
+  { id: 22, sku: 'BC-004', name: 'Intensive Rose Hand & Nail Cream 50g', berat: 50, harga: 68000, stok: 28, category: 'Body Care', image: RETAIL_IMG.cream },
+  { id: 23, sku: 'BC-005', name: 'Niacinamide Brightening Body Serum 180ml', berat: 180, harga: 119000, stok: 15, category: 'Body Care', image: RETAIL_IMG.bodycare },
+
+  // Make Up (24 - 28)
+  { id: 24, sku: 'MU-001', name: 'Velvet Matte Lip Tint - Rosewood 4g', berat: 4, harga: 85000, stok: 30, category: 'Make Up', image: RETAIL_IMG.makeup },
+  { id: 25, sku: 'MU-002', name: 'Silk Cushion Matte Foundation SPF 35 15g', berat: 15, harga: 189000, stok: 16, category: 'Make Up', image: RETAIL_IMG.makeup },
+  { id: 26, sku: 'MU-003', name: 'Micro-Blur Translucent Loose Powder 20g', berat: 20, harga: 135000, stok: 19, category: 'Make Up', image: RETAIL_IMG.makeup },
+  { id: 27, sku: 'MU-004', name: 'Soft Cream Cheek Blush - Peach Nude 10g', berat: 10, harga: 99000, stok: 22, category: 'Make Up', image: RETAIL_IMG.makeup },
+  { id: 28, sku: 'MU-005', name: 'Volume Curl Waterproof Mascara 8g', berat: 8, harga: 108000, stok: 0, category: 'Make Up', image: RETAIL_IMG.makeup },
+
+  // Hair Care (29 - 31)
+  { id: 29, sku: 'HC-001', name: 'Moroccan Argan Hair Repair Serum 60ml', berat: 60, harga: 142000, stok: 14, category: 'Hair Care', image: RETAIL_IMG.serum },
+  { id: 30, sku: 'HC-002', name: 'Keratin Smooth Intensive Hair Mask 200g', berat: 200, harga: 128000, stok: 12, category: 'Hair Care', image: RETAIL_IMG.cream },
+  { id: 31, sku: 'HC-003', name: 'Ginseng & Rosemary Hair Tonic 100ml', berat: 100, harga: 115000, stok: 17, category: 'Hair Care', image: RETAIL_IMG.bodycare },
+
+  // Paket Bundling (32 - 34)
+  { id: 32, sku: 'PB-001', name: 'Signature Gift Hampers Parfum + Lotion', berat: 300, harga: 389000, stok: 8, category: 'Paket Bundling', image: RETAIL_IMG.parfum },
+  { id: 33, sku: 'PB-002', name: 'Glowing Basic Skincare 3-Step Set', berat: 180, harga: 359000, stok: 11, category: 'Paket Bundling', image: RETAIL_IMG.serum },
+  { id: 34, sku: 'PB-003', name: 'Fragrance Discovery Travel Set (4x10ml)', berat: 40, harga: 249000, stok: 15, category: 'Paket Bundling', image: RETAIL_IMG.parfum },
+
+  // Aksesoris (35 - 36)
+  { id: 35, sku: 'AK-001', name: 'Refillable Perfume Travel Atomizer 10ml', berat: 10, harga: 49000, stok: 35, category: 'Aksesoris', image: RETAIL_IMG.parfum },
+  { id: 36, sku: 'AK-002', name: 'Pro Blending Sponge & Brush Pouch Set', berat: 45, harga: 79000, stok: 0, category: 'Aksesoris', image: RETAIL_IMG.makeup },
+];
+
+const RETAIL_CUSTOMERS: Customer[] = [
+  {
+    id: 'CUST-001',
+    memberCode: 'MBR-001',
+    name: 'Hj. Siti Rahmah',
+    phone: '081234567890',
+    nik: '3201124508780001',
+    type: 'VIP',
+    address: 'Jl. Riau No. 45, Bandung',
+    preferredKadar: 'Parfum EDP',
+    ringSize: '-',
+    notes: 'Pelanggan langganan parfum Vanilla Noir & paket hampers.',
+    createdAt: '2026-01-15',
+    totalSpent: 4850000,
+    totalTransactions: 6,
+  },
+  {
+    id: 'CUST-002',
+    memberCode: 'MBR-002',
+    name: 'Bpk. Hendra Wijaya',
+    phone: '081298765432',
+    nik: '3171051906800002',
+    type: 'VIP',
+    address: 'Apartemen Sudirman Park Tower B-12, Jakarta',
+    preferredKadar: 'Parfum Unisex',
+    ringSize: '-',
+    notes: 'Kolektor parfum Woody Vetiver, Oud & Amber.',
+    createdAt: '2026-03-20',
+    totalSpent: 5400000,
+    totalTransactions: 4,
+  },
+  {
+    id: 'CUST-003',
+    memberCode: 'MBR-003',
+    name: 'Ibu Ratna Dewi',
+    phone: '085612349876',
+    nik: '3273016405850003',
+    type: 'Reguler',
+    address: 'Komplek Permata Buah Batu Blok C-8, Bandung',
+    preferredKadar: 'Skincare Ceramide',
+    ringSize: '-',
+    notes: 'Rutin belanja Ceramide Moisturizer dan Aqua Sunscreen.',
+    createdAt: '2026-05-10',
+    totalSpent: 1850000,
+    totalTransactions: 3,
+  },
+  {
+    id: 'CUST-004',
+    memberCode: 'MBR-004',
+    name: 'Budi Santoso',
+    phone: '081987654321',
+    nik: '3204101202880004',
+    type: 'Reguler',
+    address: 'Jl. Cihanjuang No. 102, Cimahi',
+    preferredKadar: 'Body Care',
+    ringSize: '-',
+    notes: 'Suka shower gel eucalyptus & hair tonic ginseng.',
+    createdAt: '2026-07-02',
+    totalSpent: 960000,
+    totalTransactions: 2,
+  },
+  {
+    id: 'CUST-005',
+    memberCode: 'MBR-005',
+    name: 'Butik Cantik Nusantara (Bpk. Chandra)',
+    phone: '081322334455',
+    nik: '3578010504750005',
+    type: 'Mitra / Toko',
+    address: 'Pasar Atom Tahap 2 Lt. Dasar No. 18, Surabaya',
+    preferredKadar: 'Paket Grosir',
+    ringSize: '-',
+    notes: 'Mitra reseller parfum EDP, skincare serum, dan gift hampers.',
+    createdAt: '2026-02-11',
+    totalSpent: 18500000,
+    totalTransactions: 12,
+  },
+  {
+    id: 'CUST-006',
+    memberCode: 'MBR-006',
+    name: 'Ibu Wulandari Kartika',
+    phone: '081277665544',
+    nik: '3174095403830006',
+    type: 'VIP',
+    address: 'Jl. Kemang Timur No. 19, Jakarta Selatan',
+    preferredKadar: 'Skincare Brightening',
+    ringSize: '-',
+    notes: 'Pembeli rutin Vitamin C Serum & Silk Cushion Foundation.',
+    createdAt: '2026-04-05',
+    totalSpent: 3920000,
+    totalTransactions: 5,
+  },
+  {
+    id: 'CUST-007',
+    memberCode: 'MBR-007',
+    name: 'Sdr. Bagus Pratama',
+    phone: '085788991122',
+    nik: '3173041109940007',
+    type: 'Reguler',
+    address: 'Jl. Tanjung Duren Barat IV No. 8, Jakarta Barat',
+    preferredKadar: 'Parfum Citrus',
+    ringSize: '-',
+    notes: 'Suka EDP Bergamot Cedar & facial wash low pH.',
+    createdAt: '2026-06-18',
+    totalSpent: 840000,
+    totalTransactions: 2,
+  },
+  {
+    id: 'CUST-008',
+    memberCode: 'MBR-008',
+    name: 'Ny. Melati Kusuma',
+    phone: '081399887766',
+    nik: '3171034807790008',
+    type: 'VIP',
+    address: 'Menteng Residence Blok A-3, Jakarta Pusat',
+    preferredKadar: 'Extrait Parfum',
+    ringSize: '-',
+    notes: 'Pelanggan prioritas Extrait Velvet Rose & Retinol Night Serum.',
+    createdAt: '2026-01-28',
+    totalSpent: 6400000,
+    totalTransactions: 7,
+  },
+  {
+    id: 'CUST-009',
+    memberCode: 'MBR-009',
+    name: 'Ibu Nurhayati',
+    phone: '082144556677',
+    nik: '3275026108860009',
+    type: 'Reguler',
+    address: 'Perum Harapan Indah Blok EF-12, Bekasi',
+    preferredKadar: 'Make Up Daily',
+    ringSize: '-',
+    notes: 'Suka velvet lip tint, loose powder, & body lotion shea.',
+    createdAt: '2026-08-12',
+    totalSpent: 720000,
+    totalTransactions: 2,
+  },
+  {
+    id: 'CUST-010',
+    memberCode: 'MBR-010',
+    name: 'dr. Karina Maharani',
+    phone: '081122334455',
+    nik: '3174045211900010',
+    type: 'VIP',
+    address: 'Jl. Senopati Raya No. 64, Kebayoran Baru, Jakarta Selatan',
+    preferredKadar: 'Skincare Sensitive',
+    ringSize: '-',
+    notes: 'Preferensi produk skincare bebas alkohol & Centella Soothing Gel.',
+    createdAt: '2026-03-09',
+    totalSpent: 3420000,
+    totalTransactions: 4,
+  },
+  {
+    id: 'CUST-011',
+    memberCode: 'MBR-011',
+    name: 'Bpk. Agus Salim',
+    phone: '081566778899',
+    nik: '3671011505810011',
+    type: 'Reguler',
+    address: 'Jl. Daan Mogot KM 12 No. 55, Tangerang',
+    preferredKadar: 'Parfum Travel',
+    ringSize: '-',
+    notes: 'Sering membeli Fragrance Discovery Set untuk dinas luar kota.',
+    createdAt: '2026-07-24',
+    totalSpent: 1280000,
+    totalTransactions: 3,
+  },
+  {
+    id: 'CUST-012',
+    memberCode: 'MBR-012',
+    name: 'Siti Aminah',
+    phone: '085233445566',
+    nik: '3175064304960012',
+    type: 'Reguler',
+    address: 'Jl. Rawamangun Muka No. 21, Jakarta Timur',
+    preferredKadar: 'Body Mist & Lip Tint',
+    ringSize: '-',
+    notes: 'Sering beli Body Mist Sakura Bloom & kado ulang tahun.',
+    createdAt: '2026-09-03',
+    totalSpent: 650000,
+    totalTransactions: 2,
+  },
+  {
+    id: 'CUST-013',
+    memberCode: 'MBR-013',
+    name: 'CV Berkah Kosmetik Nusantara',
+    phone: '081788990011',
+    nik: '3172021801740013',
+    type: 'Mitra / Toko',
+    address: 'Jl. Cikini Raya No. 88, Jakarta Pusat',
+    preferredKadar: 'Skincare & Body Care',
+    ringSize: '-',
+    notes: 'Mitra distributor produk perawatan kulit & paket bundling.',
+    createdAt: '2026-02-25',
+    totalSpent: 14200000,
+    totalTransactions: 9,
+  },
+  {
+    id: 'CUST-014',
+    memberCode: 'MBR-014',
+    name: 'Ibu Yuniarti Susilo',
+    phone: '081855443322',
+    nik: '3276035906840014',
+    type: 'Reguler',
+    address: 'Pesona Khayangan Blok D-10, Depok',
+    preferredKadar: 'Hair Care',
+    ringSize: '-',
+    notes: 'Langganan Moroccan Argan Hair Serum & Keratin Hair Mask.',
+    createdAt: '2026-06-29',
+    totalSpent: 1140000,
+    totalTransactions: 2,
+  },
+  {
+    id: 'CUST-015',
+    memberCode: 'MBR-015',
+    name: 'Rizky Ramadhan & Nabila',
+    phone: '081266554433',
+    nik: '3174012208930015',
+    type: 'VIP',
+    address: 'Jl. Tebet Barat Dalam IX No. 14, Jakarta Selatan',
+    preferredKadar: 'Gift Hampers',
+    ringSize: '-',
+    notes: 'Pembeli paket hampers seserahan parfum & skincare glowing set.',
+    createdAt: '2026-10-14',
+    totalSpent: 2650000,
+    totalTransactions: 2,
+  },
+  {
+    id: 'CUST-016',
+    memberCode: 'MBR-016',
+    name: 'Hj. Fatimah Az-Zahra',
+    phone: '081344556611',
+    nik: '3175016702760016',
+    type: 'VIP',
+    address: 'Jl. Matraman Raya No. 112, Jakarta Timur',
+    preferredKadar: 'Parfum Oud & Body Care',
+    ringSize: '-',
+    notes: 'Kolektor parfum Oud & Amber serta Botanical Shea Body Lotion.',
+    createdAt: '2026-01-19',
+    totalSpent: 5200000,
+    totalTransactions: 5,
+  },
+];
+
+const RETAIL_PROMOS: PromoCampaign[] = [
+  {
+    id: 'PRM-001',
+    name: 'Promo Signature Parfum 15%',
+    code: 'PARFUM15',
+    discountPercent: 15,
+    label: 'Diskon 15%',
+    startDate: '2026-11-01',
+    endDate: '2026-11-30',
+    productIds: [1, 2, 3, 5],
+    isActive: true,
+    minPurchase: 250000,
+    description: 'Potongan spesial 15% untuk koleksi Eau de Parfum & Extrait pilihan.',
+  },
+  {
+    id: 'PRM-002',
+    name: 'Skincare Glowing Week',
+    code: 'GLOW10',
+    discountPercent: 10,
+    label: 'Diskon 10%',
+    startDate: '2026-11-05',
+    endDate: '2026-11-25',
+    productIds: [9, 10, 13, 15],
+    isActive: true,
+    minPurchase: 150000,
+    description: 'Diskon 10% untuk rangkaian serum pencerah, ceramide moisturizer, dan sunscreen.',
+  },
+  {
+    id: 'PRM-003',
+    name: 'Self-Care Body & Hair Treats',
+    code: 'BODYCARE8',
+    discountPercent: 8,
+    label: 'Diskon 8%',
+    startDate: '2026-11-10',
+    endDate: '2026-11-28',
+    productIds: [19, 20, 29, 30],
+    isActive: true,
+    minPurchase: 100000,
+    description: 'Potongan langsung untuk produk body lotion, body scrub, dan hair care pilihan.',
+  },
+  {
+    id: 'PRM-004',
+    name: 'Flawless Make Up Promo',
+    code: 'BEAUTY12',
+    discountPercent: 12,
+    label: 'Diskon 12%',
+    startDate: '2026-11-01',
+    endDate: '2026-11-30',
+    productIds: [24, 25, 26],
+    isActive: true,
+    description: 'Harga spesial untuk koleksi lip tint, cushion foundation, dan loose powder.',
+  },
+  {
+    id: 'PRM-005',
+    name: 'Gift Hampers & Bundling Hemat',
+    code: 'HAMPERS10',
+    discountPercent: 10,
+    label: 'Diskon 10%',
+    startDate: '2026-11-08',
+    endDate: '2026-11-24',
+    productIds: [32, 33, 34],
+    isActive: true,
+    description: 'Diskon paket bundling kado parfum, skincare set, dan travel discovery set.',
+  },
+  {
+    id: 'PRM-006',
+    name: 'Promo Payday Oktober',
+    code: 'PAYDAY5',
+    discountPercent: 5,
+    label: 'Diskon 5%',
+    startDate: '2026-10-25',
+    endDate: '2026-10-31',
+    productIds: [4, 7, 16],
+    isActive: false,
+    minPurchase: 100000,
+    description: 'Program promo gajian akhir bulan Oktober (periode selesai).',
+  },
+];
+
+function buildRetailSeedTransactions(): Transaction[] {
+  const prodMap = new Map(RETAIL_PRODUCTS.map(p => [p.id, p]));
+  const buildTx = (cfg: {
+    id: string;
+    invoiceNo: string;
+    isoDate: string;
+    cashier: string;
+    customerName: string;
+    lines: Array<{ productId: number; qty: number }>;
+    paymentMethod: 'cash' | 'debit' | 'transfer' | 'qris';
+    paymentDetails: PaymentDetails;
+  }): Transaction => {
+    const d = new Date(cfg.isoDate);
+    const items: TransactionItem[] = cfg.lines.map(l => {
+      const p = prodMap.get(l.productId)!;
+      return {
+        id: p.id,
+        sku: p.sku,
+        name: p.name,
+        berat: p.berat,
+        harga: p.harga,
+        qty: l.qty,
+        subtotal: p.harga * l.qty,
+        image: p.image,
+      };
+    });
+    const subtotal = items.reduce((s, it) => s + it.subtotal, 0);
+    const tax = Math.round(subtotal * 0.11);
+    const grandTotal = subtotal + tax;
+    const totalQty = items.reduce((s, it) => s + it.qty, 0);
+    const totalBerat = parseFloat(items.reduce((s, it) => s + it.berat * it.qty, 0).toFixed(2));
+    const paymentDetails: PaymentDetails =
+      cfg.paymentMethod === 'cash' && cfg.paymentDetails.cashReceived !== undefined
+        ? {
+            ...cfg.paymentDetails,
+            cashChange: Math.max(0, cfg.paymentDetails.cashReceived - grandTotal),
+          }
+        : cfg.paymentDetails;
+
+    return {
+      id: cfg.id,
+      invoiceNo: cfg.invoiceNo,
+      dateTime: d.toISOString(),
+      dateStr: d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+      timeStr: d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+      cashier: cfg.cashier,
+      customerName: cfg.customerName,
+      items,
+      totalQty,
+      totalBerat,
+      subtotal,
+      tax,
+      grandTotal,
+      paymentMethod: cfg.paymentMethod,
+      paymentDetails,
+    };
+  };
+
+  return [
+    buildTx({
+      id: 'TRX-20261101-001',
+      invoiceNo: 'TRX-20261101-001',
+      isoDate: '2026-11-01T10:15:00',
+      cashier: 'Siti Nurhaliza (Kasir 1)',
+      customerName: 'Ibu Wulandari Kartika',
+      lines: [
+        { productId: 10, qty: 1 },
+        { productId: 25, qty: 1 },
+      ],
+      paymentMethod: 'transfer',
+      paymentDetails: { transferBank: 'BCA', transferAccountNo: '5400192831', transferRef: 'TRF-261101-8812' },
+    }),
+    buildTx({
+      id: 'TRX-20261102-001',
+      invoiceNo: 'TRX-20261102-001',
+      isoDate: '2026-11-02T14:20:00',
+      cashier: 'Dewi Lestari (Kasir 2)',
+      customerName: 'Siti Aminah',
+      lines: [
+        { productId: 7, qty: 1 },
+        { productId: 24, qty: 1 },
+      ],
+      paymentMethod: 'qris',
+      paymentDetails: { qrisNmid: 'ID102003928192', qrisRrn: 'RRN2611024410' },
+    }),
+    buildTx({
+      id: 'TRX-20261103-001',
+      invoiceNo: 'TRX-20261103-001',
+      isoDate: '2026-11-03T11:40:00',
+      cashier: 'Siti Nurhaliza (Kasir 1)',
+      customerName: 'Hj. Siti Rahmah',
+      lines: [
+        { productId: 1, qty: 1 },
+        { productId: 32, qty: 1 },
+      ],
+      paymentMethod: 'debit',
+      paymentDetails: { debitBank: 'Mandiri', debitCardLast4: '4419', debitApprovalCode: 'AUTH-774102' },
+    }),
+    buildTx({
+      id: 'TRX-20261105-001',
+      invoiceNo: 'TRX-20261105-001',
+      isoDate: '2026-11-05T16:05:00',
+      cashier: 'Dewi Lestari (Kasir 2)',
+      customerName: 'dr. Karina Maharani',
+      lines: [
+        { productId: 14, qty: 1 },
+        { productId: 15, qty: 2 },
+      ],
+      paymentMethod: 'debit',
+      paymentDetails: { debitBank: 'BCA', debitCardLast4: '9032', debitApprovalCode: 'AUTH-612094' },
+    }),
+    buildTx({
+      id: 'TRX-20261106-001',
+      invoiceNo: 'TRX-20261106-001',
+      isoDate: '2026-11-06T13:30:00',
+      cashier: 'Siti Nurhaliza (Kasir 1)',
+      customerName: 'Ibu Nurhayati',
+      lines: [
+        { productId: 13, qty: 2 },
+        { productId: 22, qty: 1 },
+      ],
+      paymentMethod: 'cash',
+      paymentDetails: { cashReceived: 450000 },
+    }),
+    buildTx({
+      id: 'TRX-20261107-001',
+      invoiceNo: 'TRX-20261107-001',
+      isoDate: '2026-11-07T19:15:00',
+      cashier: 'Andi Pratama (Supervisor)',
+      customerName: 'Rizky Ramadhan & Nabila',
+      lines: [
+        { productId: 32, qty: 1 },
+        { productId: 33, qty: 1 },
+      ],
+      paymentMethod: 'transfer',
+      paymentDetails: { transferBank: 'BCA', transferAccountNo: '8812093412', transferRef: 'TRF-261107-5501' },
+    }),
+    buildTx({
+      id: 'TRX-20261108-001',
+      invoiceNo: 'TRX-20261108-001',
+      isoDate: '2026-11-08T15:45:00',
+      cashier: 'Dewi Lestari (Kasir 2)',
+      customerName: 'Bpk. Agus Salim',
+      lines: [
+        { productId: 34, qty: 1 },
+        { productId: 35, qty: 2 },
+      ],
+      paymentMethod: 'transfer',
+      paymentDetails: { transferBank: 'BRI', transferAccountNo: '002301928371', transferRef: 'TRF-261108-1924' },
+    }),
+    buildTx({
+      id: 'TRX-20261109-001',
+      invoiceNo: 'TRX-20261109-001',
+      isoDate: '2026-11-09T11:10:00',
+      cashier: 'Siti Nurhaliza (Kasir 1)',
+      customerName: 'Ibu Yuniarti Susilo',
+      lines: [
+        { productId: 29, qty: 1 },
+        { productId: 30, qty: 1 },
+      ],
+      paymentMethod: 'qris',
+      paymentDetails: { qrisNmid: 'ID102003928192', qrisRrn: 'RRN2611098821' },
+    }),
+    buildTx({
+      id: 'TRX-20261110-001',
+      invoiceNo: 'TRX-20261110-001',
+      isoDate: '2026-11-10T17:25:00',
+      cashier: 'Andi Pratama (Supervisor)',
+      customerName: 'Ny. Melati Kusuma',
+      lines: [
+        { productId: 5, qty: 1 },
+        { productId: 11, qty: 1 },
+      ],
+      paymentMethod: 'transfer',
+      paymentDetails: { transferBank: 'Mandiri', transferAccountNo: '122009812731', transferRef: 'TRF-261110-3302' },
+    }),
+    buildTx({
+      id: 'TRX-20261110-002',
+      invoiceNo: 'TRX-20261110-002',
+      isoDate: '2026-11-10T19:50:00',
+      cashier: 'Dewi Lestari (Kasir 2)',
+      customerName: 'Sdr. Bagus Pratama',
+      lines: [
+        { productId: 4, qty: 1 },
+        { productId: 16, qty: 1 },
+      ],
+      paymentMethod: 'debit',
+      paymentDetails: { debitBank: 'BCA', debitCardLast4: '3107', debitApprovalCode: 'AUTH-904512' },
+    }),
+    buildTx({
+      id: 'TRX-20261111-001',
+      invoiceNo: 'TRX-20261111-001',
+      isoDate: '2026-11-11T10:35:00',
+      cashier: 'Siti Nurhaliza (Kasir 1)',
+      customerName: 'Hj. Fatimah Az-Zahra',
+      lines: [
+        { productId: 3, qty: 1 },
+        { productId: 19, qty: 1 },
+      ],
+      paymentMethod: 'transfer',
+      paymentDetails: { transferBank: 'BCA', transferAccountNo: '7740192884', transferRef: 'TRF-261111-7019' },
+    }),
+    buildTx({
+      id: 'TRX-20261111-002',
+      invoiceNo: 'TRX-20261111-002',
+      isoDate: '2026-11-11T14:55:00',
+      cashier: 'Dewi Lestari (Kasir 2)',
+      customerName: 'Ibu Ratna Dewi',
+      lines: [
+        { productId: 9, qty: 1 },
+        { productId: 17, qty: 1 },
+      ],
+      paymentMethod: 'qris',
+      paymentDetails: { qrisNmid: 'ID102003928192', qrisRrn: 'RRN2611116194' },
+    }),
+    buildTx({
+      id: 'TRX-20261112-002',
+      invoiceNo: 'TRX-20261112-002',
+      isoDate: '2026-11-12T09:45:00',
+      cashier: 'Siti Nurhaliza (Kasir 1)',
+      customerName: 'Bpk. Hendra Wijaya',
+      lines: [
+        { productId: 8, qty: 1 },
+        { productId: 2, qty: 1 },
+      ],
+      paymentMethod: 'debit',
+      paymentDetails: { debitBank: 'BCA', debitCardLast4: '8821', debitApprovalCode: 'AUTH-592814' },
+    }),
+    buildTx({
+      id: 'TRX-20261112-003',
+      invoiceNo: 'TRX-20261112-003',
+      isoDate: '2026-11-12T12:15:00',
+      cashier: 'Andi Pratama (Supervisor)',
+      customerName: 'CV Berkah Kosmetik Nusantara',
+      lines: [
+        { productId: 32, qty: 2 },
+        { productId: 33, qty: 2 },
+      ],
+      paymentMethod: 'transfer',
+      paymentDetails: { transferBank: 'Mandiri', transferAccountNo: '103009482711', transferRef: 'TRF-261112-2041' },
+    }),
+    buildTx({
+      id: 'TRX-20261112-004',
+      invoiceNo: 'TRX-20261112-004',
+      isoDate: '2026-11-12T15:20:00',
+      cashier: 'Dewi Lestari (Kasir 2)',
+      customerName: 'Ibu Wulandari Kartika',
+      lines: [
+        { productId: 24, qty: 2 },
+        { productId: 35, qty: 1 },
+      ],
+      paymentMethod: 'cash',
+      paymentDetails: { cashReceived: 250000 },
+    }),
+    buildTx({
+      id: 'TRX-20261112-005',
+      invoiceNo: 'TRX-20261112-005',
+      isoDate: '2026-11-12T18:40:00',
+      cashier: 'Siti Nurhaliza (Kasir 1)',
+      customerName: 'dr. Karina Maharani',
+      lines: [
+        { productId: 6, qty: 1 },
+        { productId: 12, qty: 1 },
+      ],
+      paymentMethod: 'debit',
+      paymentDetails: { debitBank: 'BCA', debitCardLast4: '9032', debitApprovalCode: 'AUTH-849103' },
+    }),
+  ];
+}
+
 function seedSecondaryOutletsIfNeeded(): void {
   const alreadySeeded = db.prepare('SELECT value FROM settings WHERE key = ?').get('seeded_multitenant_outlets_v1') as
     | { value: string }
@@ -486,18 +1149,6 @@ function seedSecondaryOutletsIfNeeded(): void {
     return;
   }
 
-  const IMG = {
-    ring1: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=300&q=80',
-    ring2: 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?auto=format&fit=crop&w=300&q=80',
-    bracelet1: 'https://images.unsplash.com/photo-1611591475711-d0b16f39e38d?auto=format&fit=crop&w=300&q=80',
-    bracelet2: 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?auto=format&fit=crop&w=300&q=80',
-    necklace1: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=300&q=80',
-    pendant1: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=300&q=80',
-    earring1: 'https://images.unsplash.com/photo-1630019852942-f89202989a59?auto=format&fit=crop&w=300&q=80',
-    brooch1: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=300&q=80',
-    bullion1: 'https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&w=300&q=80',
-  };
-
   const secondaryTx = db.transaction(() => {
     const insertProd = db.prepare(`
       INSERT INTO products (tenantId, sku, name, berat, harga, stok, category, image)
@@ -505,21 +1156,21 @@ function seedSecondaryOutletsIfNeeded(): void {
     `);
 
     const tmjProducts = [
-      { tenantId: 'tenant-tmj-002', sku: 'MJ-CN-22K-01', name: 'Cincin Solitaire Paris 22K', berat: 2.4, harga: 5450000, stok: 8, category: 'Cincin', image: IMG.ring2 },
-      { tenantId: 'tenant-tmj-002', sku: 'MJ-GL-18K-02', name: 'Gelang Rantai Bandung 18K', berat: 4.8, harga: 9120000, stok: 5, category: 'Gelang', image: IMG.bracelet1 },
-      { tenantId: 'tenant-tmj-002', sku: 'MJ-KL-17K-03', name: 'Kalung Milano Rose Gold 17K', berat: 3.9, harga: 7350000, stok: 6, category: 'Kalung', image: IMG.necklace1 },
-      { tenantId: 'tenant-tmj-002', sku: 'MJ-AN-16K-04', name: 'Anting Giwang Mutiara 16K', berat: 1.65, harga: 2850000, stok: 12, category: 'Anting', image: IMG.earring1 },
-      { tenantId: 'tenant-tmj-002', sku: 'MJ-LM-ANT-05', name: 'Logam Mulia Antam 5 Gr (PVJ)', berat: 5.0, harga: 12550000, stok: 9, category: 'Logam Mulia', image: IMG.bullion1 },
-      { tenantId: 'tenant-tmj-002', sku: 'MJ-LN-18K-06', name: 'Liontin Berlian Oval 18K', berat: 2.1, harga: 5600000, stok: 4, category: 'Liontin', image: IMG.pendant1 },
+      { tenantId: 'tenant-tmj-002', sku: 'MJ-PF-01', name: 'Eau de Parfum Paris Bloom 50ml', berat: 50, harga: 295000, stok: 14, category: 'Parfum', image: RETAIL_IMG.parfum },
+      { tenantId: 'tenant-tmj-002', sku: 'MJ-SK-02', name: 'Glow Peptide Repair Serum 30ml', berat: 30, harga: 165000, stok: 18, category: 'Skincare', image: RETAIL_IMG.serum },
+      { tenantId: 'tenant-tmj-002', sku: 'MJ-SK-03', name: 'Moisture Lock Night Cream 50g', berat: 50, harga: 152000, stok: 16, category: 'Skincare', image: RETAIL_IMG.cream },
+      { tenantId: 'tenant-tmj-002', sku: 'MJ-BC-04', name: 'Almond Milk Body Lotion 250ml', berat: 250, harga: 125000, stok: 20, category: 'Body Care', image: RETAIL_IMG.bodycare },
+      { tenantId: 'tenant-tmj-002', sku: 'MJ-MU-05', name: 'Satin Velvet Lip Cream - Berry 4g', berat: 4, harga: 89000, stok: 25, category: 'Make Up', image: RETAIL_IMG.makeup },
+      { tenantId: 'tenant-tmj-002', sku: 'MJ-AK-06', name: 'Mini Travel Atomizer Case 10ml', berat: 10, harga: 48000, stok: 30, category: 'Aksesoris', image: RETAIL_IMG.parfum },
     ];
 
     const lkeProducts = [
-      { tenantId: 'tenant-lke-003', sku: 'LKE-LM-010', name: 'Logam Mulia Antam 10 Gr (SBY)', berat: 10.0, harga: 24950000, stok: 6, category: 'Logam Mulia', image: IMG.bullion1 },
-      { tenantId: 'tenant-lke-003', sku: 'LKE-LM-025', name: 'Logam Mulia Antam 25 Gr (SBY)', berat: 25.0, harga: 62100000, stok: 3, category: 'Logam Mulia', image: IMG.bullion1 },
-      { tenantId: 'tenant-lke-003', sku: 'LKE-CN-22K-01', name: 'Cincin Kawin Ukir Kencana 22K', berat: 5.2, harga: 11850000, stok: 7, category: 'Cincin', image: IMG.ring1 },
-      { tenantId: 'tenant-lke-003', sku: 'LKE-KL-24K-02', name: 'Kalung Emas Murni Rantai 24K', berat: 11.5, harga: 28750000, stok: 3, category: 'Kalung', image: IMG.necklace1 },
-      { tenantId: 'tenant-lke-003', sku: 'LKE-GL-22K-03', name: 'Gelang Bangle Kencana 22K', berat: 8.4, harga: 19200000, stok: 5, category: 'Gelang', image: IMG.bracelet2 },
-      { tenantId: 'tenant-lke-003', sku: 'LKE-BR-18K-04', name: 'Bros Kebaya Mahkota 18K', berat: 4.1, harga: 7890000, stok: 4, category: 'Bros', image: IMG.brooch1 },
+      { tenantId: 'tenant-lke-003', sku: 'LKE-SK-01', name: 'Brightening Vitamin C Serum 30ml (SBY)', berat: 30, harga: 158000, stok: 16, category: 'Skincare', image: RETAIL_IMG.serum },
+      { tenantId: 'tenant-lke-003', sku: 'LKE-PF-02', name: 'Eau de Parfum Amber Wood 100ml', berat: 100, harga: 410000, stok: 10, category: 'Parfum', image: RETAIL_IMG.parfum },
+      { tenantId: 'tenant-lke-003', sku: 'LKE-SK-03', name: 'Daily Barrier Gel Moisturizer 50g', berat: 50, harga: 145000, stok: 22, category: 'Skincare', image: RETAIL_IMG.cream },
+      { tenantId: 'tenant-lke-003', sku: 'LKE-BC-04', name: 'Lavender Spa Body Wash 300ml', berat: 300, harga: 96000, stok: 19, category: 'Body Care', image: RETAIL_IMG.bodycare },
+      { tenantId: 'tenant-lke-003', sku: 'LKE-MU-05', name: 'Matte Cushion Compact SPF 35 15g', berat: 15, harga: 192000, stok: 14, category: 'Make Up', image: RETAIL_IMG.makeup },
+      { tenantId: 'tenant-lke-003', sku: 'LKE-PB-06', name: 'Gift Set Parfum & Body Care Duo', berat: 300, harga: 399000, stok: 9, category: 'Paket Bundling', image: RETAIL_IMG.parfum },
     ];
 
     const tmjIds: number[] = [];
@@ -550,31 +1201,31 @@ function seedSecondaryOutletsIfNeeded(): void {
         id: 'PRM-TMJ-001',
         tenantId: 'tenant-tmj-002',
         name: 'Promo Opening PVJ Bandung',
-        code: 'PVJ10',
+        code: 'PVJGLOW10',
         discountPercent: 10,
         label: 'Diskon 10%',
         startDate: '2026-11-01',
         endDate: '2026-11-30',
-        productIdsJson: JSON.stringify([tmjIds[0], tmjIds[2]].filter(Boolean)),
+        productIdsJson: JSON.stringify([tmjIds[0], tmjIds[1]].filter(Boolean)),
         isActive: 1,
-        minPurchase: 3000000,
-        description: 'Promo khusus cabang Paris Van Java Bandung untuk koleksi cincin & kalung.',
+        minPurchase: 150000,
+        description: 'Promo khusus cabang Paris Van Java Bandung untuk koleksi parfum & serum.',
       });
     }
     if (lkeIds.length > 0) {
       insertPromo.run({
         id: 'PRM-LKE-001',
         tenantId: 'tenant-lke-003',
-        name: 'Special Bullion Tunjungan Plaza',
-        code: 'TP3GOLD',
-        discountPercent: 5,
-        label: 'Diskon 5%',
+        name: 'Special Beauty Tunjungan Plaza',
+        code: 'TP3BEAUTY',
+        discountPercent: 10,
+        label: 'Diskon 10%',
         startDate: '2026-11-01',
         endDate: '2026-11-30',
-        productIdsJson: JSON.stringify([lkeIds[2], lkeIds[4]].filter(Boolean)),
+        productIdsJson: JSON.stringify([lkeIds[0], lkeIds[4]].filter(Boolean)),
         isActive: 1,
-        minPurchase: 5000000,
-        description: 'Potongan spesial cabang Tunjungan Plaza Surabaya untuk perhiasan 22K.',
+        minPurchase: 150000,
+        description: 'Potongan spesial cabang Tunjungan Plaza Surabaya untuk skincare & make up.',
       });
     }
 
@@ -617,7 +1268,7 @@ function seedSecondaryOutletsIfNeeded(): void {
     }
 
     if (lkeIds.length >= 2) {
-      const p0 = lkeProducts[0];
+      const p0 = lkeProducts[1];
       const sub0 = p0.harga;
       const tax0 = Math.round(sub0 * 0.11);
       const txId = 'TRX-LKE-20261111-001';
@@ -640,85 +1291,9 @@ function seedSecondaryOutletsIfNeeded(): void {
           'transfer',
           JSON.stringify({ transferBank: 'BCA', transferRef: 'TRF-SBY-8821' })
         );
-        insertTxItem.run(txId, lkeIds[0], p0.sku, p0.name, p0.berat, p0.harga, 1, sub0, p0.image);
+        insertTxItem.run(txId, lkeIds[1], p0.sku, p0.name, p0.berat, p0.harga, 1, sub0, p0.image);
       }
     }
-
-    // Starter Buyback per Outlet
-    const insertBb = db.prepare(`
-      INSERT OR IGNORE INTO buybacks (
-        id, tenantId, invoiceNo, date, timeStr, branchName, cashierName,
-        customerId, customerName, customerPhone, customerNik, customerAddress,
-        sourceNote, itemType, kadar, beratKotor, potonganBatu, beratBersih,
-        hargaPerGram, biayaLebur, kondisi, totalKotor, potonganBiaya, pph22,
-        totalBayar, paymentMethod, bankName, accountNo, accountHolder,
-        catatan, isAgreedLegal
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-    `);
-    insertBb.run(
-      'bb-tmj-001',
-      'tenant-tmj-002',
-      'BB-20261111-101',
-      '11 Nov 2026, 13:20',
-      '13:20',
-      'Cabang Paris Van Java (PVJ)',
-      'Rina Kasir (PVJ)',
-      'CUST-003',
-      'Ibu Ratna Dewi',
-      '085612349876',
-      '3273016405850003',
-      'Komplek Permata Buah Batu Blok C-8, Bandung',
-      'Nota Mulia Jaya',
-      'Perhiasan (Gelang)',
-      '18K (75.0%)',
-      4.5,
-      0.1,
-      4.4,
-      1420000,
-      75000,
-      'Baik / Utuh',
-      6248000,
-      75000,
-      0,
-      6173000,
-      'transfer',
-      'BCA',
-      '7770291823',
-      'Ratna Dewi',
-      'Buyback cabang Bandung kondisi mulus.'
-    );
-    insertBb.run(
-      'bb-lke-001',
-      'tenant-lke-003',
-      'BB-20261111-201',
-      '11 Nov 2026, 15:05',
-      '15:05',
-      'Cabang Tunjungan Plaza 3',
-      'Budi Kasir (TP3)',
-      'CUST-001',
-      'Hj. Siti Rahmah',
-      '081234567890',
-      '3201124508780001',
-      'Jl. Riau No. 45, Bandung',
-      'Sertifikat Antam',
-      'Logam Mulia Batangan',
-      '24K (99.9%)',
-      5.0,
-      0,
-      5.0,
-      2350000,
-      0,
-      'Baik / Utuh',
-      11750000,
-      0,
-      0,
-      11750000,
-      'cash',
-      null,
-      null,
-      null,
-      'Penerimaan LM Antam 5gr di cabang Surabaya.'
-    );
 
     db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('seeded_multitenant_outlets_v1', '1');
   });
@@ -726,496 +1301,48 @@ function seedSecondaryOutletsIfNeeded(): void {
   secondaryTx();
 }
 
-export function seedInitialDataIfEmpty(): void {
-  const seededV3Row = db.prepare('SELECT value FROM settings WHERE key = ?').get('seeded_v3') as
-    | { value: string }
-    | undefined;
-  if (seededV3Row?.value === '1') {
-    seedSecondaryOutletsIfNeeded();
-    seedUsersIfNeeded();
-    seedShiftClosingsIfNeeded();
+function migrateToGeneralRetailCatalogV1(): void {
+  const alreadyMigrated = db
+    .prepare('SELECT value FROM settings WHERE key = ?')
+    .get('migrated_general_retail_v1') as { value: string } | undefined;
+  if (alreadyMigrated?.value === '1') {
     return;
   }
 
-  const seedTx = db.transaction(() => {
-    // 1. Categories (Standar Etalase Toko Emas Indonesia)
-    const categories = ['Cincin', 'Gelang', 'Kalung', 'Anting', 'Liontin', 'Logam Mulia', 'Bros'];
+  const migrateTx = db.transaction(() => {
+    const seededTenants = ['tenant-tms-001', 'tenant-tmj-002', 'tenant-lke-003'];
+    const placeholders = seededTenants.map(() => '?').join(', ');
+
+    // 1. Replace categories with general retail categories
+    db.prepare('DELETE FROM categories').run();
     const insertCat = db.prepare('INSERT OR IGNORE INTO categories (name, sortOrder) VALUES (?, ?)');
-    categories.forEach((cat, idx) => insertCat.run(cat, idx + 1));
+    RETAIL_CATEGORIES.forEach((cat, idx) => insertCat.run(cat, idx + 1));
 
-    // 2. Products (36 Produk Asli Etalase Toko Emas & Logam Mulia)
-    const IMG = {
-      ring1: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=300&q=80',
-      ring2: 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?auto=format&fit=crop&w=300&q=80',
-      bracelet1: 'https://images.unsplash.com/photo-1611591475711-d0b16f39e38d?auto=format&fit=crop&w=300&q=80',
-      bracelet2: 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?auto=format&fit=crop&w=300&q=80',
-      necklace1: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=300&q=80',
-      pendant1: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=300&q=80',
-      earring1: 'https://images.unsplash.com/photo-1630019852942-f89202989a59?auto=format&fit=crop&w=300&q=80',
-      brooch1: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=300&q=80',
-      bullion1: 'https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&w=300&q=80',
-    };
+    // 2. Remove old gold/jewelry seeded data from all 3 seeded outlets
+    db.prepare(
+      `DELETE FROM transaction_items WHERE transactionId IN (SELECT id FROM transactions WHERE tenantId IN (${placeholders}))`
+    ).run(...seededTenants);
+    db.prepare(`DELETE FROM transactions WHERE tenantId IN (${placeholders})`).run(...seededTenants);
+    db.prepare(`DELETE FROM promos WHERE tenantId IN (${placeholders})`).run(...seededTenants);
+    db.prepare(`DELETE FROM products WHERE tenantId IN (${placeholders})`).run(...seededTenants);
+    db.prepare(`DELETE FROM buybacks WHERE tenantId IN (${placeholders})`).run(...seededTenants);
+    db.prepare("DELETE FROM shift_closings WHERE id IN ('SHF-SEED-TMS-001', 'SHF-SEED-TMJ-001')").run();
 
-    const realisticProducts: Array<Omit<Product, 'isPromo' | 'promoDiscountPercent' | 'promoLabel'>> = [
-      { id: 1, sku: '16-164', name: 'Cincin Emas Polos 18K', berat: 1.57, harga: 2670000, stok: 12, category: 'Cincin', image: IMG.ring1 },
-      { id: 2, sku: '13-092', name: 'Gelang Rantai 24K', berat: 9.48, harga: 17800000, stok: 5, category: 'Gelang', image: IMG.bracelet1 },
-      { id: 3, sku: '12-001', name: 'Kalung Liontin Berlian', berat: 3.20, harga: 8500000, stok: 3, category: 'Kalung', image: IMG.necklace1 },
-      { id: 4, sku: '15-220', name: 'Anting Mutiara Air Tawar', berat: 2.10, harga: 4200000, stok: 8, category: 'Anting', image: IMG.earring1 },
-      { id: 5, sku: '16-180', name: 'Cincin Kawin Berlian', berat: 4.50, harga: 12500000, stok: 2, category: 'Cincin', image: IMG.ring2 },
-      { id: 6, sku: '17-005', name: 'Liontin Salib Emas Putih', berat: 1.80, harga: 3100000, stok: 15, category: 'Liontin', image: IMG.pendant1 },
-      { id: 7, sku: '11-304', name: 'Bros Kebaya Emas Kuning', berat: 5.40, harga: 6800000, stok: 4, category: 'Bros', image: IMG.brooch1 },
-      { id: 8, sku: '18-022', name: 'Gelang Keroncong 22K', berat: 15.00, harga: 28500000, stok: 2, category: 'Gelang', image: IMG.bracelet2 },
-
-      // Koleksi Cincin Toko Emas Umum
-      { id: 9, sku: 'CN-22K-014', name: 'Cincin Belah Rotan Tua 22K', berat: 2.50, harga: 5750000, stok: 14, category: 'Cincin', image: IMG.ring1 },
-      { id: 10, sku: 'CN-16K-021', name: 'Cincin Fashion Mata Zircon 16K', berat: 1.25, harga: 2150000, stok: 18, category: 'Cincin', image: IMG.ring2 },
-      { id: 11, sku: 'CN-09K-008', name: 'Cincin Emas Muda Solitaire 9K', berat: 1.10, harga: 1180000, stok: 22, category: 'Cincin', image: IMG.ring2 },
-      { id: 12, sku: 'CN-18K-045', name: 'Cincin Stempel Pria Rhodium 18K', berat: 6.20, harga: 11950000, stok: 3, category: 'Cincin', image: IMG.ring1 },
-      { id: 13, sku: 'CN-18K-099', name: 'Cincin Nikah Sepasang Ukir 18K', berat: 7.50, harga: 14600000, stok: 0, category: 'Cincin', image: IMG.ring2 },
-      { id: 14, sku: 'CN-17K-033', name: 'Cincin List Ring Mata Halus 17K', berat: 1.85, harga: 3480000, stok: 9, category: 'Cincin', image: IMG.ring1 },
-
-      // Koleksi Gelang
-      { id: 15, sku: 'GL-17K-011', name: 'Gelang Bangle Oval Polos 17K', berat: 5.85, harga: 10950000, stok: 7, category: 'Gelang', image: IMG.bracelet2 },
-      { id: 16, sku: 'GL-22K-034', name: 'Gelang Sisik Naga Tua 22K', berat: 12.40, harga: 28520000, stok: 2, category: 'Gelang', image: IMG.bracelet1 },
-      { id: 17, sku: 'GL-16K-019', name: 'Gelang Rantai Holo Variasi 16K', berat: 3.40, harga: 5820000, stok: 11, category: 'Gelang', image: IMG.bracelet1 },
-      { id: 18, sku: 'GL-09K-007', name: 'Gelang Serut Bola Mrica 9K', berat: 2.30, harga: 2450000, stok: 16, category: 'Gelang', image: IMG.bracelet1 },
-      { id: 19, sku: 'GL-16K-052', name: 'Gelang Kaki Anak Lonceng 16K', berat: 2.05, harga: 3520000, stok: 4, category: 'Gelang', image: IMG.bracelet2 },
-
-      // Koleksi Kalung
-      { id: 20, sku: 'KL-17K-018', name: 'Kalung Rantai Nori Halus 17K', berat: 3.60, harga: 6780000, stok: 13, category: 'Kalung', image: IMG.necklace1 },
-      { id: 21, sku: 'KL-22K-027', name: 'Kalung Santa Biji Lada 22K', berat: 8.75, harga: 20125000, stok: 3, category: 'Kalung', image: IMG.necklace1 },
-      { id: 22, sku: 'KL-18K-041', name: 'Kalung Choker Milano Italy 18K', berat: 4.90, harga: 9450000, stok: 6, category: 'Kalung', image: IMG.pendant1 },
-      { id: 23, sku: 'KL-16K-063', name: 'Kalung Cassano Rose Gold 16K', berat: 2.80, harga: 4820000, stok: 9, category: 'Kalung', image: IMG.necklace1 },
-      { id: 24, sku: 'KL-24K-088', name: 'Kalung Emas Tua Ukir Nama 24K', berat: 16.50, harga: 41250000, stok: 0, category: 'Kalung', image: IMG.pendant1 },
-
-      // Koleksi Anting & Giwang
-      { id: 25, sku: 'AN-17K-003', name: 'Giwang Tusuk Mata Satu 17K', berat: 0.85, harga: 1620000, stok: 24, category: 'Anting', image: IMG.earring1 },
-      { id: 26, sku: 'AN-16K-017', name: 'Anting Jepit Bulat Polos 16K', berat: 1.45, harga: 2490000, stok: 15, category: 'Anting', image: IMG.earring1 },
-      { id: 27, sku: 'AN-18K-029', name: 'Anting Gantung Klip Huggies 18K', berat: 2.35, harga: 4550000, stok: 4, category: 'Anting', image: IMG.brooch1 },
-      { id: 28, sku: 'AN-22K-009', name: 'Giwang Anak Toge Tua 22K', berat: 0.65, harga: 1540000, stok: 19, category: 'Anting', image: IMG.earring1 },
-
-      // Koleksi Liontin
-      { id: 29, sku: 'LN-16K-012', name: 'Liontin Huruf Inisial Permata 16K', berat: 0.95, harga: 1650000, stok: 14, category: 'Liontin', image: IMG.pendant1 },
-      { id: 30, sku: 'LN-22K-031', name: 'Liontin Koin Ratu Elizabeth 22K', berat: 3.10, harga: 7130000, stok: 5, category: 'Liontin', image: IMG.pendant1 },
-      { id: 31, sku: 'LN-18K-044', name: 'Liontin Hati Rose Gold 18K', berat: 1.60, harga: 3120000, stok: 8, category: 'Liontin', image: IMG.necklace1 },
-
-      // Koleksi Logam Mulia Batangan
-      { id: 32, sku: 'LM-ANT-001', name: 'Logam Mulia Antam CertiEye 1 Gr (24K)', berat: 1.00, harga: 2540000, stok: 20, category: 'Logam Mulia', image: IMG.bullion1 },
-      { id: 33, sku: 'LM-ANT-005', name: 'Logam Mulia Antam CertiEye 5 Gr (24K)', berat: 5.00, harga: 12470000, stok: 7, category: 'Logam Mulia', image: IMG.bullion1 },
-      { id: 34, sku: 'LM-ANT-010', name: 'Logam Mulia Antam CertiEye 10 Gr (24K)', berat: 10.00, harga: 24890000, stok: 3, category: 'Logam Mulia', image: IMG.bullion1 },
-      { id: 35, sku: 'LM-UBS-002', name: 'Emas Batangan UBS Gold 2 Gr (24K)', berat: 2.00, harga: 4980000, stok: 10, category: 'Logam Mulia', image: IMG.bullion1 },
-
-      // Koleksi Bros
-      { id: 36, sku: 'BR-16K-015', name: 'Bros Jilbab Pita Permata 16K', berat: 2.25, harga: 3890000, stok: 9, category: 'Bros', image: IMG.brooch1 },
-    ];
-
+    // 3. Re-seed primary outlet retail products (IDs 1..36)
     const insertProd = db.prepare(`
-      INSERT OR IGNORE INTO products (id, sku, name, berat, harga, stok, category, image)
-      VALUES (@id, @sku, @name, @berat, @harga, @stok, @category, @image)
+      INSERT OR REPLACE INTO products (id, tenantId, sku, name, berat, harga, stok, category, image)
+      VALUES (@id, 'tenant-tms-001', @sku, @name, @berat, @harga, @stok, @category, @image)
     `);
-    for (const p of realisticProducts) {
+    for (const p of RETAIL_PRODUCTS) {
       insertProd.run(p);
     }
 
-    // 3. Tenants
-    const initialTenants: Tenant[] = [
-      {
-        id: 'tenant-tms-001',
-        name: 'Toko Mas Sejahtera',
-        code: 'TMS-01',
-        branchName: 'Cabang Utama (Grand City Mall Lt. 1)',
-        address: 'Jl. Pemuda No. 108, Mall Grand City Lt. 1 No. 22',
-        city: 'Jakarta Pusat',
-        plan: 'Enterprise Multi-Tenant',
-        cashierCount: 4,
-        productCount: 36,
-        phone: '0812-8899-7766',
-        email: 'admin@tokomassejahtera.com',
-        slug: 'sejahtera.epaper.id',
-        logoInitial: 'TS',
-        databaseSchema: 'tenant_db_sejahtera_01',
-        status: 'Aktif',
-      },
-      {
-        id: 'tenant-tmj-002',
-        name: 'Toko Mas Mulia Jaya',
-        code: 'TMJ-02',
-        branchName: 'Cabang Paris Van Java (PVJ)',
-        address: 'Jl. Sukajadi No. 131, Resort Level B-15',
-        city: 'Bandung',
-        plan: 'Pro Multi-Outlet',
-        cashierCount: 2,
-        productCount: 24,
-        phone: '0813-2233-4455',
-        email: 'kontak@muliajaya-gold.id',
-        slug: 'muliajaya.epaper.id',
-        logoInitial: 'MJ',
-        databaseSchema: 'tenant_db_muliajaya_02',
-        status: 'Aktif',
-      },
-      {
-        id: 'tenant-lke-003',
-        name: 'CV Logam Kencana Emas',
-        code: 'LKE-03',
-        branchName: 'Cabang Tunjungan Plaza 3',
-        address: 'Jl. Basuki Rahmat No. 8-12, TP 3 Lt. 2',
-        city: 'Surabaya',
-        plan: 'Enterprise Multi-Tenant',
-        cashierCount: 5,
-        productCount: 42,
-        phone: '0819-7788-9900',
-        email: 'management@logamkencana.co.id',
-        slug: 'logamkencana.epaper.id',
-        logoInitial: 'LK',
-        databaseSchema: 'tenant_db_logamkencana_03',
-        status: 'Aktif',
-      },
-    ];
-    const insertTenant = db.prepare(`
-      INSERT OR IGNORE INTO tenants (id, name, code, branchName, address, city, plan, cashierCount, productCount, phone, email, slug, logoInitial, databaseSchema, status)
-      VALUES (@id, @name, @code, @branchName, @address, @city, @plan, @cashierCount, @productCount, @phone, @email, @slug, @logoInitial, @databaseSchema, @status)
-    `);
-    for (const t of initialTenants) {
-      insertTenant.run(t);
-    }
-    db.prepare('UPDATE tenants SET productCount = 36 WHERE id = ? AND productCount < 36').run('tenant-tms-001');
-    db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)').run('activeTenantId', 'tenant-tms-001');
-
-    // 4. Customers (16 Pelanggan Aktif: Reguler, VIP, Mitra / Toko)
-    const realisticCustomers: Customer[] = [
-      {
-        id: 'CUST-001',
-        memberCode: 'MBR-001',
-        name: 'Hj. Siti Rahmah',
-        phone: '081234567890',
-        nik: '3201124508780001',
-        type: 'VIP',
-        address: 'Jl. Riau No. 45, Bandung',
-        preferredKadar: '22K (91.6%)',
-        ringSize: '14',
-        notes: 'Pelanggan langganan arisan emas & buyback kalung rantai.',
-        createdAt: '2026-01-15',
-        totalSpent: 34500000,
-        totalTransactions: 6,
-      },
-      {
-        id: 'CUST-002',
-        memberCode: 'MBR-002',
-        name: 'Bpk. Hendra Wijaya',
-        phone: '081298765432',
-        nik: '3171051906800002',
-        type: 'VIP',
-        address: 'Apartemen Sudirman Park Tower B-12, Jakarta',
-        preferredKadar: '18K (75.0%)',
-        ringSize: '18',
-        notes: 'Kolektor cincin berlian pria & mutiara air tawar.',
-        createdAt: '2026-03-20',
-        totalSpent: 48900000,
-        totalTransactions: 4,
-      },
-      {
-        id: 'CUST-003',
-        memberCode: 'MBR-003',
-        name: 'Ibu Ratna Dewi',
-        phone: '085612349876',
-        nik: '3273016405850003',
-        type: 'Reguler',
-        address: 'Komplek Permata Buah Batu Blok C-8, Bandung',
-        preferredKadar: '18K (75.0%)',
-        ringSize: '12',
-        notes: 'Suka model cincin emas polos dan gelang simpel.',
-        createdAt: '2026-05-10',
-        totalSpent: 12400000,
-        totalTransactions: 3,
-      },
-      {
-        id: 'CUST-004',
-        memberCode: 'MBR-004',
-        name: 'Budi Santoso',
-        phone: '081987654321',
-        nik: '3204101202880004',
-        type: 'Reguler',
-        address: 'Jl. Cihanjuang No. 102, Cimahi',
-        preferredKadar: '16K (70.0%)',
-        ringSize: '16',
-        notes: 'Transaksi buyback cincin kawin pria.',
-        createdAt: '2026-07-02',
-        totalSpent: 8600000,
-        totalTransactions: 2,
-      },
-      {
-        id: 'CUST-005',
-        memberCode: 'MBR-005',
-        name: 'Toko Emas Mulia Abadi (Bpk. Chandra)',
-        phone: '081322334455',
-        nik: '3578010504750005',
-        type: 'Mitra / Toko',
-        address: 'Pasar Atom Tahap 2 Lt. Dasar No. 18, Surabaya',
-        preferredKadar: '24K (99.9%)',
-        ringSize: '-',
-        notes: 'Mitra grosir & lebur emas batangan murni.',
-        createdAt: '2026-02-11',
-        totalSpent: 185000000,
-        totalTransactions: 12,
-      },
-      {
-        id: 'CUST-006',
-        memberCode: 'MBR-006',
-        name: 'Ibu Wulandari Kartika',
-        phone: '081277665544',
-        nik: '3174095403830006',
-        type: 'VIP',
-        address: 'Jl. Kemang Timur No. 19, Jakarta Selatan',
-        preferredKadar: '22K (91.6%)',
-        ringSize: '13',
-        notes: 'Kolektor rutin Logam Mulia Antam 5 gr setiap awal bulan.',
-        createdAt: '2026-04-05',
-        totalSpent: 28500000,
-        totalTransactions: 5,
-      },
-      {
-        id: 'CUST-007',
-        memberCode: 'MBR-007',
-        name: 'Sdr. Bagus Pratama',
-        phone: '085788991122',
-        nik: '3173041109940007',
-        type: 'Reguler',
-        address: 'Jl. Tanjung Duren Barat IV No. 8, Jakarta Barat',
-        preferredKadar: '18K (75.0%)',
-        ringSize: '17',
-        notes: 'Pembeli cincin pria rhodium & tukar tambah cincin lama.',
-        createdAt: '2026-06-18',
-        totalSpent: 5400000,
-        totalTransactions: 2,
-      },
-      {
-        id: 'CUST-008',
-        memberCode: 'MBR-008',
-        name: 'Ny. Melati Kusuma',
-        phone: '081399887766',
-        nik: '3171034807790008',
-        type: 'VIP',
-        address: 'Menteng Residence Blok A-3, Jakarta Pusat',
-        preferredKadar: '24K (99.9%)',
-        ringSize: '15',
-        notes: 'Pelanggan prioritas emas 24K & LM Antam CertiEye pecahan besar.',
-        createdAt: '2026-01-28',
-        totalSpent: 64000000,
-        totalTransactions: 7,
-      },
-      {
-        id: 'CUST-009',
-        memberCode: 'MBR-009',
-        name: 'Ibu Nurhayati',
-        phone: '082144556677',
-        nik: '3275026108860009',
-        type: 'Reguler',
-        address: 'Perum Harapan Indah Blok EF-12, Bekasi',
-        preferredKadar: '16K (70.0%)',
-        ringSize: '14',
-        notes: 'Suka model cincin mata zircon & anting jepit harian.',
-        createdAt: '2026-08-12',
-        totalSpent: 4200000,
-        totalTransactions: 2,
-      },
-      {
-        id: 'CUST-010',
-        memberCode: 'MBR-010',
-        name: 'dr. Karina Maharani',
-        phone: '081122334455',
-        nik: '3174045211900010',
-        type: 'VIP',
-        address: 'Jl. Senopati Raya No. 64, Kebayoran Baru, Jakarta Selatan',
-        preferredKadar: '18K (75.0%)',
-        ringSize: '11',
-        notes: 'Preferensi emas putih / rose gold 18K model minimalis Italia.',
-        createdAt: '2026-03-09',
-        totalSpent: 31200000,
-        totalTransactions: 4,
-      },
-      {
-        id: 'CUST-011',
-        memberCode: 'MBR-011',
-        name: 'Bpk. Agus Salim',
-        phone: '081566778899',
-        nik: '3671011505810011',
-        type: 'Reguler',
-        address: 'Jl. Daan Mogot KM 12 No. 55, Tangerang',
-        preferredKadar: '24K (99.9%)',
-        ringSize: '19',
-        notes: 'Tabungan rutin emas fisik UBS & Antam 1-2 gram.',
-        createdAt: '2026-07-24',
-        totalSpent: 9800000,
-        totalTransactions: 3,
-      },
-      {
-        id: 'CUST-012',
-        memberCode: 'MBR-012',
-        name: 'Siti Aminah',
-        phone: '085233445566',
-        nik: '3175064304960012',
-        type: 'Reguler',
-        address: 'Jl. Rawamangun Muka No. 21, Jakarta Timur',
-        preferredKadar: '9K (37.5%)',
-        ringSize: '12',
-        notes: 'Sering beli perhiasan emas muda kadar 9K untuk kado.',
-        createdAt: '2026-09-03',
-        totalSpent: 2850000,
-        totalTransactions: 2,
-      },
-      {
-        id: 'CUST-013',
-        memberCode: 'MBR-013',
-        name: 'CV Berkah Logam Nusantara',
-        phone: '081788990011',
-        nik: '3172021801740013',
-        type: 'Mitra / Toko',
-        address: 'Jl. Cikini Raya No. 88, Jakarta Pusat',
-        preferredKadar: '24K (99.9%)',
-        ringSize: '-',
-        notes: 'Mitra reseller logam mulia & lebur emas batangan.',
-        createdAt: '2026-02-25',
-        totalSpent: 142000000,
-        totalTransactions: 9,
-      },
-      {
-        id: 'CUST-014',
-        memberCode: 'MBR-014',
-        name: 'Ibu Yuniarti Susilo',
-        phone: '081855443322',
-        nik: '3276035906840014',
-        type: 'Reguler',
-        address: 'Pesona Khayangan Blok D-10, Depok',
-        preferredKadar: '17K (75.0%)',
-        ringSize: '13',
-        notes: 'Langganan kalung rantai nori & giwang tusuk.',
-        createdAt: '2026-06-29',
-        totalSpent: 7400000,
-        totalTransactions: 2,
-      },
-      {
-        id: 'CUST-015',
-        memberCode: 'MBR-015',
-        name: 'Rizky Ramadhan & Nabila',
-        phone: '081266554433',
-        nik: '3174012208930015',
-        type: 'VIP',
-        address: 'Jl. Tebet Barat Dalam IX No. 14, Jakarta Selatan',
-        preferredKadar: '18K (75.0%)',
-        ringSize: '16',
-        notes: 'Pasangan pengantin — paket seserahan cincin kawin berlian & gelang.',
-        createdAt: '2026-10-14',
-        totalSpent: 16500000,
-        totalTransactions: 2,
-      },
-      {
-        id: 'CUST-016',
-        memberCode: 'MBR-016',
-        name: 'Hj. Fatimah Az-Zahra',
-        phone: '081344556611',
-        nik: '3175016702760016',
-        type: 'VIP',
-        address: 'Jl. Matraman Raya No. 112, Jakarta Timur',
-        preferredKadar: '22K (91.6%)',
-        ringSize: '15',
-        notes: 'Kolektor gelang sisik naga 22K & bros kebaya emas kuning.',
-        createdAt: '2026-01-19',
-        totalSpent: 52000000,
-        totalTransactions: 5,
-      },
-    ];
-    const insertCust = db.prepare(`
-      INSERT OR IGNORE INTO customers (id, memberCode, name, phone, nik, type, address, preferredKadar, ringSize, notes, createdAt, totalSpent, totalTransactions)
-      VALUES (@id, @memberCode, @name, @phone, @nik, @type, @address, @preferredKadar, @ringSize, @notes, @createdAt, @totalSpent, @totalTransactions)
-    `);
-    for (const c of realisticCustomers) {
-      insertCust.run(c);
-    }
-
-    // 5. Promos
-    const initialPromos: PromoCampaign[] = [
-      {
-        id: 'PRM-001',
-        name: 'Promo Kilau Emas 18K',
-        code: 'KILAU10',
-        discountPercent: 10,
-        label: 'Diskon 10%',
-        startDate: '2026-11-01',
-        endDate: '2026-11-30',
-        productIds: [1, 14],
-        isActive: true,
-        minPurchase: 2000000,
-        description: 'Potongan harga spesial 10% untuk cincin emas polos 18K dan list ring 17K.',
-      },
-      {
-        id: 'PRM-002',
-        name: 'Diskon Eksklusif Berlian',
-        code: 'DIAMOND15',
-        discountPercent: 15,
-        label: 'Diskon 15%',
-        startDate: '2026-11-05',
-        endDate: '2026-11-25',
-        productIds: [3, 5],
-        isActive: true,
-        minPurchase: 5000000,
-        description: 'Diskon perhiasan bertatahkan berlian murni bersertifikat GIA.',
-      },
-      {
-        id: 'PRM-003',
-        name: 'Festival Gelang Rantai & Bangle',
-        code: 'GELANG5',
-        discountPercent: 5,
-        label: 'Diskon 5%',
-        startDate: '2026-11-10',
-        endDate: '2026-11-20',
-        productIds: [2, 15, 17],
-        isActive: true,
-        minPurchase: 5000000,
-        description: 'Potongan langsung pembelian koleksi gelang rantai & bangle pilihan.',
-      },
-      {
-        id: 'PRM-004',
-        name: 'Promo Mutiara & Giwang Elegan',
-        code: 'PEARL8',
-        discountPercent: 8,
-        label: 'Diskon 8%',
-        startDate: '2026-11-01',
-        endDate: '2026-11-30',
-        productIds: [4, 25, 26],
-        isActive: true,
-        description: 'Sentuhan kemewahan mutiara air tawar dan giwang harian harga spesial.',
-      },
-      {
-        id: 'PRM-005',
-        name: 'Spesial Bros Kebaya Pesta',
-        code: 'BROS12',
-        discountPercent: 12,
-        label: 'Diskon 12%',
-        startDate: '2026-11-08',
-        endDate: '2026-11-22',
-        productIds: [7, 36],
-        isActive: true,
-        description: 'Aksesoris bros kebaya dan jilbab emas untuk acara pesta & pernikahan.',
-      },
-      {
-        id: 'PRM-006',
-        name: 'Promo Payday Logam Mulia Oktober',
-        code: 'ANTAMOCT',
-        discountPercent: 3,
-        label: 'Diskon 3%',
-        startDate: '2026-10-25',
-        endDate: '2026-10-31',
-        productIds: [32, 33],
-        isActive: false,
-        minPurchase: 2500000,
-        description: 'Program potongan ongkos cetak LM Antam akhir bulan Oktober (periode selesai).',
-      },
-    ];
+    // 4. Re-seed primary outlet promos
     const insertPromo = db.prepare(`
-      INSERT OR IGNORE INTO promos (id, name, code, discountPercent, label, startDate, endDate, productIdsJson, isActive, minPurchase, description)
-      VALUES (@id, @name, @code, @discountPercent, @label, @startDate, @endDate, @productIdsJson, @isActive, @minPurchase, @description)
+      INSERT OR REPLACE INTO promos (id, tenantId, name, code, discountPercent, label, startDate, endDate, productIdsJson, isActive, minPurchase, description)
+      VALUES (@id, 'tenant-tms-001', @name, @code, @discountPercent, @label, @startDate, @endDate, @productIdsJson, @isActive, @minPurchase, @description)
     `);
-    for (const pr of initialPromos) {
+    for (const pr of RETAIL_PROMOS) {
       insertPromo.run({
         id: pr.id,
         name: pr.name,
@@ -1231,266 +1358,195 @@ export function seedInitialDataIfEmpty(): void {
       });
     }
 
-    // 6. Transactions (16 Transaksi Riil Toko Emas dengan jam & tanggal bervariasi di Nov 2026)
-    const prodMap = new Map(realisticProducts.map(p => [p.id, p]));
-    const buildTx = (cfg: {
-      id: string;
-      invoiceNo: string;
-      isoDate: string;
-      cashier: string;
-      customerName: string;
-      lines: Array<{ productId: number; qty: number }>;
-      paymentMethod: 'cash' | 'debit' | 'transfer' | 'qris';
-      paymentDetails: PaymentDetails;
-    }): Transaction => {
-      const d = new Date(cfg.isoDate);
-      const items: TransactionItem[] = cfg.lines.map(l => {
-        const p = prodMap.get(l.productId)!;
-        return {
-          id: p.id,
-          sku: p.sku,
-          name: p.name,
-          berat: p.berat,
-          harga: p.harga,
-          qty: l.qty,
-          subtotal: p.harga * l.qty,
-          image: p.image,
-        };
+    // 5. Re-seed primary outlet transactions & line items
+    const insertTx = db.prepare(`
+      INSERT OR REPLACE INTO transactions (id, tenantId, invoiceNo, dateTime, dateStr, timeStr, cashier, customerName, totalQty, totalBerat, subtotal, tax, grandTotal, paymentMethod, paymentDetailsJson)
+      VALUES (@id, 'tenant-tms-001', @invoiceNo, @dateTime, @dateStr, @timeStr, @cashier, @customerName, @totalQty, @totalBerat, @subtotal, @tax, @grandTotal, @paymentMethod, @paymentDetailsJson)
+    `);
+    const insertTxItem = db.prepare(`
+      INSERT INTO transaction_items (transactionId, productId, sku, name, berat, harga, qty, subtotal, image)
+      VALUES (@transactionId, @productId, @sku, @name, @berat, @harga, @qty, @subtotal, @image)
+    `);
+    for (const tx of buildRetailSeedTransactions()) {
+      insertTx.run({
+        id: tx.id,
+        invoiceNo: tx.invoiceNo,
+        dateTime: tx.dateTime,
+        dateStr: tx.dateStr,
+        timeStr: tx.timeStr,
+        cashier: tx.cashier,
+        customerName: tx.customerName,
+        totalQty: tx.totalQty,
+        totalBerat: tx.totalBerat,
+        subtotal: tx.subtotal,
+        tax: tx.tax,
+        grandTotal: tx.grandTotal,
+        paymentMethod: tx.paymentMethod,
+        paymentDetailsJson: JSON.stringify(tx.paymentDetails),
       });
-      const subtotal = items.reduce((s, it) => s + it.subtotal, 0);
-      const tax = Math.round(subtotal * 0.11);
-      const grandTotal = subtotal + tax;
-      const totalQty = items.reduce((s, it) => s + it.qty, 0);
-      const totalBerat = parseFloat(items.reduce((s, it) => s + it.berat * it.qty, 0).toFixed(2));
-      const paymentDetails: PaymentDetails =
-        cfg.paymentMethod === 'cash' && cfg.paymentDetails.cashReceived !== undefined
-          ? {
-              ...cfg.paymentDetails,
-              cashChange: Math.max(0, cfg.paymentDetails.cashReceived - grandTotal),
-            }
-          : cfg.paymentDetails;
+      for (const item of tx.items) {
+        insertTxItem.run({
+          transactionId: tx.id,
+          productId: item.id,
+          sku: item.sku,
+          name: item.name,
+          berat: item.berat,
+          harga: item.harga,
+          qty: item.qty,
+          subtotal: item.subtotal,
+          image: item.image ?? null,
+        });
+      }
+    }
 
-      return {
-        id: cfg.id,
-        invoiceNo: cfg.invoiceNo,
-        dateTime: d.toISOString(),
-        dateStr: d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
-        timeStr: d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-        cashier: cfg.cashier,
-        customerName: cfg.customerName,
-        items,
-        totalQty,
-        totalBerat,
-        subtotal,
-        tax,
-        grandTotal,
-        paymentMethod: cfg.paymentMethod,
-        paymentDetails,
-      };
-    };
+    // 6. Update seeded customer notes & preferences
+    const updateCust = db.prepare(`
+      UPDATE customers
+      SET name = @name, preferredKadar = @preferredKadar, ringSize = @ringSize, notes = @notes, totalSpent = @totalSpent
+      WHERE id = @id
+    `);
+    for (const c of RETAIL_CUSTOMERS) {
+      updateCust.run(c);
+    }
 
-    const realisticTransactions: Transaction[] = [
-      buildTx({
-        id: 'TRX-20261101-001',
-        invoiceNo: 'TRX-20261101-001',
-        isoDate: '2026-11-01T10:15:00',
-        cashier: 'Siti Nurhaliza (Kasir 1)',
-        customerName: 'Ibu Wulandari Kartika',
-        lines: [
-          { productId: 33, qty: 1 }, // LM Antam 5 Gr
-          { productId: 25, qty: 1 }, // Giwang Tusuk Mata Satu 17K
-        ],
-        paymentMethod: 'transfer',
-        paymentDetails: { transferBank: 'BCA', transferAccountNo: '5400192831', transferRef: 'TRF-261101-8812' },
-      }),
-      buildTx({
-        id: 'TRX-20261102-001',
-        invoiceNo: 'TRX-20261102-001',
-        isoDate: '2026-11-02T14:20:00',
-        cashier: 'Dewi Lestari (Kasir 2)',
-        customerName: 'Siti Aminah',
-        lines: [
-          { productId: 11, qty: 1 }, // Cincin Emas Muda Solitaire 9K
-          { productId: 18, qty: 1 }, // Gelang Serut Bola Mrica 9K
-        ],
-        paymentMethod: 'qris',
-        paymentDetails: { qrisNmid: 'ID102003928192', qrisRrn: 'RRN2611024410' },
-      }),
-      buildTx({
-        id: 'TRX-20261103-001',
-        invoiceNo: 'TRX-20261103-001',
-        isoDate: '2026-11-03T11:40:00',
-        cashier: 'Siti Nurhaliza (Kasir 1)',
-        customerName: 'Hj. Siti Rahmah',
-        lines: [
-          { productId: 9, qty: 1 }, // Cincin Belah Rotan Tua 22K
-          { productId: 30, qty: 1 }, // Liontin Koin Ratu Elizabeth 22K
-        ],
-        paymentMethod: 'debit',
-        paymentDetails: { debitBank: 'Mandiri', debitCardLast4: '4419', debitApprovalCode: 'AUTH-774102' },
-      }),
-      buildTx({
-        id: 'TRX-20261105-001',
-        invoiceNo: 'TRX-20261105-001',
-        isoDate: '2026-11-05T16:05:00',
-        cashier: 'Dewi Lestari (Kasir 2)',
-        customerName: 'dr. Karina Maharani',
-        lines: [
-          { productId: 22, qty: 1 }, // Kalung Choker Milano Italy 18K
-          { productId: 31, qty: 1 }, // Liontin Hati Rose Gold 18K
-        ],
-        paymentMethod: 'debit',
-        paymentDetails: { debitBank: 'BCA', debitCardLast4: '9032', debitApprovalCode: 'AUTH-612094' },
-      }),
-      buildTx({
-        id: 'TRX-20261106-001',
-        invoiceNo: 'TRX-20261106-001',
-        isoDate: '2026-11-06T13:30:00',
-        cashier: 'Siti Nurhaliza (Kasir 1)',
-        customerName: 'Ibu Nurhayati',
-        lines: [
-          { productId: 10, qty: 2 }, // Cincin Fashion Mata Zircon 16K
-          { productId: 26, qty: 1 }, // Anting Jepit Bulat Polos 16K
-        ],
-        paymentMethod: 'cash',
-        paymentDetails: { cashReceived: 7600000 },
-      }),
-      buildTx({
-        id: 'TRX-20261107-001',
-        invoiceNo: 'TRX-20261107-001',
-        isoDate: '2026-11-07T19:15:00',
-        cashier: 'Andi Pratama (Supervisor)',
-        customerName: 'Rizky Ramadhan & Nabila',
-        lines: [
-          { productId: 5, qty: 1 }, // Cincin Kawin Berlian
-          { productId: 15, qty: 1 }, // Gelang Bangle Oval Polos 17K
-        ],
-        paymentMethod: 'transfer',
-        paymentDetails: { transferBank: 'BCA', transferAccountNo: '8812093412', transferRef: 'TRF-261107-5501' },
-      }),
-      buildTx({
-        id: 'TRX-20261108-001',
-        invoiceNo: 'TRX-20261108-001',
-        isoDate: '2026-11-08T15:45:00',
-        cashier: 'Dewi Lestari (Kasir 2)',
-        customerName: 'Bpk. Agus Salim',
-        lines: [
-          { productId: 32, qty: 2 }, // LM Antam 1 Gr
-          { productId: 35, qty: 1 }, // UBS Gold 2 Gr
-        ],
-        paymentMethod: 'transfer',
-        paymentDetails: { transferBank: 'BRI', transferAccountNo: '002301928371', transferRef: 'TRF-261108-1924' },
-      }),
-      buildTx({
-        id: 'TRX-20261109-001',
-        invoiceNo: 'TRX-20261109-001',
-        isoDate: '2026-11-09T11:10:00',
-        cashier: 'Siti Nurhaliza (Kasir 1)',
-        customerName: 'Ibu Yuniarti Susilo',
-        lines: [
-          { productId: 20, qty: 1 }, // Kalung Rantai Nori Halus 17K
-          { productId: 29, qty: 1 }, // Liontin Huruf Inisial Permata 16K
-        ],
-        paymentMethod: 'qris',
-        paymentDetails: { qrisNmid: 'ID102003928192', qrisRrn: 'RRN2611098821' },
-      }),
-      buildTx({
-        id: 'TRX-20261110-001',
-        invoiceNo: 'TRX-20261110-001',
-        isoDate: '2026-11-10T17:25:00',
-        cashier: 'Andi Pratama (Supervisor)',
-        customerName: 'Ny. Melati Kusuma',
-        lines: [{ productId: 34, qty: 1 }], // LM Antam 10 Gr
-        paymentMethod: 'transfer',
-        paymentDetails: { transferBank: 'Mandiri', transferAccountNo: '122009812731', transferRef: 'TRF-261110-3302' },
-      }),
-      buildTx({
-        id: 'TRX-20261110-002',
-        invoiceNo: 'TRX-20261110-002',
-        isoDate: '2026-11-10T19:50:00',
-        cashier: 'Dewi Lestari (Kasir 2)',
-        customerName: 'Sdr. Bagus Pratama',
-        lines: [{ productId: 12, qty: 1 }], // Cincin Stempel Pria Rhodium 18K
-        paymentMethod: 'debit',
-        paymentDetails: { debitBank: 'BCA', debitCardLast4: '3107', debitApprovalCode: 'AUTH-904512' },
-      }),
-      buildTx({
-        id: 'TRX-20261111-001',
-        invoiceNo: 'TRX-20261111-001',
-        isoDate: '2026-11-11T10:35:00',
-        cashier: 'Siti Nurhaliza (Kasir 1)',
-        customerName: 'Hj. Fatimah Az-Zahra',
-        lines: [
-          { productId: 16, qty: 1 }, // Gelang Sisik Naga Tua 22K
-          { productId: 36, qty: 1 }, // Bros Jilbab Pita Permata 16K
-        ],
-        paymentMethod: 'transfer',
-        paymentDetails: { transferBank: 'BCA', transferAccountNo: '7740192884', transferRef: 'TRF-261111-7019' },
-      }),
-      buildTx({
-        id: 'TRX-20261111-002',
-        invoiceNo: 'TRX-20261111-002',
-        isoDate: '2026-11-11T14:55:00',
-        cashier: 'Dewi Lestari (Kasir 2)',
-        customerName: 'Ibu Ratna Dewi',
-        lines: [
-          { productId: 17, qty: 1 }, // Gelang Rantai Holo Variasi 16K
-          { productId: 14, qty: 1 }, // Cincin List Ring Mata Halus 17K
-        ],
-        paymentMethod: 'qris',
-        paymentDetails: { qrisNmid: 'ID102003928192', qrisRrn: 'RRN2611116194' },
-      }),
-      buildTx({
-        id: 'TRX-20261112-002',
-        invoiceNo: 'TRX-20261112-002',
-        isoDate: '2026-11-12T09:45:00',
-        cashier: 'Siti Nurhaliza (Kasir 1)',
-        customerName: 'Bpk. Hendra Wijaya',
-        lines: [
-          { productId: 4, qty: 1 }, // Anting Mutiara Air Tawar
-          { productId: 27, qty: 1 }, // Anting Gantung Klip Huggies 18K
-        ],
-        paymentMethod: 'debit',
-        paymentDetails: { debitBank: 'BCA', debitCardLast4: '8821', debitApprovalCode: 'AUTH-592814' },
-      }),
-      buildTx({
-        id: 'TRX-20261112-003',
-        invoiceNo: 'TRX-20261112-003',
-        isoDate: '2026-11-12T12:15:00',
-        cashier: 'Andi Pratama (Supervisor)',
-        customerName: 'CV Berkah Logam Nusantara',
-        lines: [
-          { productId: 32, qty: 3 }, // LM Antam 1 Gr x3
-          { productId: 33, qty: 1 }, // LM Antam 5 Gr x1
-        ],
-        paymentMethod: 'transfer',
-        paymentDetails: { transferBank: 'Mandiri', transferAccountNo: '103009482711', transferRef: 'TRF-261112-2041' },
-      }),
-      buildTx({
-        id: 'TRX-20261112-004',
-        invoiceNo: 'TRX-20261112-004',
-        isoDate: '2026-11-12T15:20:00',
-        cashier: 'Dewi Lestari (Kasir 2)',
-        customerName: 'Ibu Wulandari Kartika',
-        lines: [
-          { productId: 23, qty: 1 }, // Kalung Cassano Rose Gold 16K
-          { productId: 28, qty: 1 }, // Giwang Anak Toge Tua 22K
-        ],
-        paymentMethod: 'cash',
-        paymentDetails: { cashReceived: 7100000 },
-      }),
-      buildTx({
-        id: 'TRX-20261112-005',
-        invoiceNo: 'TRX-20261112-005',
-        isoDate: '2026-11-12T18:40:00',
-        cashier: 'Siti Nurhaliza (Kasir 1)',
-        customerName: 'dr. Karina Maharani',
-        lines: [{ productId: 3, qty: 1 }], // Kalung Liontin Berlian
-        paymentMethod: 'debit',
-        paymentDetails: { debitBank: 'BCA', debitCardLast4: '9032', debitApprovalCode: 'AUTH-849103' },
-      }),
+    // 7. Reset secondary outlets flag so seedSecondaryOutletsIfNeeded re-populates retail catalog
+    db.prepare('DELETE FROM settings WHERE key = ?').run('seeded_multitenant_outlets_v1');
+    db.prepare('UPDATE tenants SET productCount = 36 WHERE id = ?').run('tenant-tms-001');
+    db.prepare('UPDATE tenants SET productCount = 6 WHERE id = ?').run('tenant-tmj-002');
+    db.prepare('UPDATE tenants SET productCount = 6 WHERE id = ?').run('tenant-lke-003');
+
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('migrated_general_retail_v1', '1');
+  });
+
+  migrateTx();
+}
+
+export function seedInitialDataIfEmpty(): void {
+  const seededV3Row = db.prepare('SELECT value FROM settings WHERE key = ?').get('seeded_v3') as
+    | { value: string }
+    | undefined;
+  if (seededV3Row?.value === '1') {
+    migrateGeneralPosBrandingIfNeeded();
+    migrateStoreNamesMkiIfNeeded();
+    migrateGeneralRetailReceiptFormatV1();
+    migrateSimpleRetailReceiptV2();
+    migrateReceiptHeaderLogoV3();
+    migrateToGeneralRetailCatalogV1();
+    seedSecondaryOutletsIfNeeded();
+    seedUsersIfNeeded();
+    return;
+  }
+
+  const seedTx = db.transaction(() => {
+    // 1. Categories (Katalog Retail Umum: Parfum, Skincare, Body Care, dll.)
+    const insertCat = db.prepare('INSERT OR IGNORE INTO categories (name, sortOrder) VALUES (?, ?)');
+    RETAIL_CATEGORIES.forEach((cat, idx) => insertCat.run(cat, idx + 1));
+
+    // 2. Products (36 Produk Katalog Retail Umum: Parfum, Skincare, Body Care, Make Up, Hair Care, Paket Bundling, Aksesoris)
+    const insertProd = db.prepare(`
+      INSERT OR IGNORE INTO products (id, sku, name, berat, harga, stok, category, image)
+      VALUES (@id, @sku, @name, @berat, @harga, @stok, @category, @image)
+    `);
+    for (const p of RETAIL_PRODUCTS) {
+      insertProd.run(p);
+    }
+
+    // 3. Tenants
+    const initialTenants: Tenant[] = [
+      {
+        id: 'tenant-tms-001',
+        name: 'MKI (Maklon Kosmetik Indonesia)',
+        code: 'MKI-01',
+        branchName: 'Cabang Utama (Grand City Mall Lt. 1)',
+        address: 'Jl. Pemuda No. 108, Mall Grand City Lt. 1 No. 22',
+        city: 'Jakarta Pusat',
+        plan: 'Enterprise Multi-Tenant',
+        cashierCount: 4,
+        productCount: 36,
+        phone: '0812-8899-7766',
+        email: 'admin@mki-kosmetik.id',
+        slug: 'mki.kasirpos.id',
+        logoInitial: 'MK',
+        databaseSchema: 'tenant_db_mki_01',
+        status: 'Aktif',
+      },
+      {
+        id: 'tenant-tmj-002',
+        name: 'AMULIA',
+        code: 'AML-02',
+        branchName: 'Cabang Paris Van Java (PVJ)',
+        address: 'Jl. Sukajadi No. 131, Resort Level B-15',
+        city: 'Bandung',
+        plan: 'Pro Multi-Outlet',
+        cashierCount: 2,
+        productCount: 24,
+        phone: '0813-2233-4455',
+        email: 'kontak@amulia.id',
+        slug: 'amulia.kasirpos.id',
+        logoInitial: 'AM',
+        databaseSchema: 'tenant_db_amulia_02',
+        status: 'Aktif',
+      },
+      {
+        id: 'tenant-lke-003',
+        name: 'Blimey',
+        code: 'BLM-03',
+        branchName: 'Cabang Tunjungan Plaza 3',
+        address: 'Jl. Basuki Rahmat No. 8-12, TP 3 Lt. 2',
+        city: 'Surabaya',
+        plan: 'Enterprise Multi-Tenant',
+        cashierCount: 5,
+        productCount: 42,
+        phone: '0819-7788-9900',
+        email: 'hello@blimey.id',
+        slug: 'blimey.kasirpos.id',
+        logoInitial: 'BL',
+        databaseSchema: 'tenant_db_blimey_03',
+        status: 'Aktif',
+      },
     ];
+    const insertTenant = db.prepare(`
+      INSERT OR IGNORE INTO tenants (id, name, code, branchName, address, city, plan, cashierCount, productCount, phone, email, slug, logoInitial, databaseSchema, status)
+      VALUES (@id, @name, @code, @branchName, @address, @city, @plan, @cashierCount, @productCount, @phone, @email, @slug, @logoInitial, @databaseSchema, @status)
+    `);
+    for (const t of initialTenants) {
+      insertTenant.run(t);
+    }
+    db.prepare('UPDATE tenants SET productCount = 36 WHERE id = ? AND productCount < 36').run('tenant-tms-001');
+    db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)').run('activeTenantId', 'tenant-tms-001');
 
+    // 4. Customers (16 Pelanggan Aktif)
+    const insertCust = db.prepare(`
+      INSERT OR IGNORE INTO customers (id, memberCode, name, phone, nik, type, address, preferredKadar, ringSize, notes, createdAt, totalSpent, totalTransactions)
+      VALUES (@id, @memberCode, @name, @phone, @nik, @type, @address, @preferredKadar, @ringSize, @notes, @createdAt, @totalSpent, @totalTransactions)
+    `);
+    for (const c of RETAIL_CUSTOMERS) {
+      insertCust.run(c);
+    }
+
+    // 5. Promos
+    const insertPromo = db.prepare(`
+      INSERT OR IGNORE INTO promos (id, name, code, discountPercent, label, startDate, endDate, productIdsJson, isActive, minPurchase, description)
+      VALUES (@id, @name, @code, @discountPercent, @label, @startDate, @endDate, @productIdsJson, @isActive, @minPurchase, @description)
+    `);
+    for (const pr of RETAIL_PROMOS) {
+      insertPromo.run({
+        id: pr.id,
+        name: pr.name,
+        code: pr.code,
+        discountPercent: pr.discountPercent,
+        label: pr.label,
+        startDate: pr.startDate,
+        endDate: pr.endDate,
+        productIdsJson: JSON.stringify(pr.productIds),
+        isActive: pr.isActive ? 1 : 0,
+        minPurchase: pr.minPurchase ?? null,
+        description: pr.description ?? null,
+      });
+    }
+
+    // 6. Transactions (16 Transaksi Riil Produk Retail di Nov 2026)
+    const realisticTransactions = buildRetailSeedTransactions();
     const insertTx = db.prepare(`
       INSERT OR IGNORE INTO transactions (id, invoiceNo, dateTime, dateStr, timeStr, cashier, customerName, totalQty, totalBerat, subtotal, tax, grandTotal, paymentMethod, paymentDetailsJson)
       VALUES (@id, @invoiceNo, @dateTime, @dateStr, @timeStr, @cashier, @customerName, @totalQty, @totalBerat, @subtotal, @tax, @grandTotal, @paymentMethod, @paymentDetailsJson)
@@ -1539,366 +1595,20 @@ export function seedInitialDataIfEmpty(): void {
       }
     }
 
-    // 7. Buybacks (10 Nota Buyback Emas Perhiasan & Logam Mulia)
-    const realisticBuybacks: BuybackItem[] = [
-      {
-        id: 'bb-1',
-        invoiceNo: 'BB-20261111-001',
-        date: '11 Nov 2026, 10:20',
-        timeStr: '10:20',
-        branchName: 'Cabang Utama (Grand City Mall Lt. 1)',
-        cashierName: 'Andi Pratama (Penaksir)',
-        customerName: 'Hj. Siti Rahmah',
-        customerPhone: '081234567890',
-        customerNik: '3201124508780001',
-        customerAddress: 'Jl. Riau No. 45, Bandung',
-        sourceNote: 'TRX-20261015-089',
-        itemType: 'Kalung Emas Rantai',
-        kadar: '22K (91.6%)',
-        beratKotor: 10.20,
-        potonganBatu: 0,
-        beratBersih: 10.20,
-        hargaPerGram: 1120000,
-        biayaLebur: 50000,
-        kondisi: 'Baik / Utuh',
-        totalKotor: 11424000,
-        potonganBiaya: 50000,
-        pph22: 0,
-        totalBayar: 11374000,
-        paymentMethod: 'transfer',
-        bankName: 'BCA',
-        accountNo: '8820192811',
-        accountHolder: 'Hj. Siti Rahmah',
-        isAgreedLegal: true,
-      },
-      {
-        id: 'bb-2',
-        invoiceNo: 'BB-20261111-002',
-        date: '11 Nov 2026, 14:45',
-        timeStr: '14:45',
-        branchName: 'Cabang Utama (Grand City Mall Lt. 1)',
-        cashierName: 'Siti Nurhaliza (Kasir 1)',
-        customerName: 'Budi Santoso',
-        customerPhone: '081987654321',
-        customerNik: '3204101202880004',
-        customerAddress: 'Jl. Cihanjuang No. 102, Cimahi',
-        sourceNote: '-',
-        itemType: 'Cincin Kawin Pria',
-        kadar: '18K (75.0%)',
-        beratKotor: 4.80,
-        potonganBatu: 0.30,
-        beratBersih: 4.50,
-        hargaPerGram: 930000,
-        biayaLebur: 80000,
-        kondisi: 'Patah / Cacat',
-        totalKotor: 4185000,
-        potonganBiaya: 80000,
-        pph22: 0,
-        totalBayar: 4105000,
-        paymentMethod: 'cash',
-        isAgreedLegal: true,
-      },
-      {
-        id: 'bb-3',
-        invoiceNo: 'BB-20261104-001',
-        date: '04 Nov 2026, 11:15',
-        timeStr: '11:15',
-        branchName: 'Cabang Utama (Grand City Mall Lt. 1)',
-        cashierName: 'Andi Pratama (Penaksir)',
-        customerName: 'Ny. Melati Kusuma',
-        customerPhone: '081399887766',
-        customerNik: '3171034807790008',
-        customerAddress: 'Menteng Residence Blok A-3, Jakarta Pusat',
-        sourceNote: 'TRX-20260612-034',
-        itemType: 'Logam Mulia Antam 5 Gr',
-        kadar: '24K (99.9%)',
-        beratKotor: 5.00,
-        potonganBatu: 0,
-        beratBersih: 5.00,
-        hargaPerGram: 2335000,
-        biayaLebur: 0,
-        kondisi: 'Baik / Utuh',
-        totalKotor: 11675000,
-        potonganBiaya: 0,
-        pph22: 0,
-        totalBayar: 11675000,
-        paymentMethod: 'transfer',
-        bankName: 'Mandiri',
-        accountNo: '122009812731',
-        accountHolder: 'Melati Kusuma',
-        catatan: 'Segel CertiEye utuh, verifikasi aplikasi lolos.',
-        isAgreedLegal: true,
-      },
-      {
-        id: 'bb-4',
-        invoiceNo: 'BB-20261106-001',
-        date: '06 Nov 2026, 13:50',
-        timeStr: '13:50',
-        branchName: 'Cabang Utama (Grand City Mall Lt. 1)',
-        cashierName: 'Dewi Lestari (Kasir 2)',
-        customerName: 'Ibu Nurhayati',
-        customerPhone: '082144556677',
-        customerNik: '3275026108860009',
-        customerAddress: 'Perum Harapan Indah Blok EF-12, Bekasi',
-        sourceNote: 'TRX-20260820-011',
-        itemType: 'Gelang Rantai Holo',
-        kadar: '16K (70.0%)',
-        beratKotor: 3.60,
-        potonganBatu: 0.15,
-        beratBersih: 3.45,
-        hargaPerGram: 1510000,
-        biayaLebur: 25000,
-        kondisi: 'Baik / Utuh',
-        totalKotor: 5209500,
-        potonganBiaya: 25000,
-        pph22: 0,
-        totalBayar: 5184500,
-        paymentMethod: 'cash',
-        catatan: 'Tukar tambah dengan cincin mata zircon.',
-        isAgreedLegal: true,
-      },
-      {
-        id: 'bb-5',
-        invoiceNo: 'BB-20261107-001',
-        date: '07 Nov 2026, 16:30',
-        timeStr: '16:30',
-        branchName: 'Cabang Utama (Grand City Mall Lt. 1)',
-        cashierName: 'Siti Nurhaliza (Kasir 1)',
-        customerName: 'Sdr. Bagus Pratama',
-        customerPhone: '085788991122',
-        customerNik: '3173041109940007',
-        customerAddress: 'Jl. Tanjung Duren Barat IV No. 8, Jakarta Barat',
-        sourceNote: '-',
-        itemType: 'Cincin Emas Polos',
-        kadar: '18K (75.0%)',
-        beratKotor: 2.80,
-        potonganBatu: 0,
-        beratBersih: 2.80,
-        hargaPerGram: 1650000,
-        biayaLebur: 20000,
-        kondisi: 'Baik / Utuh',
-        totalKotor: 4620000,
-        potonganBiaya: 20000,
-        pph22: 0,
-        totalBayar: 4600000,
-        paymentMethod: 'cash',
-        isAgreedLegal: true,
-      },
-      {
-        id: 'bb-6',
-        invoiceNo: 'BB-20261108-001',
-        date: '08 Nov 2026, 12:10',
-        timeStr: '12:10',
-        branchName: 'Cabang Utama (Grand City Mall Lt. 1)',
-        cashierName: 'Andi Pratama (Penaksir)',
-        customerName: 'Hj. Fatimah Az-Zahra',
-        customerPhone: '081344556611',
-        customerNik: '3175016702760016',
-        customerAddress: 'Jl. Matraman Raya No. 112, Jakarta Timur',
-        sourceNote: '-',
-        itemType: 'Gelang Keroncong Tua',
-        kadar: '22K (91.6%)',
-        beratKotor: 9.50,
-        potonganBatu: 0,
-        beratBersih: 9.50,
-        hargaPerGram: 2060000,
-        biayaLebur: 100000,
-        kondisi: 'Tanpa Sertifikat / Nota',
-        totalKotor: 19570000,
-        potonganBiaya: 100000,
-        pph22: 0,
-        totalBayar: 19470000,
-        paymentMethod: 'transfer',
-        bankName: 'BCA',
-        accountNo: '7740192884',
-        accountHolder: 'Hj. Fatimah Az-Zahra',
-        catatan: 'Sudah dicek kadar menggunakan mesin XRF 91.6%.',
-        isAgreedLegal: true,
-      },
-      {
-        id: 'bb-7',
-        invoiceNo: 'BB-20261109-001',
-        date: '09 Nov 2026, 15:05',
-        timeStr: '15:05',
-        branchName: 'Cabang Utama (Grand City Mall Lt. 1)',
-        cashierName: 'Dewi Lestari (Kasir 2)',
-        customerName: 'Siti Aminah',
-        customerPhone: '085233445566',
-        customerNik: '3175064304960012',
-        customerAddress: 'Jl. Rawamangun Muka No. 21, Jakarta Timur',
-        sourceNote: 'TRX-20260918-042',
-        itemType: 'Anting Jepit & Liontin',
-        kadar: '9K (37.5%)',
-        beratKotor: 2.40,
-        potonganBatu: 0.20,
-        beratBersih: 2.20,
-        hargaPerGram: 810000,
-        biayaLebur: 45000,
-        kondisi: 'Patah / Cacat',
-        totalKotor: 1782000,
-        potonganBiaya: 45000,
-        pph22: 0,
-        totalBayar: 1737000,
-        paymentMethod: 'cash',
-        isAgreedLegal: true,
-      },
-      {
-        id: 'bb-8',
-        invoiceNo: 'BB-20261110-001',
-        date: '10 Nov 2026, 11:40',
-        timeStr: '11:40',
-        branchName: 'Cabang Utama (Grand City Mall Lt. 1)',
-        cashierName: 'Siti Nurhaliza (Kasir 1)',
-        customerName: 'Ibu Yuniarti Susilo',
-        customerPhone: '081855443322',
-        customerNik: '3276035906840014',
-        customerAddress: 'Pesona Khayangan Blok D-10, Depok',
-        sourceNote: 'TRX-20261109-001',
-        itemType: 'Kalung Rantai Nori',
-        kadar: '17K (75.0%)',
-        beratKotor: 4.10,
-        potonganBatu: 0,
-        beratBersih: 4.10,
-        hargaPerGram: 1620000,
-        biayaLebur: 0,
-        kondisi: 'Baik / Utuh',
-        totalKotor: 6642000,
-        potonganBiaya: 0,
-        pph22: 0,
-        totalBayar: 6642000,
-        paymentMethod: 'cash',
-        isAgreedLegal: true,
-      },
-      {
-        id: 'bb-9',
-        invoiceNo: 'BB-20261112-001',
-        date: '12 Nov 2026, 10:50',
-        timeStr: '10:50',
-        branchName: 'Cabang Utama (Grand City Mall Lt. 1)',
-        cashierName: 'Andi Pratama (Penaksir)',
-        customerName: 'CV Berkah Logam Nusantara',
-        customerPhone: '081788990011',
-        customerNik: '3172021801740013',
-        customerAddress: 'Jl. Cikini Raya No. 88, Jakarta Pusat',
-        sourceNote: '-',
-        itemType: 'Logam Mulia UBS 10 Gr',
-        kadar: '24K (99.9%)',
-        beratKotor: 10.00,
-        potonganBatu: 0,
-        beratBersih: 10.00,
-        hargaPerGram: 2310000,
-        biayaLebur: 50000,
-        kondisi: 'Kemasan Rusak',
-        totalKotor: 23100000,
-        potonganBiaya: 50000,
-        pph22: 0,
-        totalBayar: 23050000,
-        paymentMethod: 'transfer',
-        bankName: 'BCA',
-        accountNo: '4901283910',
-        accountHolder: 'CV Berkah Logam Nusantara',
-        catatan: 'Kemas plastik UBS terlipat, kadar 999.9% valid.',
-        isAgreedLegal: true,
-      },
-      {
-        id: 'bb-10',
-        invoiceNo: 'BB-20261112-002',
-        date: '12 Nov 2026, 14:15',
-        timeStr: '14:15',
-        branchName: 'Cabang Utama (Grand City Mall Lt. 1)',
-        cashierName: 'Dewi Lestari (Kasir 2)',
-        customerName: 'Ibu Ratna Dewi',
-        customerPhone: '085612349876',
-        customerNik: '3273016405850003',
-        customerAddress: 'Komplek Permata Buah Batu Blok C-8, Bandung',
-        sourceNote: 'TRX-20260711-019',
-        itemType: 'Cincin Permata Zircon',
-        kadar: '16K (70.0%)',
-        beratKotor: 1.90,
-        potonganBatu: 0.25,
-        beratBersih: 1.65,
-        hargaPerGram: 1500000,
-        biayaLebur: 25000,
-        kondisi: 'Baik / Utuh',
-        totalKotor: 2475000,
-        potonganBiaya: 25000,
-        pph22: 0,
-        totalBayar: 2450000,
-        paymentMethod: 'cash',
-        isAgreedLegal: true,
-      },
-    ];
-    const insertBb = db.prepare(`
-      INSERT OR IGNORE INTO buybacks (
-        id, invoiceNo, date, timeStr, branchName, cashierName,
-        customerName, customerPhone, customerNik, customerNpwp, customerAddress,
-        sourceNote, itemType, kadar, beratKotor, potonganBatu, beratBersih,
-        hargaPerGram, biayaLebur, kondisi, totalKotor, potonganBiaya, pph22,
-        totalBayar, paymentMethod, bankName, accountNo, accountHolder,
-        catatan, fotoKtp, fotoEmas, ttdNasabah, ttdPetugas, isAgreedLegal, itemsJson
-      ) VALUES (
-        @id, @invoiceNo, @date, @timeStr, @branchName, @cashierName,
-        @customerName, @customerPhone, @customerNik, @customerNpwp, @customerAddress,
-        @sourceNote, @itemType, @kadar, @beratKotor, @potonganBatu, @beratBersih,
-        @hargaPerGram, @biayaLebur, @kondisi, @totalKotor, @potonganBiaya, @pph22,
-        @totalBayar, @paymentMethod, @bankName, @accountNo, @accountHolder,
-        @catatan, @fotoKtp, @fotoEmas, @ttdNasabah, @ttdPetugas, @isAgreedLegal, @itemsJson
-      )
-    `);
-    for (const bb of realisticBuybacks) {
-      insertBb.run({
-        id: bb.id,
-        invoiceNo: bb.invoiceNo,
-        date: bb.date,
-        timeStr: bb.timeStr ?? null,
-        branchName: bb.branchName ?? null,
-        cashierName: bb.cashierName ?? null,
-        customerName: bb.customerName,
-        customerPhone: bb.customerPhone,
-        customerNik: bb.customerNik ?? null,
-        customerNpwp: bb.customerNpwp ?? null,
-        customerAddress: bb.customerAddress ?? null,
-        sourceNote: bb.sourceNote ?? '-',
-        itemType: bb.itemType,
-        kadar: bb.kadar,
-        beratKotor: bb.beratKotor,
-        potonganBatu: bb.potonganBatu ?? 0,
-        beratBersih: bb.beratBersih,
-        hargaPerGram: bb.hargaPerGram,
-        biayaLebur: bb.biayaLebur ?? 0,
-        kondisi: bb.kondisi,
-        totalKotor: bb.totalKotor ?? null,
-        potonganBiaya: bb.potonganBiaya ?? null,
-        pph22: bb.pph22 ?? null,
-        totalBayar: bb.totalBayar,
-        paymentMethod: bb.paymentMethod,
-        bankName: bb.bankName ?? null,
-        accountNo: bb.accountNo ?? null,
-        accountHolder: bb.accountHolder ?? null,
-        catatan: bb.catatan ?? null,
-        fotoKtp: bb.fotoKtp ?? null,
-        fotoEmas: bb.fotoEmas ?? null,
-        ttdNasabah: bb.ttdNasabah ?? null,
-        ttdPetugas: bb.ttdPetugas ?? null,
-        isAgreedLegal: bb.isAgreedLegal ? 1 : 0,
-        itemsJson: bb.items ? JSON.stringify(bb.items) : null,
-      });
-    }
-
     db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('seeded_v1', '1');
     db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('seeded_v2', '1');
     db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('seeded_v3', '1');
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('migrated_general_retail_v1', '1');
   });
 
   seedTx();
   seedSecondaryOutletsIfNeeded();
   seedUsersIfNeeded();
-  db.exec(`
-    UPDATE buybacks
-    SET createdAt = substr(invoiceNo, 4, 4) || '-' || substr(invoiceNo, 8, 2) || '-' || substr(invoiceNo, 10, 2) || 'T12:00:00.000Z'
-    WHERE (createdAt IS NULL OR TRIM(createdAt) = '') AND invoiceNo LIKE 'BB-________-%';
-  `);
-  seedShiftClosingsIfNeeded();
+  migrateGeneralPosBrandingIfNeeded();
+  migrateStoreNamesMkiIfNeeded();
+  migrateGeneralRetailReceiptFormatV1();
+  migrateSimpleRetailReceiptV2();
+  migrateReceiptHeaderLogoV3();
 }
 
 // Query Helpers
@@ -3359,7 +3069,7 @@ export function seedUsersIfNeeded(): void {
     {
       id: 'USR-001',
       username: 'owner',
-      email: 'owner@tokomas.id',
+      email: 'owner@kasirpos.id',
       fullName: 'H. Ahmad Fauzi',
       passwordHash: hashPassword('owner123'),
       role: 'owner' as UserRole,
@@ -3372,7 +3082,7 @@ export function seedUsersIfNeeded(): void {
     {
       id: 'USR-002',
       username: 'kepala.jkt',
-      email: 'kepala.jkt@tokomas.id',
+      email: 'kepala.jkt@kasirpos.id',
       fullName: 'Dewi Lestari',
       passwordHash: hashPassword('cabang123'),
       role: 'branch_manager' as UserRole,
@@ -3385,7 +3095,7 @@ export function seedUsersIfNeeded(): void {
     {
       id: 'USR-003',
       username: 'kasir.jkt',
-      email: 'kasir.jkt@tokomas.id',
+      email: 'kasir.jkt@kasirpos.id',
       fullName: 'Andi Pratama',
       passwordHash: hashPassword('kasir123'),
       role: 'cashier' as UserRole,
@@ -3398,7 +3108,7 @@ export function seedUsersIfNeeded(): void {
     {
       id: 'USR-004',
       username: 'kasir.bdg',
-      email: 'kasir.bdg@tokomas.id',
+      email: 'kasir.bdg@kasirpos.id',
       fullName: 'Rina Kusuma',
       passwordHash: hashPassword('kasir123'),
       role: 'cashier' as UserRole,
@@ -3805,36 +3515,290 @@ export function deleteUserAccount(id: string, actorUserId: string): void {
 // STORE SETTINGS & SHIFT CLOSING (TAHAP 3)
 // ============================================================
 export const DEFAULT_RECEIPT_TERMS_TEXT = [
+  'Simpan struk ini sebagai bukti pembayaran yang sah dari {TOKO}.',
+  'Penukaran produk dalam kemasan tersegel berlaku maksimal 3 hari.',
+].join('\n');
+
+const LEGACY_JEWELRY_TERMS_TEXT = [
   'Wajib membawa surat ini saat jual kembali atau tukar tambah barang.',
   'Barang dari {TOKO} diterima kembali sesuai ketentuan harga & potongan toko.',
   'Jika rusak/cacat atau mata hilang dikenakan potongan tambahan sesuai kondisi.',
   'Pesanan khusus (custom order), batu, dan ongkos lebur tidak dapat dikembalikan.',
 ].join('\n');
 
+function migrateGeneralPosBrandingIfNeeded(): void {
+  const alreadyMigrated = db
+    .prepare('SELECT value FROM settings WHERE key = ?')
+    .get('migrated_general_pos_branding_v1') as { value: string } | undefined;
+  if (alreadyMigrated?.value === '1') {
+    return;
+  }
+
+  const migrateTx = db.transaction(() => {
+    db.prepare(
+      `UPDATE tenants
+       SET name = 'Toko Maju Bersama',
+           email = 'admin@tokomaju.id',
+           slug = 'majubersama.kasirpos.id',
+           logoInitial = 'TM'
+       WHERE id = 'tenant-tms-001'
+         AND (name = 'Toko Mas Sejahtera' OR slug = 'sejahtera.epaper.id')`
+    ).run();
+
+    db.prepare(
+      `UPDATE tenants
+       SET name = 'Sentosa Retail Mart',
+           email = 'kontak@sentosamart.id',
+           slug = 'sentosamart.kasirpos.id',
+           logoInitial = 'SR'
+       WHERE id = 'tenant-tmj-002'
+         AND (name = 'Toko Mas Mulia Jaya' OR slug = 'muliajaya.epaper.id')`
+    ).run();
+
+    db.prepare(
+      `UPDATE tenants
+       SET name = 'CV Kencana Niaga',
+           email = 'management@kencananiaga.co.id',
+           slug = 'kencananiaga.kasirpos.id',
+           logoInitial = 'KN'
+       WHERE id = 'tenant-lke-003'
+         AND (name = 'CV Logam Kencana Emas' OR slug = 'logamkencana.epaper.id')`
+    ).run();
+
+    db.prepare(
+      `UPDATE store_settings
+       SET receiptTagline = 'RETAIL & POS SYSTEM'
+       WHERE receiptTagline = 'GOLD & JEWELLERY'`
+    ).run();
+
+    db.prepare(
+      `UPDATE store_settings
+       SET receiptSaleTitle = 'FAKTUR PENJUALAN'
+       WHERE receiptSaleTitle = 'FAKTUR PENJUALAN EMAS'`
+    ).run();
+
+    db.prepare(
+      `UPDATE store_settings
+       SET receiptCashierSignLabel = 'Kasir / Staff'
+       WHERE receiptCashierSignLabel = 'Kasir / Gold Advisor'`
+    ).run();
+
+    db.prepare(
+      `UPDATE store_settings
+       SET receiptFooterNote = 'Simpan struk ini sebagai bukti transaksi resmi. Barang yang sudah dibeli mengikuti ketentuan toko.'
+       WHERE receiptFooterNote = 'Barang yang sudah dibeli dapat dijual kembali (buyback) dengan menyertakan surat nota resmi ini.'`
+    ).run();
+
+    db.prepare(
+      `UPDATE store_settings
+       SET receiptTermsText = ?
+       WHERE receiptTermsText = ? OR receiptTermsText = ''`
+    ).run(DEFAULT_RECEIPT_TERMS_TEXT, LEGACY_JEWELRY_TERMS_TEXT);
+
+    db.prepare(
+      `UPDATE users
+       SET email = REPLACE(email, '@tokomas.id', '@kasirpos.id')
+       WHERE email LIKE '%@tokomas.id'`
+    ).run();
+
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(
+      'migrated_general_pos_branding_v1',
+      '1'
+    );
+  });
+
+  migrateTx();
+}
+
+function migrateStoreNamesMkiIfNeeded(): void {
+  const alreadyMigrated = db
+    .prepare('SELECT value FROM settings WHERE key = ?')
+    .get('migrated_store_names_mki_v1') as { value: string } | undefined;
+  if (alreadyMigrated?.value === '1') {
+    return;
+  }
+
+  const migrateTx = db.transaction(() => {
+    db.prepare(
+      `UPDATE tenants
+       SET name = 'MKI (Maklon Kosmetik Indonesia)',
+           code = 'MKI-01',
+           email = 'admin@mki-kosmetik.id',
+           slug = 'mki.kasirpos.id',
+           logoInitial = 'MK',
+           databaseSchema = 'tenant_db_mki_01'
+       WHERE id = 'tenant-tms-001'`
+    ).run();
+
+    db.prepare(
+      `UPDATE tenants
+       SET name = 'AMULIA',
+           code = 'AML-02',
+           email = 'kontak@amulia.id',
+           slug = 'amulia.kasirpos.id',
+           logoInitial = 'AM',
+           databaseSchema = 'tenant_db_amulia_02'
+       WHERE id = 'tenant-tmj-002'`
+    ).run();
+
+    db.prepare(
+      `UPDATE tenants
+       SET name = 'Blimey',
+           code = 'BLM-03',
+           email = 'hello@blimey.id',
+           slug = 'blimey.kasirpos.id',
+           logoInitial = 'BL',
+           databaseSchema = 'tenant_db_blimey_03'
+       WHERE id = 'tenant-lke-003'`
+    ).run();
+
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(
+      'migrated_store_names_mki_v1',
+      '1'
+    );
+  });
+
+  migrateTx();
+}
+
+function migrateGeneralRetailReceiptFormatV1(): void {
+  const alreadyMigrated = db
+    .prepare('SELECT value FROM settings WHERE key = ?')
+    .get('migrated_general_retail_receipt_v1') as { value: string } | undefined;
+  if (alreadyMigrated?.value === '1') {
+    return;
+  }
+
+  const migrateTx = db.transaction(() => {
+    db.prepare(
+      `UPDATE store_settings
+       SET receiptSaleTitle = CASE
+             WHEN receiptSaleTitle IN ('FAKTUR PENJUALAN', 'FAKTUR PENJUALAN EMAS') THEN 'NOTA PENJUALAN'
+             ELSE receiptSaleTitle
+           END,
+           receiptTheme = CASE
+             WHEN receiptTheme = 'classic_gold' THEN 'midnight_navy'
+             ELSE receiptTheme
+           END,
+           receiptLogoPreset = CASE
+             WHEN receiptLogoPreset IN ('crown', 'diamond') THEN 'monogram'
+             ELSE receiptLogoPreset
+           END,
+           receiptShowSignatures = 0,
+           receiptCustomerSignLabel = CASE
+             WHEN receiptCustomerSignLabel = 'Customer' THEN 'Pelanggan'
+             ELSE receiptCustomerSignLabel
+           END,
+           receiptCashierSignLabel = CASE
+             WHEN receiptCashierSignLabel IN ('Kasir / Staff', 'Kasir / Gold Advisor') THEN 'Kasir'
+             ELSE receiptCashierSignLabel
+           END,
+           receiptTermsText = ?,
+           receiptFooterNote = 'Terima kasih telah berbelanja! Simpan struk ini sebagai bukti pembayaran yang sah.'`
+    ).run(DEFAULT_RECEIPT_TERMS_TEXT);
+
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(
+      'migrated_general_retail_receipt_v1',
+      '1'
+    );
+  });
+
+  migrateTx();
+}
+
+function migrateSimpleRetailReceiptV2(): void {
+  const alreadyMigrated = db
+    .prepare('SELECT value FROM settings WHERE key = ?')
+    .get('migrated_simple_retail_receipt_v2') as { value: string } | undefined;
+  if (alreadyMigrated?.value === '1') {
+    return;
+  }
+
+  const migrateTx = db.transaction(() => {
+    db.prepare(
+      `UPDATE store_settings
+       SET receiptTagline = CASE
+             WHEN receiptTagline IN ('RETAIL & POS SYSTEM', 'TOKO EMAS & PERHIASAN') THEN ''
+             ELSE receiptTagline
+           END,
+           receiptSaleTitle = CASE
+             WHEN receiptSaleTitle IN ('NOTA PENJUALAN', 'FAKTUR PENJUALAN', 'FAKTUR PENJUALAN EMAS') THEN ''
+             ELSE receiptSaleTitle
+           END,
+           receiptLogoPreset = CASE
+             WHEN receiptLogoPreset IN ('monogram', 'crown', 'diamond') THEN 'none'
+             ELSE receiptLogoPreset
+           END,
+           receiptShowWatermark = 0,
+           receiptShowBarcode = 0,
+           receiptShowQrCode = 0,
+           receiptShowPhoto = 0,
+           receiptShowItemSku = 0,
+           receiptShowTerms = 0,
+           receiptShowSignatures = 0,
+           receiptTermsTitle = 'Catatan:',
+           receiptTermsText = ?,
+           receiptFooterNote = 'Terima kasih telah berbelanja di {TOKO}.'`
+    ).run(DEFAULT_RECEIPT_TERMS_TEXT);
+
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(
+      'migrated_simple_retail_receipt_v2',
+      '1'
+    );
+  });
+
+  migrateTx();
+}
+
+function migrateReceiptHeaderLogoV3(): void {
+  const alreadyMigrated = db
+    .prepare('SELECT value FROM settings WHERE key = ?')
+    .get('migrated_receipt_header_logo_v3') as { value: string } | undefined;
+  if (alreadyMigrated?.value === '1') {
+    return;
+  }
+
+  const migrateTx = db.transaction(() => {
+    db.prepare(
+      `UPDATE store_settings
+       SET receiptLogoPreset = 'monogram'
+       WHERE receiptLogoPreset = 'none'`
+    ).run();
+
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(
+      'migrated_receipt_header_logo_v3',
+      '1'
+    );
+  });
+
+  migrateTx();
+}
+
 const STORE_SETTINGS_EXTRA_COLUMNS: Array<{ name: string; definition: string }> = [
-  { name: 'receiptSaleTitle', definition: "TEXT NOT NULL DEFAULT 'FAKTUR PENJUALAN EMAS'" },
-  { name: 'receiptBuybackTitle', definition: "TEXT NOT NULL DEFAULT 'SURAT PEMBELIAN KEMBALI (BUYBACK)'" },
+  { name: 'appTheme', definition: "TEXT NOT NULL DEFAULT 'zinc_classic'" },
+  { name: 'receiptSaleTitle', definition: "TEXT NOT NULL DEFAULT ''" },
+  { name: 'receiptBuybackTitle', definition: "TEXT NOT NULL DEFAULT 'SURAT PEMBELIAN KEMBALI'" },
   { name: 'receiptHeaderExtra', definition: "TEXT NOT NULL DEFAULT ''" },
-  { name: 'receiptTheme', definition: "TEXT NOT NULL DEFAULT 'classic_gold'" },
+  { name: 'receiptTheme', definition: "TEXT NOT NULL DEFAULT 'midnight_navy'" },
   { name: 'receiptDefaultPaperSize', definition: "TEXT NOT NULL DEFAULT 'a5'" },
-  { name: 'receiptLogoPreset', definition: "TEXT NOT NULL DEFAULT 'crown'" },
+  { name: 'receiptLogoPreset', definition: "TEXT NOT NULL DEFAULT 'monogram'" },
   { name: 'receiptCustomLogoUrl', definition: "TEXT NOT NULL DEFAULT ''" },
-  { name: 'receiptShowWatermark', definition: 'INTEGER NOT NULL DEFAULT 1' },
+  { name: 'receiptShowWatermark', definition: 'INTEGER NOT NULL DEFAULT 0' },
   { name: 'receiptWatermarkOpacity', definition: 'INTEGER NOT NULL DEFAULT 6' },
   { name: 'receiptShowStoreAddress', definition: 'INTEGER NOT NULL DEFAULT 1' },
-  { name: 'receiptShowBarcode', definition: 'INTEGER NOT NULL DEFAULT 1' },
-  { name: 'receiptShowQrCode', definition: 'INTEGER NOT NULL DEFAULT 1' },
-  { name: 'receiptShowPhoto', definition: 'INTEGER NOT NULL DEFAULT 1' },
-  { name: 'receiptShowItemSku', definition: 'INTEGER NOT NULL DEFAULT 1' },
+  { name: 'receiptShowBarcode', definition: 'INTEGER NOT NULL DEFAULT 0' },
+  { name: 'receiptShowQrCode', definition: 'INTEGER NOT NULL DEFAULT 0' },
+  { name: 'receiptShowPhoto', definition: 'INTEGER NOT NULL DEFAULT 0' },
+  { name: 'receiptShowItemSku', definition: 'INTEGER NOT NULL DEFAULT 0' },
   { name: 'receiptShowTaxLine', definition: 'INTEGER NOT NULL DEFAULT 1' },
   { name: 'receiptShowCashierName', definition: 'INTEGER NOT NULL DEFAULT 1' },
-  { name: 'receiptShowTerms', definition: 'INTEGER NOT NULL DEFAULT 1' },
-  { name: 'receiptTermsTitle', definition: "TEXT NOT NULL DEFAULT 'Perhatian :'" },
+  { name: 'receiptShowTerms', definition: 'INTEGER NOT NULL DEFAULT 0' },
+  { name: 'receiptTermsTitle', definition: "TEXT NOT NULL DEFAULT 'Catatan:'" },
   { name: 'receiptTermsText', definition: "TEXT NOT NULL DEFAULT ''" },
-  { name: 'receiptShowSignatures', definition: 'INTEGER NOT NULL DEFAULT 1' },
+  { name: 'receiptShowSignatures', definition: 'INTEGER NOT NULL DEFAULT 0' },
   { name: 'receiptSignatureGreeting', definition: "TEXT NOT NULL DEFAULT 'Hormat Kami,'" },
-  { name: 'receiptCustomerSignLabel', definition: "TEXT NOT NULL DEFAULT 'Customer'" },
-  { name: 'receiptCashierSignLabel', definition: "TEXT NOT NULL DEFAULT 'Kasir / Gold Advisor'" },
+  { name: 'receiptCustomerSignLabel', definition: "TEXT NOT NULL DEFAULT 'Pelanggan'" },
+  { name: 'receiptCashierSignLabel', definition: "TEXT NOT NULL DEFAULT 'Kasir'" },
 ];
 
 (function ensureStoreSettingsColumns() {
@@ -3852,6 +3816,7 @@ interface StoreSettingsDbRow {
   tenantId: string;
   ppnPercent: number;
   enablePpn: number;
+  appTheme?: string | null;
   goldPrice24kBuyback: number;
   goldPrice22kBuyback: number;
   goldPrice18kBuyback: number;
@@ -3887,6 +3852,15 @@ interface StoreSettingsDbRow {
   updatedBy: string | null;
 }
 
+const VALID_APP_THEMES: AppThemeId[] = [
+  'zinc_classic',
+  'ocean_slate',
+  'emerald_mint',
+  'rose_blossom',
+  'indigo_night',
+  'espresso_cream',
+];
+
 const VALID_RECEIPT_THEMES: ReceiptTheme[] = [
   'classic_gold',
   'royal_emerald',
@@ -3896,10 +3870,22 @@ const VALID_RECEIPT_THEMES: ReceiptTheme[] = [
 ];
 
 const VALID_RECEIPT_PAPER_SIZES: ReceiptPaperSize[] = ['a5', 'a6', '80mm'];
-const VALID_RECEIPT_LOGO_PRESETS: ReceiptLogoPreset[] = ['crown', 'diamond', 'monogram', 'custom', 'none'];
+const VALID_RECEIPT_LOGO_PRESETS: ReceiptLogoPreset[] = [
+  'monogram',
+  'bag',
+  'sparkles',
+  'custom',
+  'none',
+  'crown',
+  'diamond',
+];
+
+function normalizeAppTheme(val?: string | null): AppThemeId {
+  return VALID_APP_THEMES.includes(val as AppThemeId) ? (val as AppThemeId) : 'zinc_classic';
+}
 
 function normalizeReceiptTheme(val?: string | null): ReceiptTheme {
-  return VALID_RECEIPT_THEMES.includes(val as ReceiptTheme) ? (val as ReceiptTheme) : 'classic_gold';
+  return VALID_RECEIPT_THEMES.includes(val as ReceiptTheme) ? (val as ReceiptTheme) : 'midnight_navy';
 }
 
 function normalizeReceiptPaperSize(val?: string | null): ReceiptPaperSize {
@@ -3909,7 +3895,7 @@ function normalizeReceiptPaperSize(val?: string | null): ReceiptPaperSize {
 function normalizeReceiptLogoPreset(val?: string | null): ReceiptLogoPreset {
   return VALID_RECEIPT_LOGO_PRESETS.includes(val as ReceiptLogoPreset)
     ? (val as ReceiptLogoPreset)
-    : 'crown';
+    : 'monogram';
 }
 
 function mapStoreSettingsRow(row: StoreSettingsDbRow): StoreSettings {
@@ -3922,38 +3908,39 @@ function mapStoreSettingsRow(row: StoreSettingsDbRow): StoreSettings {
     tenantId: row.tenantId,
     ppnPercent: Number(row.ppnPercent),
     enablePpn: Boolean(row.enablePpn),
+    appTheme: normalizeAppTheme(row.appTheme),
     goldPrice24kBuyback: Number(row.goldPrice24kBuyback),
     goldPrice22kBuyback: Number(row.goldPrice22kBuyback),
     goldPrice18kBuyback: Number(row.goldPrice18kBuyback),
     goldPrice16kBuyback: Number(row.goldPrice16kBuyback),
-    receiptTagline: row.receiptTagline || 'GOLD & JEWELLERY',
+    receiptTagline: row.receiptTagline ?? '',
     receiptFooterNote: row.receiptFooterNote ?? '',
-    receiptSaleTitle: row.receiptSaleTitle ?? 'FAKTUR PENJUALAN EMAS',
-    receiptBuybackTitle: row.receiptBuybackTitle ?? 'SURAT PEMBELIAN KEMBALI (BUYBACK)',
+    receiptSaleTitle: row.receiptSaleTitle ?? '',
+    receiptBuybackTitle: row.receiptBuybackTitle ?? 'SURAT PEMBELIAN KEMBALI',
     receiptHeaderExtra: row.receiptHeaderExtra ?? '',
     receiptTheme: normalizeReceiptTheme(row.receiptTheme),
     receiptDefaultPaperSize: normalizeReceiptPaperSize(row.receiptDefaultPaperSize),
     receiptLogoPreset: normalizeReceiptLogoPreset(row.receiptLogoPreset),
     receiptCustomLogoUrl: row.receiptCustomLogoUrl ?? '',
-    receiptShowWatermark: row.receiptShowWatermark === undefined || row.receiptShowWatermark === null ? true : Boolean(row.receiptShowWatermark),
+    receiptShowWatermark: row.receiptShowWatermark === undefined || row.receiptShowWatermark === null ? false : Boolean(row.receiptShowWatermark),
     receiptWatermarkOpacity: clampedWatermarkOpacity,
     receiptShowStoreAddress: row.receiptShowStoreAddress === undefined || row.receiptShowStoreAddress === null ? true : Boolean(row.receiptShowStoreAddress),
-    receiptShowBarcode: row.receiptShowBarcode === undefined || row.receiptShowBarcode === null ? true : Boolean(row.receiptShowBarcode),
-    receiptShowQrCode: row.receiptShowQrCode === undefined || row.receiptShowQrCode === null ? true : Boolean(row.receiptShowQrCode),
-    receiptShowPhoto: row.receiptShowPhoto === undefined || row.receiptShowPhoto === null ? true : Boolean(row.receiptShowPhoto),
-    receiptShowItemSku: row.receiptShowItemSku === undefined || row.receiptShowItemSku === null ? true : Boolean(row.receiptShowItemSku),
+    receiptShowBarcode: row.receiptShowBarcode === undefined || row.receiptShowBarcode === null ? false : Boolean(row.receiptShowBarcode),
+    receiptShowQrCode: row.receiptShowQrCode === undefined || row.receiptShowQrCode === null ? false : Boolean(row.receiptShowQrCode),
+    receiptShowPhoto: row.receiptShowPhoto === undefined || row.receiptShowPhoto === null ? false : Boolean(row.receiptShowPhoto),
+    receiptShowItemSku: row.receiptShowItemSku === undefined || row.receiptShowItemSku === null ? false : Boolean(row.receiptShowItemSku),
     receiptShowTaxLine: row.receiptShowTaxLine === undefined || row.receiptShowTaxLine === null ? true : Boolean(row.receiptShowTaxLine),
     receiptShowCashierName: row.receiptShowCashierName === undefined || row.receiptShowCashierName === null ? true : Boolean(row.receiptShowCashierName),
-    receiptShowTerms: row.receiptShowTerms === undefined || row.receiptShowTerms === null ? true : Boolean(row.receiptShowTerms),
-    receiptTermsTitle: row.receiptTermsTitle ?? 'Perhatian :',
+    receiptShowTerms: row.receiptShowTerms === undefined || row.receiptShowTerms === null ? false : Boolean(row.receiptShowTerms),
+    receiptTermsTitle: row.receiptTermsTitle ?? 'Catatan:',
     receiptTermsText:
       row.receiptTermsText && row.receiptTermsText.trim().length > 0
         ? row.receiptTermsText
         : DEFAULT_RECEIPT_TERMS_TEXT,
-    receiptShowSignatures: row.receiptShowSignatures === undefined || row.receiptShowSignatures === null ? true : Boolean(row.receiptShowSignatures),
+    receiptShowSignatures: row.receiptShowSignatures === undefined || row.receiptShowSignatures === null ? false : Boolean(row.receiptShowSignatures),
     receiptSignatureGreeting: row.receiptSignatureGreeting ?? 'Hormat Kami,',
-    receiptCustomerSignLabel: row.receiptCustomerSignLabel ?? 'Customer',
-    receiptCashierSignLabel: row.receiptCashierSignLabel ?? 'Kasir / Gold Advisor',
+    receiptCustomerSignLabel: row.receiptCustomerSignLabel ?? 'Pelanggan',
+    receiptCashierSignLabel: row.receiptCashierSignLabel ?? 'Kasir',
     autoPrintReceipt: Boolean(row.autoPrintReceipt),
     requireCustomerOnSale: Boolean(row.requireCustomerOnSale),
     updatedAt: row.updatedAt,
@@ -3972,11 +3959,15 @@ export function getStoreSettings(tenantId: string): StoreSettings {
   const now = new Date().toISOString();
   db.prepare(
     `INSERT OR IGNORE INTO store_settings (
-      tenantId, ppnPercent, enablePpn,
+      tenantId, ppnPercent, enablePpn, appTheme,
       goldPrice24kBuyback, goldPrice22kBuyback, goldPrice18kBuyback, goldPrice16kBuyback,
-      receiptTagline, receiptFooterNote, receiptTermsText,
+      receiptTagline, receiptFooterNote, receiptTermsTitle, receiptTermsText,
+      receiptSaleTitle, receiptTheme, receiptLogoPreset,
+      receiptShowWatermark, receiptShowBarcode, receiptShowQrCode, receiptShowPhoto, receiptShowItemSku,
+      receiptShowTerms, receiptShowSignatures,
+      receiptCustomerSignLabel, receiptCashierSignLabel,
       autoPrintReceipt, requireCustomerOnSale, updatedAt, updatedBy
-    ) VALUES (?, 11, 1, 2350000, 1950000, 1420000, 1180000, 'GOLD & JEWELLERY', 'Barang yang sudah dibeli dapat dijual kembali (buyback) dengan menyertakan surat nota resmi ini.', ?, 0, 0, ?, 'System')`
+    ) VALUES (?, 11, 1, 'zinc_classic', 2350000, 1950000, 1420000, 1180000, '', 'Terima kasih telah berbelanja di {TOKO}.', 'Catatan:', ?, '', 'midnight_navy', 'monogram', 0, 0, 0, 0, 0, 0, 0, 'Pelanggan', 'Kasir', 0, 0, ?, 'System')`
   ).run(tenantId, DEFAULT_RECEIPT_TERMS_TEXT, now);
 
   const created = db
@@ -4012,8 +4003,9 @@ export function updateStoreSettings(
   }
 
   const nextEnablePpn = s.enablePpn !== undefined ? Boolean(s.enablePpn) : currentSettings.enablePpn;
+  const nextAppTheme = s.appTheme !== undefined ? normalizeAppTheme(s.appTheme) : currentSettings.appTheme;
   const nextTagline =
-    (s.receiptTagline !== undefined ? s.receiptTagline : currentSettings.receiptTagline).trim() || 'GOLD & JEWELLERY';
+    (s.receiptTagline !== undefined ? s.receiptTagline : currentSettings.receiptTagline).trim();
   const nextFooterNote =
     s.receiptFooterNote !== undefined ? s.receiptFooterNote.trim() : currentSettings.receiptFooterNote;
   const nextSaleTitle =
@@ -4074,7 +4066,7 @@ export function updateStoreSettings(
     s.receiptShowTerms !== undefined ? Boolean(s.receiptShowTerms) : currentSettings.receiptShowTerms;
   const nextTermsTitle =
     (s.receiptTermsTitle !== undefined ? s.receiptTermsTitle : currentSettings.receiptTermsTitle).trim() ||
-    'Perhatian :';
+    'Catatan:';
   const nextTermsText =
     s.receiptTermsText !== undefined
       ? s.receiptTermsText.trim() || DEFAULT_RECEIPT_TERMS_TEXT
@@ -4095,7 +4087,7 @@ export function updateStoreSettings(
     (s.receiptCashierSignLabel !== undefined
       ? s.receiptCashierSignLabel
       : currentSettings.receiptCashierSignLabel
-    ).trim() || 'Kasir / Gold Advisor';
+    ).trim() || 'Kasir / Staff';
 
   const nextAutoPrint =
     s.autoPrintReceipt !== undefined ? Boolean(s.autoPrintReceipt) : currentSettings.autoPrintReceipt;
@@ -4123,7 +4115,7 @@ export function updateStoreSettings(
 
     db.prepare(
       `INSERT OR REPLACE INTO store_settings (
-        tenantId, ppnPercent, enablePpn,
+        tenantId, ppnPercent, enablePpn, appTheme,
         goldPrice24kBuyback, goldPrice22kBuyback, goldPrice18kBuyback, goldPrice16kBuyback,
         receiptTagline, receiptFooterNote,
         receiptSaleTitle, receiptBuybackTitle, receiptHeaderExtra,
@@ -4134,11 +4126,12 @@ export function updateStoreSettings(
         receiptShowTerms, receiptTermsTitle, receiptTermsText,
         receiptShowSignatures, receiptSignatureGreeting, receiptCustomerSignLabel, receiptCashierSignLabel,
         autoPrintReceipt, requireCustomerOnSale, updatedAt, updatedBy
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       tenantId,
       Number(ppnPercent.toFixed(2)),
       nextEnablePpn ? 1 : 0,
+      nextAppTheme,
       next24,
       next22,
       next18,

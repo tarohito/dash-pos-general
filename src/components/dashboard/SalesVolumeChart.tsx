@@ -70,8 +70,8 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
       window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
     const areaGradient = ctx.createLinearGradient(0, 0, 0, 260);
-    areaGradient.addColorStop(0, 'rgba(249, 115, 22, 0.18)');
-    areaGradient.addColorStop(1, 'rgba(249, 115, 22, 0.0)');
+    areaGradient.addColorStop(0, 'rgba(24, 24, 27, 0.09)');
+    areaGradient.addColorStop(1, 'rgba(24, 24, 27, 0.0)');
 
     const maxSales = Math.max(...salesData, 0);
     const maxTrx = Math.max(...trxData, 0);
@@ -119,7 +119,7 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
         c.save();
         c.beginPath();
         c.arc(x, y, radius, 0, Math.PI * 2);
-        c.strokeStyle = `rgba(234, 88, 12, ${alpha.toFixed(3)})`;
+        c.strokeStyle = `rgba(24, 24, 27, ${alpha.toFixed(3)})`;
         c.lineWidth = 2;
         c.stroke();
         c.restore();
@@ -135,36 +135,36 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
             label: period === 'HARI' ? 'Total penjualan per jam' : 'Total penjualan per hari',
             data: prefersReducedMotion ? [...salesData] : salesData.map(() => 0),
             yAxisID: 'ySales',
-            borderColor: '#ea580c',
+            borderColor: '#18181b',
             backgroundColor: areaGradient,
-            borderWidth: 2.5,
+            borderWidth: 2.25,
             fill: true,
             tension: 0.34,
             pointRadius: 3.5,
             pointHoverRadius: 6,
             pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#ea580c',
+            pointBorderColor: '#18181b',
             pointBorderWidth: 2,
             pointHoverBackgroundColor: '#ffffff',
-            pointHoverBorderColor: '#ea580c',
+            pointHoverBorderColor: '#18181b',
             pointHoverBorderWidth: 2.5,
           },
           {
             label: period === 'HARI' ? 'Total transaksi per jam' : 'Total transaksi per hari',
             data: prefersReducedMotion ? [...trxData] : trxData.map(() => 0),
             yAxisID: 'yTrx',
-            borderColor: '#2563eb',
-            backgroundColor: 'rgba(37, 99, 235, 0.08)',
-            borderWidth: 2.25,
+            borderColor: '#71717a',
+            backgroundColor: 'rgba(113, 113, 122, 0.08)',
+            borderWidth: 2,
             fill: false,
             tension: 0.34,
             pointRadius: 3,
             pointHoverRadius: 5.5,
             pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#2563eb',
+            pointBorderColor: '#71717a',
             pointBorderWidth: 2,
             pointHoverBackgroundColor: '#ffffff',
-            pointHoverBorderColor: '#2563eb',
+            pointHoverBorderColor: '#71717a',
             pointHoverBorderWidth: 2.5,
           },
         ],
@@ -200,22 +200,22 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
           },
           tooltip: {
             enabled: true,
-            backgroundColor: '#111827',
-            borderColor: '#1f2937',
+            backgroundColor: '#18181b',
+            borderColor: '#27272a',
             borderWidth: 1,
-            cornerRadius: 8,
+            cornerRadius: 10,
             padding: 10,
             displayColors: true,
             boxWidth: 8,
             boxHeight: 8,
             usePointStyle: true,
-            titleColor: '#fb923c',
+            titleColor: '#fafafa',
             titleFont: {
               family: "'Plus Jakarta Sans', sans-serif",
               size: 12,
               weight: 'bold',
             },
-            bodyColor: '#f3f4f6',
+            bodyColor: '#e4e4e7',
             bodyFont: {
               family: "'JetBrains Mono', monospace",
               size: 12,
@@ -298,7 +298,7 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
               drawOnChartArea: false,
             },
             ticks: {
-              color: '#60a5fa',
+              color: '#71717a',
               font: {
                 family: "'JetBrains Mono', monospace",
                 size: 11,
@@ -483,20 +483,20 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
       <div className="flex flex-wrap items-center justify-center gap-6 mt-3 pt-2 text-xs sm:text-sm font-semibold">
         <div className="flex items-center gap-2">
           <div className="flex items-center w-6 justify-center">
-            <span className="w-2 h-[2px] bg-orange-600 rounded-full" />
-            <span className="w-2.5 h-2.5 rounded-full border-2 border-orange-600 bg-white -ml-0.5 -mr-0.5 z-10 shrink-0" />
-            <span className="w-2 h-[2px] bg-orange-600 rounded-full" />
+            <span className="w-2 h-[2px] bg-zinc-900 rounded-full" />
+            <span className="w-2.5 h-2.5 rounded-full border-2 border-zinc-900 bg-white -ml-0.5 -mr-0.5 z-10 shrink-0" />
+            <span className="w-2 h-[2px] bg-zinc-900 rounded-full" />
           </div>
-          <span className="text-gray-700">
+          <span className="text-zinc-700">
             {period === 'HARI' ? 'Total penjualan per jam' : 'Total penjualan per hari'}
           </span>
           <Tooltip
-            content="Nilai nominal uang (omzet rupiah) dari perhiasan emas yang terjual pada periode tersebut."
+            content="Nilai nominal uang (omzet rupiah) dari produk yang terjual pada periode tersebut."
             side="top"
           >
             <button
               type="button"
-              className="text-gray-400 hover:text-gray-600 cursor-help inline-flex items-center p-0.5 rounded transition-colors"
+              className="text-zinc-400 hover:text-zinc-700 cursor-help inline-flex items-center p-0.5 rounded transition-colors"
               aria-label="Info Total penjualan"
             >
               <Info size={12} />
@@ -506,11 +506,11 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
 
         <div className="flex items-center gap-2">
           <div className="flex items-center w-6 justify-center">
-            <span className="w-2 h-[2px] bg-blue-600 rounded-full" />
-            <span className="w-2.5 h-2.5 rounded-full border-2 border-blue-600 bg-white -ml-0.5 -mr-0.5 z-10 shrink-0" />
-            <span className="w-2 h-[2px] bg-blue-600 rounded-full" />
+            <span className="w-2 h-[2px] bg-zinc-500 rounded-full" />
+            <span className="w-2.5 h-2.5 rounded-full border-2 border-zinc-500 bg-white -ml-0.5 -mr-0.5 z-10 shrink-0" />
+            <span className="w-2 h-[2px] bg-zinc-500 rounded-full" />
           </div>
-          <span className="text-gray-700">
+          <span className="text-zinc-700">
             {period === 'HARI' ? 'Total transaksi per jam' : 'Total transaksi per hari'}
           </span>
           <Tooltip

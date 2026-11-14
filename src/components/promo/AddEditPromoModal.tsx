@@ -103,7 +103,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
       })
       .catch(err => {
         if ((err as Error).name !== 'AbortError') {
-          const msg = err instanceof Error ? err.message : 'Gagal memuat daftar perhiasan.';
+          const msg = err instanceof Error ? err.message : 'Gagal memuat daftar produk.';
           setProductLoadError(msg);
           setIsLoadingProducts(false);
           showToast('error', msg);
@@ -168,7 +168,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
       return;
     }
     if (selectedProductIds.length === 0) {
-      failValidation('Pilih minimal 1 perhiasan yang mendapatkan promo ini.');
+      failValidation('Pilih minimal 1 produk yang mendapatkan promo ini.');
       return;
     }
 
@@ -243,10 +243,10 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
               <input
                 type="text"
                 required
-                placeholder="Contoh: Promo Kilau Emas 18K"
+                placeholder="Contoh: Promo Akhir Pekan 10%"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-medium rounded-md border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none"
               />
             </div>
 
@@ -257,10 +257,10 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
               <input
                 type="text"
                 required
-                placeholder="Contoh: KILAU10"
+                placeholder="Contoh: WEEKEND10"
                 value={code}
                 onChange={e => setCode(e.target.value.toUpperCase())}
-                className="w-full px-3 py-2 text-sm font-mono font-bold rounded-md border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none uppercase"
+                className="w-full px-3 py-2 text-sm font-mono font-bold rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none uppercase"
               />
             </div>
           </div>
@@ -282,7 +282,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 suffix="%"
                 placeholder="10"
                 required
-                className="w-full px-3 py-2 text-sm font-bold font-mono rounded-md border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                className="w-full px-3 py-2 text-sm font-bold font-mono rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none"
               />
             </div>
 
@@ -295,7 +295,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 placeholder="Diskon 10%"
                 value={label}
                 onChange={e => setLabel(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-medium rounded-md border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none"
               />
             </div>
 
@@ -328,7 +328,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-medium rounded-md border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none font-mono"
+                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none font-mono"
               />
             </div>
 
@@ -340,7 +340,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 type="date"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-medium rounded-md border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none font-mono"
+                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none font-mono"
               />
             </div>
           </div>
@@ -349,12 +349,12 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
           <div>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
               <label className="text-xs sm:text-sm font-semibold text-gray-800">
-                Pilih Perhiasan ({selectedProductIds.length} terpilih dari {totalProducts} katalog)
+                Pilih Produk ({selectedProductIds.length} terpilih dari {totalProducts} katalog)
               </label>
               <button
                 type="button"
                 onClick={handleSelectAllVisibleProducts}
-                className="text-xs sm:text-sm font-semibold text-orange-600 hover:text-orange-700 cursor-pointer"
+                className="text-xs sm:text-sm font-semibold text-zinc-900 hover:text-zinc-600 cursor-pointer underline underline-offset-2"
               >
                 {allVisibleSelected ? 'Batalkan Daftar Ini' : 'Pilih Semua di Daftar'}
               </button>
@@ -362,29 +362,29 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
 
             {/* Search bar inside product picker */}
             <div className="relative mb-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
               <input
                 type="text"
                 value={productSearch}
                 onChange={e => setProductSearch(e.target.value)}
-                placeholder="Cari perhiasan berdasarkan nama atau SKU..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs sm:text-sm rounded-md border border-gray-200 focus:border-orange-500 outline-none bg-white"
+                placeholder="Cari produk berdasarkan nama atau SKU..."
+                className="w-full pl-8 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none bg-white"
               />
             </div>
 
-            <div className="max-h-52 overflow-y-auto border border-gray-200 rounded-md divide-y divide-gray-100 bg-gray-50/50">
+            <div className="max-h-52 overflow-y-auto border border-zinc-200 rounded-xl divide-y divide-zinc-100 bg-zinc-50/50">
               {isLoadingProducts ? (
-                <div className="py-8 flex items-center justify-center gap-2 text-xs text-gray-500">
-                  <Loader2 size={16} className="animate-spin text-orange-500" />
-                  <span>Memuat daftar perhiasan...</span>
+                <div className="py-8 flex items-center justify-center gap-2 text-xs text-zinc-500">
+                  <Loader2 size={16} className="animate-spin text-zinc-900" />
+                  <span>Memuat daftar produk...</span>
                 </div>
               ) : productLoadError ? (
                 <div className="py-8 px-4 text-center text-xs text-red-600 font-semibold">
                   {productLoadError}
                 </div>
               ) : products.length === 0 ? (
-                <div className="py-8 text-center text-xs text-gray-400">
-                  Tidak ada perhiasan yang cocok dengan pencarian
+                <div className="py-8 text-center text-xs text-zinc-400">
+                  Tidak ada produk yang cocok dengan pencarian
                 </div>
               ) : (
                 products.map(product => {
@@ -395,7 +395,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                     <label
                       key={product.id}
                       className={`p-2.5 flex items-center justify-between gap-3 cursor-pointer transition-colors ${
-                        isSelected ? 'bg-orange-50/70 hover:bg-orange-50' : 'hover:bg-white'
+                        isSelected ? 'bg-zinc-100/80 hover:bg-zinc-100' : 'hover:bg-white'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -414,7 +414,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                             {product.name}
                           </p>
                           <p className="text-xs text-gray-400 font-mono">
-                            {product.sku} • {product.category} • {product.berat.toFixed(2)}g
+                            {product.sku} • {product.category} • {Number(product.berat.toFixed(2))}g
                           </p>
                         </div>
                       </div>
@@ -422,15 +422,15 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                       <div className="text-right shrink-0">
                         {isSelected ? (
                           <>
-                            <p className="text-xs sm:text-sm font-bold font-mono text-orange-600 leading-tight">
+                            <p className="text-xs sm:text-sm font-bold font-mono text-zinc-950 leading-tight">
                               {formatIDR(discountedPrice)}
                             </p>
-                            <p className="text-xs text-gray-400 font-mono line-through">
+                            <p className="text-xs text-zinc-400 font-mono line-through">
                               {formatIDR(product.harga)}
                             </p>
                           </>
                         ) : (
-                          <p className="text-xs sm:text-sm font-bold font-mono text-gray-700">
+                          <p className="text-xs sm:text-sm font-bold font-mono text-zinc-700">
                             {formatIDR(product.harga)}
                           </p>
                         )}
@@ -449,10 +449,10 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
             </label>
             <textarea
               rows={2}
-              placeholder="Deskripsi syarat & ketentuan promo perhiasan..."
+              placeholder="Deskripsi syarat & ketentuan promo produk..."
               value={description}
               onChange={e => setDescription(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none resize-none font-medium"
+              className="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none resize-none font-medium"
             />
           </div>
         </form>

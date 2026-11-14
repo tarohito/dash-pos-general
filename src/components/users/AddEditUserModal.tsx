@@ -23,7 +23,7 @@ interface AddEditUserModalProps {
 }
 
 const ROLE_OPTIONS = [
-  { value: 'cashier', label: 'Kasir (Frontline POS & Buyback)' },
+  { value: 'cashier', label: 'Kasir (Frontline POS)' },
   { value: 'branch_manager', label: 'Kepala Cabang (Stok, Promo & Void)' },
   { value: 'owner', label: 'Owner (Akses Penuh Semua Outlet)' },
 ];
@@ -240,7 +240,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                 value={fullName}
                 onChange={e => setFullName(e.target.value)}
                 placeholder="Contoh: Siti Nurhaliza"
-                className="w-full h-9 px-3 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+                className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
               />
             </div>
 
@@ -254,7 +254,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                 disabled={isEdit}
                 onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
                 placeholder="contoh: kasir.sby"
-                className="w-full h-9 px-3 text-sm font-mono bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 disabled:bg-gray-100 disabled:text-gray-500"
+                className="w-full h-9 px-3 text-sm font-mono bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 disabled:bg-zinc-100 disabled:text-zinc-500"
               />
             </div>
 
@@ -266,8 +266,8 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="nama@tokomas.id"
-                className="w-full h-9 px-3 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+                placeholder="nama@logicpos.id"
+                className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
               />
             </div>
 
@@ -282,7 +282,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder={isEdit ? 'Kosongkan jika tidak diubah' : 'Minimal 6 karakter'}
-                  className="w-full h-9 pl-3 pr-9 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+                  className="w-full h-9 pl-3 pr-9 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
                 />
                 <button
                   type="button"
@@ -348,8 +348,8 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
           </div>
 
           {role === 'owner' ? (
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-orange-50 border border-orange-200/80 text-orange-800 text-xs font-medium">
-              <ShieldCheck size={16} className="text-orange-600 shrink-0" />
+            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-800 text-xs font-medium">
+              <ShieldCheck size={16} className="text-zinc-700 shrink-0" />
               <span>Akses Global Aktif (Semua {tenants.length} outlet &amp; seluruh fitur manajemen)</span>
             </div>
           ) : (
@@ -359,10 +359,10 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                 return (
                   <label
                     key={t.id}
-                    className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                    className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-colors ${
                       checked
-                        ? 'bg-orange-50/70 border-orange-300 text-gray-900 shadow-2xs'
-                        : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700'
+                        ? 'bg-zinc-50 border-zinc-900 ring-1 ring-zinc-900 text-zinc-950'
+                        : 'bg-white border-zinc-200 hover:border-zinc-300 text-zinc-700'
                     }`}
                   >
                     <CustomCheckbox

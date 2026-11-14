@@ -1,13 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   ShoppingCart,
-  Scale,
   ReceiptText,
   Package,
   FolderTree,
-  Gem,
+  ShoppingBag,
   LayoutDashboard,
-  Users,
   Store,
   BadgePercent,
   ChevronDown,
@@ -15,10 +13,10 @@ import {
   Check,
   Plus,
   UserCog,
-  FileSpreadsheet,
   Settings,
 } from 'lucide-react';
 import Tooltip from '../Tooltip';
+import { BrandLogo } from '../common/BrandLogo';
 import { Tenant, UserRole } from '../../types';
 
 interface SidebarProps {
@@ -33,6 +31,7 @@ interface SidebarProps {
   onSelectTenant?: (tenantId: string) => void;
   onOpenRegisterModal?: () => void;
   userRole?: UserRole;
+  isDarkSidebar?: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -47,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTenant,
   onOpenRegisterModal,
   userRole = 'owner',
+  isDarkSidebar = false,
 }) => {
   const [isStoreMenuOpen, setIsStoreMenuOpen] = useState(false);
   const storeMenuRef = useRef<HTMLDivElement>(null);
@@ -74,20 +74,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const allMenuItems = [
     { name: 'Dashboard', group: 'overview', icon: LayoutDashboard, roles: ['owner', 'branch_manager'] as UserRole[] },
     { name: 'Kasir POS (Penjualan)', group: 'operations', icon: ShoppingCart, roles: ['owner', 'branch_manager', 'cashier'] as UserRole[] },
-    { name: 'Buyback (Pembelian)', group: 'operations', icon: Scale, roles: ['owner', 'branch_manager', 'cashier'] as UserRole[] },
     { name: 'Transaksi', group: 'operations', icon: ReceiptText, roles: ['owner', 'branch_manager', 'cashier'] as UserRole[] },
-    { name: 'Rekap Shift', group: 'operations', icon: FileSpreadsheet, roles: ['owner', 'branch_manager', 'cashier'] as UserRole[] },
     {
       name: 'Produk',
       group: 'catalog',
       icon: Package,
       roles: ['owner', 'branch_manager', 'cashier'] as UserRole[],
       submenus: [
-        { name: 'Daftar Barang', icon: Gem, roles: ['owner', 'branch_manager', 'cashier'] as UserRole[] },
+        { name: 'Daftar Barang', icon: ShoppingBag, roles: ['owner', 'branch_manager', 'cashier'] as UserRole[] },
         { name: 'Daftar Kategori', icon: FolderTree, roles: ['owner', 'branch_manager'] as UserRole[] },
       ],
     },
-    { name: 'Pelanggan', group: 'catalog', icon: Users, roles: ['owner', 'branch_manager', 'cashier'] as UserRole[] },
     { name: 'Promo', group: 'catalog', icon: BadgePercent, roles: ['owner', 'branch_manager'] as UserRole[] },
     { name: 'Multi-Outlet', group: 'admin', icon: Store, roles: ['owner', 'branch_manager'] as UserRole[] },
     { name: 'Manajemen User', group: 'admin', icon: UserCog, roles: ['owner'] as UserRole[] },
@@ -114,39 +111,98 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile Drawer Backdrop */}
       {!isSidebarCollapsed && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden backdrop-blur-xs transition-opacity duration-200"
+          className="fixed inset-0 bg-black/30 z-30 lg:hidden transition-opacity duration-200"
           onClick={onToggleSidebar}
           aria-hidden="true"
         />
       )}
 
       <aside
-        className={`flex flex-col bg-gradient-to-br from-orange-400 to-red-500 flex-shrink-0 z-40 transition-all duration-300 fixed inset-y-0 left-0 lg:static lg:h-auto ${
+        className={`flex flex-col flex-shrink-0 z-40 transition-all duration-300 fixed inset-y-0 left-0 lg:static lg:h-auto ${
+          isDarkSidebar
+            ? 'bg-[#1E1B4B] text-indigo-100'
+            : 'bg-white text-zinc-700'
+        } ${
           isSidebarCollapsed
             ? '-translate-x-full lg:translate-x-0 lg:w-16'
             : 'translate-x-0 w-72 lg:w-60'
         }`}
       >
+        {/* Desktop Top Header (Logo + Collapse Toggle) */}
+        <div
+          className={`hidden lg:flex items-center h-13 shrink-0 transition-all duration-200 ${
+            isSidebarCollapsed ? 'justify-center px-2' : 'justify-between px-3.5'
+          }`}
+        >
+          {!isSidebarCollapsed && (
+            <button
+              type="button"
+              onClick={() => handleItemSelect('Kasir POS (Penjualan)')}
+              className={`flex items-center cursor-pointer select-none rounded-lg px-1 py-1 transition-colors ${
+                isDarkSidebar ? 'hover:bg-indigo-900/55' : 'hover:bg-zinc-100'
+              }`}
+              aria-label="LogicPOS Beranda"
+            >
+              <BrandLogo size="md" inverted={isDarkSidebar} />
+            </button>
+          )}
+          <Tooltip content={isSidebarCollapsed ? 'Buka Menu' : 'Ciutkan Menu'} side="right" sideOffset={10}>
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer outline-none focus:outline-none shrink-0 ${
+                isDarkSidebar
+                  ? 'text-indigo-200 hover:text-white hover:bg-indigo-900/70'
+                  : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+              }`}
+              aria-label={isSidebarCollapsed ? 'Buka Menu' : 'Ciutkan Menu'}
+            >
+              <svg
+                className="w-[18px] h-[18px]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="4" />
+                <line x1="9" y1="3" x2="9" y2="21" />
+                {isSidebarCollapsed ? (
+                  <polyline points="13 10 15.5 12 13 14" />
+                ) : (
+                  <polyline points="15.5 10 13 12 15.5 14" />
+                )}
+              </svg>
+            </button>
+          </Tooltip>
+        </div>
+
         {/* Mobile Drawer Top Header (only visible on mobile drawer) */}
-        <div className="flex lg:hidden items-center justify-between p-4 border-b border-white/20 text-white">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-lg text-white">e.paper</span>
-            <span className="text-xs tracking-wider font-semibold uppercase bg-white/20 px-2 py-0.5 rounded">
-              MENU
-            </span>
-          </div>
+        <div
+          className={`flex lg:hidden items-center justify-between px-4 h-14 border-b ${
+            isDarkSidebar
+              ? 'border-indigo-900/80 bg-[#1E1B4B] text-white'
+              : 'border-zinc-200 bg-white text-zinc-900'
+          }`}
+        >
+          <BrandLogo size="sm" inverted={isDarkSidebar} />
           <button
             type="button"
             onClick={onToggleSidebar}
-            className="p-1 text-white/80 hover:text-white transition-colors cursor-pointer outline-none focus:outline-none"
+            className={`p-1.5 rounded-lg transition-colors cursor-pointer outline-none focus:outline-none ${
+              isDarkSidebar
+                ? 'text-indigo-200 hover:text-white hover:bg-indigo-900/70'
+                : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/60'
+            }`}
             aria-label="Tutup Menu"
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={18} />
           </button>
         </div>
 
         {/* SIDEBAR MENUS */}
-        <div className="flex-1 pl-3 py-2 lg:py-2.5 flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex-1 px-2.5 pt-1 pb-3 flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {menuItems.map((menu, i) => {
             const Icon = menu.icon;
             const hasSubmenus = !!menu.submenus && menu.submenus.length > 0;
@@ -157,7 +213,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             return (
               <div key={menu.name} className="flex flex-col">
                 {showGroupDivider && (
-                  <div className="my-1.5 mr-3 border-t border-white/15" aria-hidden="true" />
+                  <div
+                    className={`my-2 mx-1.5 border-t ${
+                      isDarkSidebar ? 'border-indigo-900/80' : 'border-zinc-200/80'
+                    }`}
+                    aria-hidden="true"
+                  />
                 )}
                 {/* Main Menu Button */}
                 <Tooltip content={menu.name} side="right" sideOffset={14} disabled={!isSidebarCollapsed}>
@@ -170,49 +231,40 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         handleItemSelect(menu.name);
                       }
                     }}
-                    className={`relative flex items-center px-3.5 py-2 lg:py-1.5 text-left text-sm font-medium group w-full cursor-pointer min-h-[38px] ${
-                      isParentActive ? 'z-20' : 'z-10'
+                    className={`relative flex items-center px-3 py-2 text-left text-sm rounded-lg group w-full cursor-pointer min-h-[38px] transition-colors duration-150 ${
+                      isDarkSidebar
+                        ? isParentActive
+                          ? 'bg-[#4F46E5] text-white font-semibold z-20'
+                          : isAnySubActive
+                          ? 'bg-indigo-900/60 text-white font-semibold z-10'
+                          : 'text-indigo-100/85 hover:bg-indigo-900/55 hover:text-white font-medium z-10'
+                        : isParentActive
+                        ? 'bg-zinc-900 text-white font-semibold z-20'
+                        : isAnySubActive
+                        ? 'bg-zinc-100 text-zinc-950 font-semibold z-10'
+                        : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 font-medium z-10'
                     }`}
                   >
-                    {/* Hover Background */}
-                    <div
-                      className={`absolute top-0 bottom-0 left-0 right-0 bg-gray-100/35 rounded-l-md transition-opacity duration-300 opacity-0 ${
-                        !isParentActive
-                          ? "group-hover:opacity-100 before:content-[''] before:absolute before:-top-3 before:right-0 before:w-3 before:h-3 before:bg-[radial-gradient(circle_at_top_left,transparent_12px,rgba(243,244,246,0.35)_12px)] after:content-[''] after:absolute after:-bottom-3 after:right-0 after:w-3 after:h-3 after:bg-[radial-gradient(circle_at_bottom_left,transparent_12px,rgba(243,244,246,0.35)_12px)]"
-                          : 'hidden'
-                      }`}
-                    />
-
-                    {/* Active Background */}
-                    <div
-                      className={`absolute top-0 bottom-0 left-0 right-0 bg-gray-100 rounded-l-md transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-                        isParentActive
-                          ? "translate-x-0 opacity-100 before:content-[''] before:absolute before:-top-3 before:right-0 before:w-3 before:h-3 before:bg-[radial-gradient(circle_at_top_left,transparent_12px,#f3f4f6_12px)] after:content-[''] after:absolute after:-bottom-3 after:right-0 after:w-3 after:h-3 after:bg-[radial-gradient(circle_at_bottom_left,transparent_12px,#f3f4f6_12px)]"
-                          : 'translate-x-full opacity-0 pointer-events-none'
-                      }`}
-                    />
-
                     <Icon
-                      size={18}
-                      className={`relative z-10 shrink-0 transition-colors duration-500 ${
-                        isParentActive
-                          ? 'text-orange-600'
+                      size={17}
+                      strokeWidth={isParentActive ? 2.1 : 1.8}
+                      className={`relative z-10 shrink-0 transition-colors duration-150 ${
+                        isDarkSidebar
+                          ? isParentActive || isAnySubActive
+                            ? 'text-white'
+                            : 'text-indigo-300 group-hover:text-white'
+                          : isParentActive
+                          ? 'text-white'
                           : isAnySubActive
-                          ? 'text-white font-bold'
-                          : 'text-orange-100 group-hover:text-white'
+                          ? 'text-zinc-900'
+                          : 'text-zinc-500 group-hover:text-zinc-900'
                       }`}
                     />
                     <span
-                      className={`relative z-10 whitespace-nowrap text-sm transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden flex-1 ${
-                        isParentActive
-                          ? 'text-orange-600 font-bold'
-                          : isAnySubActive
-                          ? 'text-white font-bold'
-                          : 'text-white'
-                      } ${
+                      className={`relative z-10 whitespace-nowrap text-[13px] transition-all duration-200 overflow-hidden flex-1 ${
                         isSidebarCollapsed
-                          ? 'max-w-0 opacity-0 translate-x-4 ml-0'
-                          : 'max-w-[220px] opacity-100 translate-x-0 ml-3'
+                          ? 'max-w-0 opacity-0 translate-x-2 ml-0'
+                          : 'max-w-[220px] opacity-100 translate-x-0 ml-2.5'
                       }`}
                     >
                       {menu.name}
@@ -221,8 +273,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {hasSubmenus && !isSidebarCollapsed && (
                       <ChevronDown
                         size={14}
-                        className={`relative z-10 mr-1 text-white/70 transition-transform duration-300 ${
-                          isProdukExpanded ? 'rotate-180 text-white' : ''
+                        className={`relative z-10 transition-transform duration-200 ${
+                          isDarkSidebar
+                            ? isProdukExpanded
+                              ? 'rotate-180 text-white'
+                              : 'text-indigo-300'
+                            : isProdukExpanded
+                            ? 'rotate-180 text-zinc-700'
+                            : 'text-zinc-400'
                         }`}
                       />
                     )}
@@ -241,42 +299,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           <button
                             type="button"
                             onClick={() => handleItemSelect(sub.name)}
-                            className={`relative flex items-center text-left text-sm font-medium group w-full cursor-pointer transition-all duration-300 min-h-[34px] ${
-                              isSidebarCollapsed ? 'px-3.5 py-2 lg:py-1.5' : 'pl-10 pr-3.5 py-1.5'
+                            className={`relative flex items-center text-left text-[13px] rounded-lg group w-full cursor-pointer transition-colors duration-150 min-h-[34px] ${
+                              isSidebarCollapsed ? 'px-3 py-1.5' : 'pl-8 pr-3 py-1.5'
+                            } ${
+                              isDarkSidebar
+                                ? isSubActive
+                                  ? 'bg-[#4F46E5] text-white font-semibold'
+                                  : 'text-indigo-200/85 hover:bg-indigo-900/55 hover:text-white font-medium'
+                                : isSubActive
+                                ? 'bg-zinc-900 text-white font-semibold'
+                                : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 font-medium'
                             }`}
                           >
-                            {/* Submenu Hover Background */}
-                            <div
-                              className={`absolute top-0 bottom-0 left-0 right-0 bg-gray-100/35 rounded-l-md transition-opacity duration-300 opacity-0 ${
-                                !isSubActive
-                                  ? "group-hover:opacity-100 before:content-[''] before:absolute before:-top-3 before:right-0 before:w-3 before:h-3 before:bg-[radial-gradient(circle_at_top_left,transparent_12px,rgba(243,244,246,0.35)_12px)] after:content-[''] after:absolute after:-bottom-3 after:right-0 after:w-3 after:h-3 after:bg-[radial-gradient(circle_at_bottom_left,transparent_12px,rgba(243,244,246,0.35)_12px)]"
-                                  : 'hidden'
-                              }`}
-                            />
-                            {/* Submenu Active Background */}
-                            <div
-                              className={`absolute top-0 bottom-0 left-0 right-0 bg-gray-100 rounded-l-md transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-                                isSubActive
-                                  ? "translate-x-0 opacity-100 before:content-[''] before:absolute before:-top-3 before:right-0 before:w-3 before:h-3 before:bg-[radial-gradient(circle_at_top_left,transparent_12px,#f3f4f6_12px)] after:content-[''] after:absolute after:-bottom-3 after:right-0 after:w-3 after:h-3 after:bg-[radial-gradient(circle_at_bottom_left,transparent_12px,#f3f4f6_12px)]"
-                                  : 'translate-x-full opacity-0 pointer-events-none'
-                              }`}
-                            />
-
                             <SubIcon
-                              size={17}
-                              className={`relative z-10 shrink-0 transition-colors duration-500 ${
-                                isSubActive ? 'text-orange-600' : 'text-orange-100 group-hover:text-white'
+                              size={16}
+                              strokeWidth={isSubActive ? 2.1 : 1.8}
+                              className={`relative z-10 shrink-0 transition-colors duration-150 ${
+                                isDarkSidebar
+                                  ? isSubActive
+                                    ? 'text-white'
+                                    : 'text-indigo-300 group-hover:text-white'
+                                  : isSubActive
+                                  ? 'text-white'
+                                  : 'text-zinc-500 group-hover:text-zinc-900'
                               }`}
                             />
                             <span
-                              className={`relative z-10 whitespace-nowrap text-sm transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${
-                                isSubActive
-                                  ? 'text-orange-600 font-bold'
-                                  : 'text-white/90 group-hover:text-white font-medium'
-                              } ${
+                              className={`relative z-10 whitespace-nowrap text-[13px] transition-all duration-200 overflow-hidden ${
                                 isSidebarCollapsed
-                                  ? 'max-w-0 opacity-0 translate-x-4 ml-0'
-                                  : 'max-w-[220px] opacity-100 translate-x-0 ml-3'
+                                  ? 'max-w-0 opacity-0 translate-x-2 ml-0'
+                                  : 'max-w-[220px] opacity-100 translate-x-0 ml-2.5'
                               }`}
                             >
                               {sub.name}
@@ -292,11 +344,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </div>
 
-        {/* BOTTOM SECTION: MENGATUR TOKO / MULTI-OUTLET (Dapat diklik baik saat minimize maupun expanded) */}
-        <div className="p-2 border-t border-white/20 shrink-0 relative" ref={storeMenuRef}>
+        {/* BOTTOM SECTION: MENGATUR TOKO / MULTI-OUTLET */}
+        <div
+          className={`p-2.5 border-t shrink-0 relative ${
+            isDarkSidebar ? 'border-indigo-900/80' : 'border-zinc-200'
+          }`}
+          ref={storeMenuRef}
+        >
           {isSidebarCollapsed ? (
             <Tooltip
-              content={`Toko: ${activeTenant?.name || 'Toko Mas'} (${activeTenant?.branchName || 'Cabang'})`}
+              content={`Toko: ${activeTenant?.name || 'Toko'} (${activeTenant?.branchName || 'Cabang'})`}
               side="right"
               sideOffset={14}
               disabled={isStoreMenuOpen}
@@ -304,55 +361,89 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={() => setIsStoreMenuOpen(!isStoreMenuOpen)}
-                className={`w-9 h-9 mx-auto rounded-lg bg-white hover:bg-gray-100 text-orange-600 flex items-center justify-center font-bold text-xs sm:text-sm cursor-pointer transition-all shadow-sm ${
-                  isStoreMenuOpen ? 'ring-2 ring-orange-300' : ''
+                className={`w-9 h-9 mx-auto rounded-lg border flex items-center justify-center font-bold text-xs sm:text-sm cursor-pointer transition-colors ${
+                  isDarkSidebar
+                    ? `bg-indigo-950/80 hover:bg-indigo-900/80 border-indigo-800/80 text-white ${
+                        isStoreMenuOpen ? 'ring-2 ring-indigo-400/40 border-indigo-400' : ''
+                      }`
+                    : `bg-zinc-50 hover:bg-zinc-100 border-zinc-200 text-zinc-900 ${
+                        isStoreMenuOpen ? 'ring-2 ring-zinc-900/15 border-zinc-400' : ''
+                      }`
                 }`}
                 aria-label="Atur Toko"
                 aria-expanded={isStoreMenuOpen}
               >
-                <Store size={17} className="text-orange-600" />
+                <Store size={17} className={isDarkSidebar ? 'text-indigo-200' : 'text-zinc-800'} />
               </button>
             </Tooltip>
           ) : (
             <button
               type="button"
               onClick={() => setIsStoreMenuOpen(!isStoreMenuOpen)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white hover:bg-gray-50 text-left transition-all cursor-pointer group outline-none shadow-sm ${
-                isStoreMenuOpen ? 'ring-2 ring-orange-300' : ''
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border text-left transition-colors cursor-pointer group outline-none ${
+                isDarkSidebar
+                  ? `bg-indigo-950/75 hover:bg-indigo-900/75 border-indigo-800/80 ${
+                      isStoreMenuOpen ? 'ring-2 ring-indigo-400/30 border-indigo-400' : ''
+                    }`
+                  : `bg-zinc-50 hover:bg-zinc-100 border-zinc-200 ${
+                      isStoreMenuOpen ? 'ring-2 ring-zinc-900/10 border-zinc-300' : ''
+                    }`
               }`}
               aria-label="Pengaturan Toko"
               aria-expanded={isStoreMenuOpen}
             >
-              <Store size={19} className="text-orange-600 shrink-0" />
+              <div
+                className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${
+                  isDarkSidebar
+                    ? 'bg-indigo-900/70 border-indigo-700/70'
+                    : 'bg-zinc-100 border-zinc-200/70'
+                }`}
+              >
+                <Store size={16} className={isDarkSidebar ? 'text-indigo-200' : 'text-zinc-800'} />
+              </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-orange-600 truncate leading-tight">
-                  {activeTenant?.name || 'Toko Mas Sejahtera'}
+                <p
+                  className={`text-xs sm:text-sm font-semibold truncate leading-tight ${
+                    isDarkSidebar ? 'text-white' : 'text-zinc-950'
+                  }`}
+                >
+                  {activeTenant?.name || 'Toko Utama'}
                 </p>
-                <p className="text-xs text-gray-500 truncate mt-0.5 font-medium">
+                <p
+                  className={`text-[11px] truncate mt-0.5 font-medium ${
+                    isDarkSidebar ? 'text-indigo-200/80' : 'text-zinc-500'
+                  }`}
+                >
                   {activeTenant?.branchName || 'Cabang Utama'}
                 </p>
               </div>
               <ChevronDown
                 size={14}
-                className={`text-orange-600 transition-transform shrink-0 ${
-                  isStoreMenuOpen ? 'rotate-180' : ''
+                className={`transition-transform shrink-0 ${
+                  isDarkSidebar
+                    ? isStoreMenuOpen
+                      ? 'rotate-180 text-white'
+                      : 'text-indigo-300'
+                    : isStoreMenuOpen
+                    ? 'rotate-180 text-zinc-700'
+                    : 'text-zinc-400'
                 }`}
               />
             </button>
           )}
 
-          {/* Store Selector Popover (Tampil baik saat minimize maupun expanded) */}
+          {/* Store Selector Popover */}
           {isStoreMenuOpen && (
             <div
-              className={`absolute bg-white text-gray-900 rounded-lg border border-gray-200 shadow-2xl p-2 z-50 duration-150 ${
+              className={`absolute bg-white text-zinc-900 rounded-xl border border-zinc-200 shadow-lg p-2 z-50 duration-150 ${
                 isSidebarCollapsed
                   ? 'bottom-2 left-full ml-3 w-64 animate-in fade-in slide-in-from-left-2'
                   : 'bottom-full left-2 sm:left-2.5 mb-2 w-64 animate-in fade-in slide-in-from-bottom-2'
               }`}
             >
-              <div className="px-2.5 py-1.5 border-b border-gray-100 flex items-center justify-between">
-                <p className="text-xs font-bold text-gray-800">Pilih Toko / Outlet</p>
-                <span className="text-xs text-gray-400 font-medium">
+              <div className="px-2.5 py-1.5 border-b border-zinc-100 flex items-center justify-between">
+                <p className="text-xs font-bold text-zinc-900">Pilih Toko / Outlet</p>
+                <span className="text-xs text-zinc-400 font-medium">
                   {tenants.length} Toko
                 </span>
               </div>
@@ -368,24 +459,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         onSelectTenant?.(t.id);
                         setIsStoreMenuOpen(false);
                       }}
-                      className={`w-full text-left p-2 rounded-md flex items-center justify-between text-xs sm:text-sm transition-colors cursor-pointer ${
+                      className={`w-full text-left p-2 rounded-lg flex items-center justify-between text-xs sm:text-sm transition-colors cursor-pointer ${
                         isSelected
-                          ? 'bg-orange-50 text-orange-600 font-bold'
-                          : 'hover:bg-gray-50 text-gray-700 font-medium'
+                          ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                          : 'hover:bg-zinc-50 text-zinc-700 font-medium'
                       }`}
                     >
                       <div className="min-w-0 flex-1 pr-2">
-                        <p className="truncate font-bold leading-tight text-xs sm:text-sm">{t.name}</p>
-                        <p className="text-xs text-gray-400 truncate mt-0.5">{t.branchName}</p>
+                        <p className="truncate font-semibold leading-tight text-xs sm:text-sm">{t.name}</p>
+                        <p className="text-xs text-zinc-400 truncate mt-0.5">{t.branchName}</p>
                       </div>
-                      {isSelected && <Check size={14} className="text-orange-600 shrink-0" />}
+                      {isSelected && <Check size={14} className="text-zinc-900 shrink-0" />}
                     </button>
                   );
                 })}
               </div>
 
               {(userRole === 'owner' || userRole === 'branch_manager') && (
-                <div className="pt-2 border-t border-gray-100 space-y-1">
+                <div className="pt-2 border-t border-zinc-100 space-y-1">
                   {userRole === 'owner' && (
                     <button
                       type="button"
@@ -393,7 +484,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         setIsStoreMenuOpen(false);
                         onOpenRegisterModal?.();
                       }}
-                      className="w-full py-2 px-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-none"
+                      className="w-full py-2 px-2.5 bg-zinc-900 hover:bg-zinc-800 text-white font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Plus size={14} className="shrink-0" />
                       <span>Tambah Toko / Outlet Baru</span>
@@ -406,7 +497,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       setIsStoreMenuOpen(false);
                       onSelectMenu('Multi-Outlet');
                     }}
-                    className="w-full py-1.5 px-2 text-gray-700 hover:bg-gray-100 font-semibold text-xs rounded-md transition-colors flex items-center justify-center cursor-pointer"
+                    className="w-full py-1.5 px-2 text-zinc-700 hover:bg-zinc-100 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center cursor-pointer"
                   >
                     Kelola Multi-Outlet
                   </button>

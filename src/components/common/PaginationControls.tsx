@@ -63,7 +63,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
   const visiblePages = getVisiblePages(safeCurrentPage, safeTotalPages);
 
   const navBtnClass =
-    'w-8 h-8 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 inline-flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40 disabled:bg-gray-50 disabled:text-gray-400 disabled:hover:bg-gray-50 disabled:hover:text-gray-400 disabled:hover:border-gray-200 disabled:cursor-not-allowed active:scale-[0.97]';
+    'w-8 h-8 rounded-lg border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 hover:border-zinc-300 inline-flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40 disabled:bg-zinc-50 disabled:text-zinc-400 disabled:hover:bg-zinc-50 disabled:hover:text-zinc-400 disabled:hover:border-zinc-200 disabled:cursor-not-allowed active:scale-[0.97]';
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-gray-50/60 border-t border-gray-200 text-xs text-gray-600">
@@ -156,8 +156,8 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
                 aria-label={`Halaman ${token}`}
                 className={`min-w-[32px] h-8 px-2 rounded-lg font-mono text-xs inline-flex items-center justify-center transition-colors tabular-nums disabled:opacity-60 ${
                   isActive
-                    ? 'bg-orange-500 text-white border border-orange-500 font-bold shadow-xs cursor-default'
-                    : 'bg-white text-gray-700 border border-gray-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 font-semibold cursor-pointer active:scale-[0.97]'
+                    ? 'bg-zinc-900 text-white border border-zinc-900 font-bold shadow-[0_1px_2px_rgba(0,0,0,0.08)] cursor-default'
+                    : 'bg-white text-zinc-700 border border-zinc-200 hover:bg-zinc-100 hover:text-zinc-950 hover:border-zinc-300 font-semibold cursor-pointer active:scale-[0.97]'
                 }`}
               >
                 {token}

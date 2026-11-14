@@ -110,7 +110,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
   onClose,
   promos,
   initialPromo = null,
-  storeName = 'Toko Mas',
+  storeName = 'Toko',
 }) => {
   const { showToast } = useToast();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -524,15 +524,15 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
     >
       <div className="space-y-4">
         {/* Top Segmented Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-gray-100">
-          <div className="inline-flex h-9 p-0.5 bg-gray-100 rounded-lg border border-gray-200 items-center overflow-x-auto max-w-full">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-zinc-100">
+          <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-xl border border-zinc-200/80 items-center overflow-x-auto max-w-full">
             <button
               type="button"
               onClick={() => setActiveTab('compose')}
-              className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-md transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${
+              className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${
                 activeTab === 'compose'
-                  ? 'bg-orange-500 text-white shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                  : 'text-zinc-500 hover:text-zinc-900'
               }`}
             >
               <MessageCircle size={14} />
@@ -543,12 +543,12 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
               type="button"
               disabled={!activeBatch}
               onClick={() => activeBatch && setActiveTab('queue')}
-              className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-md transition-all inline-flex items-center gap-1.5 whitespace-nowrap ${
+              className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all inline-flex items-center gap-1.5 whitespace-nowrap ${
                 activeTab === 'queue'
-                  ? 'bg-orange-500 text-white shadow-xs cursor-pointer'
+                  ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)] cursor-pointer'
                   : activeBatch
-                  ? 'text-gray-600 hover:text-gray-900 cursor-pointer'
-                  : 'text-gray-400 cursor-not-allowed'
+                  ? 'text-zinc-500 hover:text-zinc-900 cursor-pointer'
+                  : 'text-zinc-400 cursor-not-allowed'
               }`}
             >
               <MessageCircle size={14} />
@@ -556,7 +556,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
               {activeBatch && (
                 <span
                   className={`px-1.5 py-0.5 rounded text-xs font-mono font-bold ${
-                    activeTab === 'queue' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'
+                    activeTab === 'queue' ? 'bg-zinc-900 text-white' : 'bg-zinc-200 text-zinc-700'
                   }`}
                 >
                   {activeBatch.sentCount}/{activeBatch.totalRecipients}
@@ -567,10 +567,10 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('history')}
-              className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-md transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${
+              className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${
                 activeTab === 'history'
-                  ? 'bg-orange-500 text-white shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                  : 'text-zinc-500 hover:text-zinc-900'
               }`}
             >
               <History size={14} />
@@ -579,8 +579,8 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
           </div>
 
           {isLoadingInitial ? (
-            <span className="inline-flex items-center gap-1.5 text-xs text-gray-500">
-              <Loader2 size={13} className="animate-spin text-orange-500" />
+            <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
+              <Loader2 size={13} className="animate-spin text-zinc-900" />
               <span>Memuat...</span>
             </span>
           ) : (
@@ -708,52 +708,52 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setAudienceMode('all')}
-                  className={`p-3 rounded-lg border text-left transition-colors cursor-pointer ${
+                  className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
                     audienceMode === 'all'
-                      ? 'bg-orange-50/70 border-orange-400'
-                      : 'bg-white border-gray-200 hover:border-gray-300'
+                      ? 'bg-zinc-50 border-zinc-900 ring-1 ring-zinc-900'
+                      : 'bg-white border-zinc-200 hover:border-zinc-300'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs sm:text-sm font-semibold text-gray-900">Semua Pelanggan</span>
-                    <Users size={14} className={audienceMode === 'all' ? 'text-orange-600' : 'text-gray-400'} />
+                    <span className="text-xs sm:text-sm font-semibold text-zinc-900">Semua Pelanggan</span>
+                    <Users size={14} className={audienceMode === 'all' ? 'text-zinc-900' : 'text-zinc-400'} />
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5 font-mono">{segmentCounts.total} nomor WA</p>
+                  <p className="text-xs text-zinc-500 mt-0.5 font-mono">{segmentCounts.total} nomor WA</p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setAudienceMode('segment')}
-                  className={`p-3 rounded-lg border text-left transition-colors cursor-pointer ${
+                  className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
                     audienceMode === 'segment'
-                      ? 'bg-orange-50/70 border-orange-400'
-                      : 'bg-white border-gray-200 hover:border-gray-300'
+                      ? 'bg-zinc-50 border-zinc-900 ring-1 ring-zinc-900'
+                      : 'bg-white border-zinc-200 hover:border-zinc-300'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs sm:text-sm font-semibold text-gray-900">Per Segmen</span>
-                    <Users size={14} className={audienceMode === 'segment' ? 'text-orange-600' : 'text-gray-400'} />
+                    <span className="text-xs sm:text-sm font-semibold text-zinc-900">Per Segmen</span>
+                    <Users size={14} className={audienceMode === 'segment' ? 'text-zinc-900' : 'text-zinc-400'} />
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5">VIP, Reguler, Mitra</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">VIP, Reguler, Mitra</p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setAudienceMode('selected')}
-                  className={`p-3 rounded-lg border text-left transition-colors cursor-pointer ${
+                  className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
                     audienceMode === 'selected'
-                      ? 'bg-orange-50/70 border-orange-400'
-                      : 'bg-white border-gray-200 hover:border-gray-300'
+                      ? 'bg-zinc-50 border-zinc-900 ring-1 ring-zinc-900'
+                      : 'bg-white border-zinc-200 hover:border-zinc-300'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs sm:text-sm font-semibold text-gray-900">Pilih Beberapa</span>
+                    <span className="text-xs sm:text-sm font-semibold text-zinc-900">Pilih Beberapa</span>
                     <CheckCircle2
                       size={14}
-                      className={audienceMode === 'selected' ? 'text-orange-600' : 'text-gray-400'}
+                      className={audienceMode === 'selected' ? 'text-zinc-900' : 'text-zinc-400'}
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5 font-mono">
+                  <p className="text-xs text-zinc-500 mt-0.5 font-mono">
                     {selectedCustomerIds.length} dipilih manual
                   </p>
                 </button>
@@ -787,7 +787,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                         value={customerSearch}
                         onChange={e => setCustomerSearch(e.target.value)}
                         placeholder="Cari nama, kode member, atau nomor WA..."
-                        className="w-full h-9 pl-8 pr-3 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                        className="w-full h-9 pl-8 pr-3 text-xs sm:text-sm border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
                       />
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap shrink-0">
@@ -831,7 +831,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                           <label
                             key={cust.id}
                             className={`flex items-center justify-between gap-2.5 px-3 py-2 text-xs cursor-pointer transition-colors ${
-                              checked ? 'bg-orange-50/50' : 'hover:bg-gray-50'
+                              checked ? 'bg-zinc-100/70' : 'hover:bg-zinc-50'
                             }`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
@@ -909,7 +909,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                   <button
                     type="button"
                     onClick={() => void handleCopyText(previewText, 'Contoh pesan disalin ke clipboard.')}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-700 cursor-pointer"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-900 hover:text-zinc-600 cursor-pointer"
                   >
                     <Copy size={12} />
                     <span>Salin Pesan</span>
@@ -923,7 +923,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                     key={v.token}
                     type="button"
                     onClick={() => handleInsertVariable(v.token)}
-                    className="px-2 py-1 text-xs font-mono font-semibold bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-orange-700 border border-gray-200 hover:border-orange-300 rounded-md transition-colors cursor-pointer"
+                    className="px-2.5 py-1 text-xs font-mono font-semibold bg-zinc-50 hover:bg-zinc-100 text-zinc-700 hover:text-zinc-950 border border-zinc-200 hover:border-zinc-400 rounded-lg transition-colors cursor-pointer"
                     title={`Sisipkan ${v.label}`}
                   >
                     {v.token}
@@ -936,7 +936,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                 rows={5}
                 value={messageTemplate}
                 onChange={e => setMessageTemplate(e.target.value)}
-                className="w-full p-3 text-sm text-gray-800 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 leading-relaxed"
+                className="w-full p-3 text-sm text-zinc-800 bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 leading-relaxed"
                 placeholder="Tulis pesan broadcast promo..."
               />
 
@@ -1070,11 +1070,11 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                   value={queueSearch}
                   onChange={e => setQueueSearch(e.target.value)}
                   placeholder="Cari penerima di antrean..."
-                  className="w-full h-9 pl-8 pr-3 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                  className="w-full h-9 pl-8 pr-3 text-xs sm:text-sm border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
                 />
               </div>
 
-              <div className="inline-flex h-9 p-0.5 bg-gray-100 rounded-lg border border-gray-200 items-center shrink-0">
+              <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-xl border border-zinc-200/80 items-center shrink-0">
                 {(
                   [
                     { id: 'all', label: `Semua (${activeBatch.totalRecipients})` },
@@ -1089,10 +1089,10 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                     key={tab.id}
                     type="button"
                     onClick={() => setQueueFilter(tab.id)}
-                    className={`h-full px-2.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                    className={`h-full px-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                       queueFilter === tab.id
-                        ? 'bg-orange-500 text-white shadow-xs'
-                        : 'text-gray-600 hover:text-gray-900'
+                        ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                        : 'text-zinc-500 hover:text-zinc-900'
                     }`}
                   >
                     {tab.label}
@@ -1290,7 +1290,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                     type="button"
                     disabled={loadingBatchId === item.id}
                     onClick={() => void handleOpenHistoryBatch(item.id)}
-                    className="h-8 px-3 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                    className="h-8 px-3 text-xs font-semibold text-zinc-900 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
                   >
                     {loadingBatchId === item.id ? (
                       <Loader2 size={13} className="animate-spin" />

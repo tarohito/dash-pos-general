@@ -243,13 +243,13 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
   return (
     <div className="space-y-4 pb-8">
       {/* Top Header Card */}
-      <div className="bg-white rounded-xl border border-gray-200/90 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">
+          <h3 className="text-base sm:text-lg font-bold text-zinc-950 leading-tight tracking-tight">
             Manajemen Promo &amp; Diskon
           </h3>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Kelola kampanye diskon perhiasan, periode berlaku, dan status promo aktif di kasir POS.
+          <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
+            Kelola kampanye diskon produk, periode berlaku, dan status promo aktif di kasir POS.
           </p>
         </div>
 
@@ -260,7 +260,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
               setBroadcastPromo(null);
               setIsBroadcastOpen(true);
             }}
-            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1EBE5D] rounded-lg inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
+            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1EBE5D] rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
           >
             <MessageCircle size={15} />
             <span>Broadcast WA</span>
@@ -268,7 +268,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
           <button
             type="button"
             onClick={handleOpenAddModal}
-            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
+            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
           >
             <Plus size={16} />
             <span>Buat Promo Baru</span>
@@ -280,15 +280,14 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <KpiCard
           title="Total Kampanye Promo"
-          accent="orange"
           icon={<BadgePercent size={16} strokeWidth={2} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 group-hover:text-white tracking-tight truncate tabular-nums transition-colors duration-200">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
               {stats?.totalPromos ?? 0} Promo
             </div>
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
+            <p className="text-xs text-zinc-500 mt-1 truncate">
               Seluruh kampanye terdaftar
             </p>
           }
@@ -296,15 +295,14 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
 
         <KpiCard
           title="Promo Aktif"
-          accent="emerald"
           icon={<CheckCircle2 size={16} strokeWidth={2} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 group-hover:text-white tracking-tight truncate tabular-nums transition-colors duration-200">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
               {stats?.activeCount ?? 0} Aktif
             </div>
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
+            <p className="text-xs text-zinc-500 mt-1 truncate">
               Sedang berlaku di kasir
             </p>
           }
@@ -312,15 +310,14 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
 
         <KpiCard
           title="Produk Terdampak"
-          accent="blue"
           icon={<Package size={16} strokeWidth={2} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 group-hover:text-white tracking-tight truncate tabular-nums transition-colors duration-200">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
               {stats?.totalPromoProducts ?? 0} SKU
             </div>
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
+            <p className="text-xs text-zinc-500 mt-1 truncate">
               Mendapat potongan harga
             </p>
           }
@@ -328,15 +325,14 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
 
         <KpiCard
           title="Rata-Rata Diskon"
-          accent="amber"
           icon={<Percent size={16} strokeWidth={2} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 group-hover:text-white tracking-tight truncate tabular-nums transition-colors duration-200">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
               {stats?.avgDiscount ?? 0}%
             </div>
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
+            <p className="text-xs text-zinc-500 mt-1 truncate">
               Rata-rata promo aktif
             </p>
           }
@@ -344,7 +340,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
       </div>
 
       {/* Table Workspace Card */}
-      <div className="bg-white rounded-xl border border-gray-200/90 p-4 sm:p-5">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 mb-4">
           <SearchInput
             value={searchQuery}
@@ -353,14 +349,14 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
           />
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-            <div className="inline-flex h-9 p-0.5 bg-gray-100 rounded-lg border border-gray-200 items-center overflow-x-auto max-w-full no-scrollbar">
+            <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-xl border border-zinc-200 items-center overflow-x-auto max-w-full no-scrollbar">
               <button
                 type="button"
                 onClick={() => setStatusFilter('all')}
-                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-md transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
+                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   statusFilter === 'all'
-                    ? 'bg-orange-500 text-white shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                    : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >
                 Semua ({stats?.totalPromos ?? 0})
@@ -368,10 +364,10 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
               <button
                 type="button"
                 onClick={() => setStatusFilter('active')}
-                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-md transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
+                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   statusFilter === 'active'
-                    ? 'bg-orange-500 text-white shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                    : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >
                 Aktif ({stats?.activeCount ?? 0})
@@ -379,10 +375,10 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
               <button
                 type="button"
                 onClick={() => setStatusFilter('inactive')}
-                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-md transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
+                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   statusFilter === 'inactive'
-                    ? 'bg-orange-500 text-white shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                    : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >
                 Nonaktif ({Math.max(0, (stats?.totalPromos ?? 0) - (stats?.activeCount ?? 0))})
@@ -399,17 +395,17 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
           />
         )}
 
-        <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+        <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
           {isLoading && items.length === 0 ? (
-            <div className="py-12 px-4 flex items-center justify-center gap-2 text-xs sm:text-sm text-gray-400">
-              <Loader2 size={18} className="animate-spin text-orange-500" />
+            <div className="py-12 px-4 flex items-center justify-center gap-2 text-xs sm:text-sm text-zinc-400">
+              <Loader2 size={18} className="animate-spin text-zinc-900" />
               <span>Memuat daftar promo...</span>
             </div>
           ) : items.length === 0 ? (
-            <div className="py-12 px-4 text-center text-gray-400">
-              <BadgePercent size={36} className="mx-auto mb-2 text-gray-300" />
-              <p className="text-sm font-semibold text-gray-600">Tidak ada promo ditemukan</p>
-              <p className="text-xs text-gray-400 mt-0.5">
+            <div className="py-12 px-4 text-center text-zinc-400">
+              <BadgePercent size={36} className="mx-auto mb-2 text-zinc-300" />
+              <p className="text-sm font-semibold text-zinc-700">Tidak ada promo ditemukan</p>
+              <p className="text-xs text-zinc-400 mt-0.5">
                 {searchQuery || statusFilter !== 'all'
                   ? 'Coba ubah filter status atau kata kunci pencarian.'
                   : 'Belum ada kampanye promo yang dibuat.'}
@@ -418,7 +414,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                 <button
                   type="button"
                   onClick={handleOpenAddModal}
-                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors cursor-pointer border border-orange-200"
+                  className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-zinc-900 bg-zinc-100 hover:bg-zinc-200 rounded-xl transition-colors cursor-pointer border border-zinc-200"
                 >
                   <Plus size={14} />
                   <span>Buat Promo Baru</span>
@@ -428,18 +424,18 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
           ) : (
             <>
               {/* MOBILE CARDS (md:hidden) */}
-              <div className="md:hidden divide-y divide-gray-100">
+              <div className="md:hidden divide-y divide-zinc-100">
                 {items.map(promo => (
                   <div
                     key={promo.id}
                     className={`p-4 space-y-2.5 transition-colors ${
-                      promo.isActive ? 'hover:bg-orange-50/25' : 'bg-gray-50/60 opacity-80'
+                      promo.isActive ? 'hover:bg-zinc-50/80' : 'bg-zinc-50/60 opacity-80'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                          <span className="px-2 py-0.5 text-xs font-bold font-mono rounded bg-amber-50 text-amber-800 border border-amber-200">
+                          <span className="px-2 py-0.5 text-xs font-bold font-mono rounded-md bg-zinc-900 text-white">
                             -{promo.discountPercent}%
                           </span>
                           <button
@@ -585,7 +581,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                       <tr
                         key={promo.id}
                         className={`transition-colors ${
-                          promo.isActive ? 'hover:bg-orange-50/30' : 'bg-gray-50/60 opacity-80'
+                          promo.isActive ? 'hover:bg-zinc-50/80' : 'bg-zinc-50/60 opacity-80'
                         }`}
                       >
                         <td className="py-3.5 px-4 align-middle max-w-[260px]">
@@ -610,7 +606,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                         </td>
 
                         <td className="py-3.5 px-4 text-center whitespace-nowrap align-middle">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono font-bold text-xs">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-zinc-900 text-white font-mono font-bold text-xs">
                             -{promo.discountPercent}%
                           </span>
                           {promo.label && (
@@ -773,16 +769,16 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
         {detailPromo && (
           <div className="space-y-4">
             {/* Promo Coupon Banner */}
-            <div className="relative rounded-xl overflow-hidden bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-xs flex flex-col sm:flex-row items-stretch">
+            <div className="relative rounded-2xl overflow-hidden bg-zinc-900 text-white shadow-xs flex flex-col sm:flex-row items-stretch">
               {/* Left Body: Discount Value */}
               <div className="flex-1 px-4 py-4 sm:px-5 sm:py-5 flex flex-col justify-center min-w-0">
-                <span className="text-xs font-semibold uppercase tracking-wider text-orange-100 block">
+                <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 block">
                   Besaran Potongan Harga
                 </span>
                 <p className="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-white mt-0.5">
                   Diskon {detailPromo.discountPercent}%
                 </p>
-                <p className="text-xs text-orange-100 mt-1 truncate">
+                <p className="text-xs text-zinc-300 mt-1 truncate">
                   Label: <strong className="text-white">{detailPromo.label || '-'}</strong>
                 </p>
               </div>
@@ -790,7 +786,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
               {/* Perforated Coupon Tear Line */}
               <div className="relative shrink-0 h-0 w-full sm:h-auto sm:w-0">
                 {/* Mobile Horizontal Perforation & Notches */}
-                <div className="sm:hidden absolute inset-x-3 top-1/2 -translate-y-1/2 border-t-2 border-dashed border-white/50" />
+                <div className="sm:hidden absolute inset-x-3 top-1/2 -translate-y-1/2 border-t-2 border-dashed border-white/25" />
                 <span
                   aria-hidden="true"
                   className="sm:hidden absolute -left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white z-10"
@@ -801,7 +797,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                 />
 
                 {/* Desktop Vertical Perforation & Notches */}
-                <div className="hidden sm:block absolute inset-y-3 left-1/2 -translate-x-1/2 border-l-2 border-dashed border-white/50" />
+                <div className="hidden sm:block absolute inset-y-3 left-1/2 -translate-x-1/2 border-l-2 border-dashed border-white/25" />
                 <span
                   aria-hidden="true"
                   className="hidden sm:block absolute -top-2.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-white z-10"
@@ -813,15 +809,15 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
               </div>
 
               {/* Right Coupon Stub: Promo Code */}
-              <div className="bg-black/10 px-4 py-3.5 sm:px-6 sm:py-5 flex sm:flex-col items-center sm:justify-center justify-between gap-2 shrink-0 sm:min-w-[178px]">
-                <span className="text-xs font-semibold uppercase tracking-wider text-orange-100">
+              <div className="bg-white/5 px-4 py-3.5 sm:px-6 sm:py-5 flex sm:flex-col items-center sm:justify-center justify-between gap-2 shrink-0 sm:min-w-[178px]">
+                <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
                   Kode Promo
                 </span>
                 <button
                   type="button"
                   onClick={() => handleCopyCode(detailPromo.code)}
                   title="Klik untuk salin kode promo"
-                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white font-mono font-bold text-xs sm:text-sm border border-dashed border-white/60 transition-colors cursor-pointer active:scale-[0.98]"
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-mono font-bold text-xs sm:text-sm border border-dashed border-white/40 transition-colors cursor-pointer active:scale-[0.98]"
                 >
                   <span>{detailPromo.code}</span>
                   <Copy size={13} />
@@ -849,7 +845,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
               <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl p-3.5">
                 <span className="text-gray-500 block mb-1">Total Produk Terdaftar</span>
                 <span className="font-mono font-bold text-gray-900 text-sm">
-                  {detailPromo.productIds.length} Item Perhiasan (SKU)
+                  {detailPromo.productIds.length} Item Produk (SKU)
                 </span>
               </div>
             </div>
@@ -865,7 +861,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
             <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl p-3.5">
               <div className="flex items-center justify-between pb-2 border-b border-gray-200/60 mb-2.5">
                 <span className="text-xs font-bold text-gray-800">
-                  Daftar Perhiasan dalam Promo ({detailPromo.productIds.length})
+                  Daftar Produk dalam Promo ({detailPromo.productIds.length})
                 </span>
               </div>
               {detailProducts.length === 0 ? (
@@ -896,7 +892,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                           </div>
                         </div>
                         <div className="text-right shrink-0">
-                          <span className="font-mono font-bold text-orange-600 block tabular-nums">
+                          <span className="font-mono font-bold text-zinc-950 block tabular-nums">
                             {formatIDR(discountedPrice)}
                           </span>
                           <span className="font-mono text-xs text-gray-400 line-through tabular-nums">

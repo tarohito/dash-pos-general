@@ -228,8 +228,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           onClick={onToggleSound}
           className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
             isSoundEnabled
-              ? 'bg-orange-50 text-orange-600 border-orange-200'
-              : 'bg-gray-100 text-gray-400 border-gray-200'
+              ? 'bg-zinc-900 text-white border-zinc-900'
+              : 'bg-zinc-100 text-zinc-400 border-zinc-200'
           }`}
           title={isSoundEnabled ? 'Suara beep aktif' : 'Suara beep nonaktif'}
           aria-label={isSoundEnabled ? 'Suara beep aktif' : 'Suara beep nonaktif'}
@@ -239,11 +239,11 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       }
       footer={
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div className="text-xs sm:text-sm text-gray-600">
+          <div className="text-xs sm:text-sm text-zinc-600">
             Keranjang saat ini:{' '}
-            <span className="font-bold text-orange-600 font-mono">{totalCartQty} item</span>
+            <span className="font-bold text-zinc-950 font-mono">{totalCartQty} item</span>
             {scanCount > 0 && (
-              <span className="text-gray-400 text-xs ml-1.5 font-mono">({scanCount}x di-scan sesi ini)</span>
+              <span className="text-zinc-400 text-xs ml-1.5 font-mono">({scanCount}x di-scan sesi ini)</span>
             )}
           </div>
           <button
@@ -266,12 +266,12 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
               <div className="relative flex-1">
                 <Barcode
                   size={17}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-500"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
                 />
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder="Scan atau masukkan SKU (contoh: 16-164 / 22K-CN-418)..."
+                  placeholder="Scan atau masukkan SKU (contoh: PF-001 / SK-002)..."
                   value={inputVal}
                   onChange={e => {
                     const val = e.target.value;
@@ -284,7 +284,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                     }
                   }}
                   onKeyDown={handleKeyDown}
-                  className="w-full pl-9 pr-3 py-2.5 text-xs font-mono font-semibold rounded-md border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none bg-white transition-colors"
+                  className="w-full pl-9 pr-3 py-2.5 text-xs font-mono font-semibold rounded-xl border border-zinc-300 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none bg-white transition-colors"
                 />
               </div>
 
@@ -292,7 +292,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                 type="button"
                 disabled={isScanning}
                 onClick={() => void handleProcessScan(inputVal)}
-                className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-bold text-xs rounded-md transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center"
+                className="px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 disabled:opacity-60 text-white font-semibold text-xs rounded-xl transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center"
               >
                 {isScanning ? 'Memproses...' : 'Scan'}
               </button>
@@ -300,10 +300,10 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsCameraActive(!isCameraActive)}
-                className={`p-2.5 rounded-md border text-xs font-bold transition-colors cursor-pointer shrink-0 flex items-center justify-center ${
+                className={`p-2.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer shrink-0 flex items-center justify-center ${
                   isCameraActive
                     ? 'bg-red-50 text-red-600 border-red-200'
-                    : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                    : 'bg-zinc-50 text-zinc-700 border-zinc-200 hover:bg-zinc-100'
                 }`}
                 title={isCameraActive ? 'Matikan Kamera' : 'Nyalakan Kamera Scanner'}
               >
@@ -313,18 +313,18 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           </div>
 
           {cameraError && (
-            <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-md flex items-center gap-2 text-xs text-amber-800">
+            <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-xs text-amber-800">
               <AlertCircle size={15} className="shrink-0 text-amber-600" />
               <span>{cameraError}</span>
             </div>
           )}
 
           {isCameraActive && (
-            <div className="relative w-full h-48 bg-black rounded-md overflow-hidden border border-gray-200">
+            <div className="relative w-full h-48 bg-black rounded-xl overflow-hidden border border-zinc-200">
               <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-52 h-28 border-2 border-orange-500 rounded-md bg-orange-500/10 flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-x-0 h-0.5 bg-orange-400 animate-laser" />
+                <div className="w-52 h-28 border-2 border-white/90 rounded-lg bg-white/10 flex items-center justify-center relative overflow-hidden">
+                  <div className="absolute inset-x-0 h-0.5 bg-white animate-laser" />
                   <p className="text-xs text-white font-medium bg-black/65 px-2.5 py-1 rounded">
                     Arahkan ke Code 128 / QR Code
                   </p>
@@ -357,7 +357,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           {scanStatus === 'not-found' && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2.5 text-red-800 text-xs sm:text-sm animate-in fade-in duration-150">
               <AlertCircle size={16} className="text-red-600 shrink-0" />
-              <span>SKU barcode tidak ditemukan dalam katalog perhiasan.</span>
+              <span>SKU barcode tidak ditemukan dalam katalog produk.</span>
             </div>
           )}
 
@@ -376,26 +376,26 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                   </p>
                 </div>
               </div>
-              <span className="text-xs sm:text-sm font-bold font-mono text-orange-600 shrink-0">
+              <span className="text-xs sm:text-sm font-bold font-mono text-zinc-950 shrink-0">
                 {formatIDR(lastScannedProduct.harga)}
               </span>
             </div>
           )}
 
           {/* Quick SKU Test Chips */}
-          <div className="pt-2 border-t border-gray-100">
+          <div className="pt-2 border-t border-zinc-100">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                 Klik Cepat untuk Simulasi Scan:
               </span>
-              <span className="text-xs text-gray-400 font-medium font-mono">
+              <span className="text-xs text-zinc-400 font-medium font-mono">
                 {totalAvailable} SKU tersedia
               </span>
             </div>
 
             {isLoadingSamples ? (
-              <div className="py-6 flex items-center justify-center text-xs text-gray-400 gap-2">
-                <Loader2 size={14} className="animate-spin text-orange-500" />
+              <div className="py-6 flex items-center justify-center text-xs text-zinc-400 gap-2">
+                <Loader2 size={14} className="animate-spin text-zinc-900" />
                 <span>Memuat daftar SKU...</span>
               </div>
             ) : (
@@ -405,17 +405,17 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                     key={p.id}
                     type="button"
                     onClick={() => void handleProcessScan(p.sku)}
-                    className="p-2 bg-gray-50 hover:bg-orange-50 border border-gray-200 hover:border-orange-300 rounded text-left transition-colors flex items-center justify-between gap-2 cursor-pointer group"
+                    className="p-2 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 hover:border-zinc-400 rounded-lg text-left transition-colors flex items-center justify-between gap-2 cursor-pointer group"
                   >
                     <div className="min-w-0 flex items-center gap-2">
-                      <span className="text-xs font-mono font-semibold text-orange-600 bg-orange-100/70 px-1.5 py-0.5 rounded">
+                      <span className="text-xs font-mono font-semibold text-zinc-800 bg-zinc-200/70 px-1.5 py-0.5 rounded">
                         {p.sku}
                       </span>
-                      <span className="text-xs font-semibold text-gray-800 truncate group-hover:text-orange-600">
+                      <span className="text-xs font-semibold text-zinc-800 truncate group-hover:text-zinc-950">
                         {p.name}
                       </span>
                     </div>
-                    <span className="text-xs font-semibold font-mono text-gray-500 shrink-0">
+                    <span className="text-xs font-semibold font-mono text-zinc-500 shrink-0">
                       {p.berat.toFixed(2)}g
                     </span>
                   </button>

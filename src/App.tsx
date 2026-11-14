@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
-import { ShoppingCart, Scale, ReceiptText, Gem, Menu, AlertCircle, Loader2 } from 'lucide-react';
+import { ShoppingCart, ReceiptText, Package, Menu, AlertCircle, Loader2 } from 'lucide-react';
 import { TooltipProvider } from './components/Tooltip';
 import { useToast } from './contexts/ToastContext';
 import { Header } from './components/layout/Header';
@@ -7,27 +7,23 @@ import { Sidebar } from './components/layout/Sidebar';
 import { PosView } from './components/pos/PosView';
 import { PrintableReceipt } from './components/pos/PrintableReceipt';
 import { ScanFeedbackToast } from './components/pos/ScanFeedbackToast';
-import { PrintableBuybackReceipt } from './components/buyback/PrintableBuybackReceipt';
-import { PrintableShiftReport } from './components/reports/PrintableShiftReport';
 import { FallbackView } from './components/common/FallbackView';
 import { LoginPage } from './components/auth/LoginPage';
 
 import {
+  AppThemeId,
   AuthLoginResponse,
   Product,
   CartItem,
   Transaction,
-  BuybackItem,
-  BuybackCreatePayload,
   PromoCampaign,
   Tenant,
-  Customer,
   UserAccount,
   UserRole,
   StoreSettings,
   ReceiptPaperSize,
-  ShiftClosingRecord,
 } from './types';
+import { APP_THEME_STORAGE_KEY, normalizeAppTheme } from './constants/themes';
 import { playScannerBeep, playCashRegisterChime } from './utils/audio';
 import { extractBarcodeValue } from './utils/barcode';
 import {
@@ -53,12 +49,6 @@ const ProductListView = lazy(() =>
 const CategoryListView = lazy(() =>
   import('./components/inventory/CategoryListView').then(m => ({ default: m.CategoryListView }))
 );
-const BuybackView = lazy(() =>
-  import('./components/buyback/BuybackView').then(m => ({ default: m.BuybackView }))
-);
-const CustomerView = lazy(() =>
-  import('./components/customer/CustomerView').then(m => ({ default: m.CustomerView }))
-);
 const TenantManagementView = lazy(() =>
   import('./components/tenant/TenantManagementView').then(m => ({ default: m.TenantManagementView }))
 );
@@ -68,49 +58,52 @@ const UserManagementView = lazy(() =>
 const StoreSettingsView = lazy(() =>
   import('./components/settings/StoreSettingsView').then(m => ({ default: m.StoreSettingsView }))
 );
-const ShiftClosingView = lazy(() =>
-  import('./components/reports/ShiftClosingView').then(m => ({ default: m.ShiftClosingView }))
-);
+
+function getInitialStoredTheme(): AppThemeId {
+  try {
+    return normalizeAppTheme(localStorage.getItem(APP_THEME_STORAGE_KEY));
+  } catch {
+    return 'zinc_classic';
+  }
+}
 
 const DEFAULT_STORE_SETTINGS: StoreSettings = {
   tenantId: 'tenant-tms-001',
   ppnPercent: 11,
   enablePpn: true,
+  appTheme: getInitialStoredTheme(),
   goldPrice24kBuyback: 2350000,
   goldPrice22kBuyback: 1950000,
   goldPrice18kBuyback: 1420000,
   goldPrice16kBuyback: 1180000,
-  receiptTagline: 'GOLD & JEWELLERY',
-  receiptFooterNote:
-    'Simpan surat resmi ini dengan baik. Pembelian & buyback mengikuti ketentuan harga pasar emas berjalan.',
-  receiptSaleTitle: 'FAKTUR PENJUALAN EMAS',
-  receiptBuybackTitle: 'SURAT PEMBELIAN KEMBALI (BUYBACK)',
+  receiptTagline: '',
+  receiptFooterNote: 'Terima kasih telah berbelanja di {TOKO}.',
+  receiptSaleTitle: '',
+  receiptBuybackTitle: 'SURAT PEMBELIAN KEMBALI',
   receiptHeaderExtra: '',
-  receiptTheme: 'classic_gold',
+  receiptTheme: 'midnight_navy',
   receiptDefaultPaperSize: 'a5',
-  receiptLogoPreset: 'crown',
+  receiptLogoPreset: 'monogram',
   receiptCustomLogoUrl: '',
-  receiptShowWatermark: true,
+  receiptShowWatermark: false,
   receiptWatermarkOpacity: 6,
   receiptShowStoreAddress: true,
-  receiptShowBarcode: true,
-  receiptShowQrCode: true,
-  receiptShowPhoto: true,
-  receiptShowItemSku: true,
+  receiptShowBarcode: false,
+  receiptShowQrCode: false,
+  receiptShowPhoto: false,
+  receiptShowItemSku: false,
   receiptShowTaxLine: true,
   receiptShowCashierName: true,
-  receiptShowTerms: true,
-  receiptTermsTitle: 'Perhatian :',
+  receiptShowTerms: false,
+  receiptTermsTitle: 'Catatan:',
   receiptTermsText: [
-    'Wajib membawa surat ini saat jual kembali atau tukar tambah barang.',
-    'Barang dari {TOKO} diterima kembali sesuai ketentuan harga & potongan toko.',
-    'Jika rusak/cacat atau mata hilang dikenakan potongan tambahan sesuai kondisi.',
-    'Pesanan khusus (custom order), batu, dan ongkos lebur tidak dapat dikembalikan.',
+    'Simpan struk ini sebagai bukti pembayaran yang sah dari {TOKO}.',
+    'Penukaran produk dalam kemasan tersegel berlaku maksimal 3 hari.',
   ].join('\n'),
-  receiptShowSignatures: true,
+  receiptShowSignatures: false,
   receiptSignatureGreeting: 'Hormat Kami,',
-  receiptCustomerSignLabel: 'Customer',
-  receiptCashierSignLabel: 'Kasir / Gold Advisor',
+  receiptCustomerSignLabel: 'Pelanggan',
+  receiptCashierSignLabel: 'Kasir',
   autoPrintReceipt: false,
   requireCustomerOnSale: false,
   updatedAt: '',
@@ -125,9 +118,6 @@ const PaymentModal = lazy(() =>
 const ReceiptModal = lazy(() =>
   import('./components/pos/ReceiptModal').then(m => ({ default: m.ReceiptModal }))
 );
-const BuybackReceiptModal = lazy(() =>
-  import('./components/buyback/BuybackReceiptModal').then(m => ({ default: m.BuybackReceiptModal }))
-);
 const AddProductModal = lazy(() =>
   import('./components/inventory/AddProductModal').then(m => ({ default: m.AddProductModal }))
 );
@@ -139,9 +129,9 @@ const RegisterTenantModal = lazy(() =>
 );
 
 const ViewLoadingFallback: React.FC = () => (
-  <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-lg border border-gray-200 p-8 text-gray-500 min-h-[280px]">
-    <Loader2 size={24} className="animate-spin text-orange-500 mb-2" />
-    <p className="text-xs font-medium text-gray-500">Memuat tampilan...</p>
+  <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-xl border border-zinc-200 p-8 text-zinc-500 min-h-[280px]">
+    <Loader2 size={24} className="animate-spin text-zinc-900 mb-2" />
+    <p className="text-xs font-medium text-zinc-500">Memuat tampilan...</p>
   </div>
 );
 
@@ -154,7 +144,6 @@ function isMenuAllowedForRole(menu: string, role: UserRole): boolean {
     menu === 'Multi-Outlet' ||
     menu === 'Multi-Tenant' ||
     menu === 'Multi-Tenant & Outlet' ||
-    menu === 'Laporan & Analitik' ||
     menu === 'Pengaturan'
   ) {
     return role === 'owner' || role === 'branch_manager';
@@ -181,8 +170,24 @@ const App: React.FC = () => {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [activeTenantId, setActiveTenantId] = useState<string>('tenant-tms-001');
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
-  const [printingShift, setPrintingShift] = useState<ShiftClosingRecord | null>(null);
+  const [previewAppTheme, setPreviewAppTheme] = useState<AppThemeId | null>(null);
   const [receiptPaperSize, setReceiptPaperSize] = useState<ReceiptPaperSize>('a5');
+
+  const effectiveAppTheme = previewAppTheme ?? storeSettings.appTheme ?? 'zinc_classic';
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-app-theme', effectiveAppTheme);
+  }, [effectiveAppTheme]);
+
+  useEffect(() => {
+    if (storeSettings.updatedAt) {
+      try {
+        localStorage.setItem(APP_THEME_STORAGE_KEY, normalizeAppTheme(storeSettings.appTheme));
+      } catch {
+        // Abaikan jika storage tidak tersedia
+      }
+    }
+  }, [storeSettings.appTheme, storeSettings.updatedAt]);
 
   useEffect(() => {
     if (storeSettings.receiptDefaultPaperSize) {
@@ -194,8 +199,6 @@ const App: React.FC = () => {
   const [productsRefreshKey, setProductsRefreshKey] = useState(0);
   const [categoriesRefreshKey, setCategoriesRefreshKey] = useState(0);
   const [transactionsRefreshKey, setTransactionsRefreshKey] = useState(0);
-  const [buybacksRefreshKey, setBuybacksRefreshKey] = useState(0);
-  const [customersRefreshKey, setCustomersRefreshKey] = useState(0);
   const [promosRefreshKey, setPromosRefreshKey] = useState(0);
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
 
@@ -206,12 +209,10 @@ const App: React.FC = () => {
     clearAuthToken();
     setCurrentUser(null);
     setCart([]);
-    setCustomerId(undefined);
     setCustomerName('Pelanggan Umum');
     setIsAdminMenuOpen(false);
     setIsPaymentModalOpen(false);
     setIsReceiptModalOpen(false);
-    setIsBuybackReceiptModalOpen(false);
     setIsAddProductModalOpen(false);
     setIsAddCategoryModalOpen(false);
     setIsRegisterTenantOpen(false);
@@ -273,7 +274,6 @@ const App: React.FC = () => {
       setActiveTenantId(auth.activeTenantId);
       setActiveMenu('Kasir POS (Penjualan)');
       setCart([]);
-      setCustomerId(undefined);
       setCustomerName('Pelanggan Umum');
       await fetchBootstrapData();
     },
@@ -286,34 +286,6 @@ const App: React.FC = () => {
     showToast('success', 'Anda telah keluar dari sesi.');
   }, [resetAuthSession, showToast]);
 
-  // Customer CRUD
-  const handleSaveCustomer = async (savedCustomer: Customer, isEdit?: boolean) => {
-    try {
-      if (isEdit) {
-        const updated = await posApi.updateCustomer(savedCustomer.id, savedCustomer);
-        showToast('success', `Data pelanggan "${updated.name}" diperbarui.`);
-      } else {
-        const created = await posApi.createCustomer(savedCustomer);
-        showToast('success', `Pelanggan "${created.name}" ditambahkan ke database.`);
-      }
-      setCustomersRefreshKey(k => k + 1);
-    } catch (err) {
-      showToast('error', err instanceof Error ? err.message : 'Gagal menyimpan pelanggan.');
-      throw err;
-    }
-  };
-
-  const handleDeleteCustomer = async (id: string) => {
-    try {
-      await posApi.deleteCustomer(id);
-      setCustomersRefreshKey(k => k + 1);
-      showToast('success', 'Data pelanggan berhasil dihapus.');
-    } catch (err) {
-      showToast('error', err instanceof Error ? err.message : 'Gagal menghapus pelanggan.');
-      throw err;
-    }
-  };
-
   // Multi-Tenant CRUD
   const [isRegisterTenantOpen, setIsRegisterTenantOpen] = useState(false);
   const activeTenant = tenants.find(t => t.id === activeTenantId) || tenants[0];
@@ -322,7 +294,6 @@ const App: React.FC = () => {
     setProductsRefreshKey(k => k + 1);
     setCategoriesRefreshKey(k => k + 1);
     setTransactionsRefreshKey(k => k + 1);
-    setBuybacksRefreshKey(k => k + 1);
     setPromosRefreshKey(k => k + 1);
     setDashboardRefreshKey(k => k + 1);
   }, []);
@@ -342,8 +313,8 @@ const App: React.FC = () => {
     setActiveTenantId(tenantId);
     try {
       await posApi.setActiveTenant(tenantId);
+      setPreviewAppTheme(null);
       setCart([]);
-      setCustomerId(undefined);
       setCustomerName('Pelanggan Umum');
       refreshActiveOutletViews();
       void refreshTenantsMetadata();
@@ -362,7 +333,6 @@ const App: React.FC = () => {
       setTenants(prev => [created, ...prev]);
       setActiveTenantId(created.id);
       setCart([]);
-      setCustomerId(undefined);
       setCustomerName('Pelanggan Umum');
       refreshActiveOutletViews();
       void posApi.getStoreSettings().then(res => setStoreSettings(res.storeSettings)).catch(() => {});
@@ -430,14 +400,9 @@ const App: React.FC = () => {
 
   // Payment & Receipts Modals State
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [customerId, setCustomerId] = useState<string | undefined>(undefined);
   const [customerName, setCustomerName] = useState('Pelanggan Umum');
   const [selectedReceipt, setSelectedReceipt] = useState<Transaction | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
-
-  // Buyback Receipt Modal State
-  const [selectedBuybackReceipt, setSelectedBuybackReceipt] = useState<BuybackItem | null>(null);
-  const [isBuybackReceiptModalOpen, setIsBuybackReceiptModalOpen] = useState(false);
 
   // Inventory Modals State (Create & Edit)
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
@@ -467,40 +432,25 @@ const App: React.FC = () => {
   );
   const grandTotal = useMemo(() => subtotal + tax, [subtotal, tax]);
 
-  const triggerIsolatedPrint = useCallback(
-    (modeClass: 'printing-sale' | 'printing-buyback' | 'printing-shift') => {
-      document.body.classList.remove('printing-sale', 'printing-buyback', 'printing-shift', 'printing-barcode');
-      document.body.classList.add(modeClass);
-      const cleanup = () => {
-        document.body.classList.remove(modeClass);
-        window.removeEventListener('afterprint', cleanup);
-      };
-      window.addEventListener('afterprint', cleanup);
-      window.requestAnimationFrame(() => {
-        setTimeout(() => {
-          window.print();
-          setTimeout(cleanup, 1200);
-        }, 80);
-      });
-    },
-    []
-  );
+  const triggerIsolatedPrint = useCallback((modeClass: 'printing-sale') => {
+    document.body.classList.remove('printing-sale', 'printing-buyback', 'printing-shift', 'printing-barcode');
+    document.body.classList.add(modeClass);
+    const cleanup = () => {
+      document.body.classList.remove(modeClass);
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    window.requestAnimationFrame(() => {
+      setTimeout(() => {
+        window.print();
+        setTimeout(cleanup, 1200);
+      }, 80);
+    });
+  }, []);
 
   const handlePrintSaleReceipt = useCallback(() => {
     triggerIsolatedPrint('printing-sale');
   }, [triggerIsolatedPrint]);
-
-  const handlePrintBuybackReceipt = useCallback(() => {
-    triggerIsolatedPrint('printing-buyback');
-  }, [triggerIsolatedPrint]);
-
-  const handlePrintShift = useCallback(
-    (shift: ShiftClosingRecord) => {
-      setPrintingShift(shift);
-      triggerIsolatedPrint('printing-shift');
-    },
-    [triggerIsolatedPrint]
-  );
 
   // Cart Handlers
   const handleAddToCart = useCallback(
@@ -647,7 +597,6 @@ const App: React.FC = () => {
     try {
       const result = await posApi.createTransaction({
         cashier: currentUser?.fullName || 'Kasir',
-        customerId,
         customerName: customerName.trim() || 'Pelanggan Umum',
         items: cart.map(item => ({ id: item.id, qty: item.qty })),
         paymentMethod: paymentData.method,
@@ -662,16 +611,12 @@ const App: React.FC = () => {
       });
 
       setCart([]);
-      setCustomerId(undefined);
       setCustomerName('Pelanggan Umum');
       setProductsRefreshKey(k => k + 1);
       setTransactionsRefreshKey(k => k + 1);
-      setCustomersRefreshKey(k => k + 1);
       setDashboardRefreshKey(k => k + 1);
       playCashRegisterChime(isSoundEnabled);
       setIsPaymentModalOpen(false);
-      setSelectedBuybackReceipt(null);
-      setIsBuybackReceiptModalOpen(false);
       setSelectedReceipt(result.transaction);
       setIsReceiptModalOpen(true);
       showToast('success', `Transaksi ${result.transaction.invoiceNo} berhasil disimpan.`);
@@ -695,7 +640,6 @@ const App: React.FC = () => {
         setProductsRefreshKey(k => k + 1);
       }
       setDashboardRefreshKey(k => k + 1);
-      setCustomersRefreshKey(k => k + 1);
       showToast(
         'success',
         restoreStock
@@ -704,35 +648,6 @@ const App: React.FC = () => {
       );
     } catch (err) {
       showToast('error', err instanceof Error ? err.message : 'Gagal mem-void transaksi.');
-      throw err;
-    }
-  };
-
-  // Buyback Create & Void (Immutable Financial Payout & KYC Voucher)
-  const handleSaveBuyback = async (buybackData: BuybackCreatePayload) => {
-    try {
-      const created = await posApi.createBuyback(buybackData);
-      setBuybacksRefreshKey(k => k + 1);
-      setDashboardRefreshKey(k => k + 1);
-      setCustomersRefreshKey(k => k + 1);
-      setSelectedBuybackReceipt(created);
-      setIsBuybackReceiptModalOpen(true);
-      showToast('success', `Nota buyback ${created.invoiceNo} berhasil disimpan.`);
-    } catch (err) {
-      showToast('error', err instanceof Error ? err.message : 'Gagal menyimpan transaksi buyback.');
-      throw err;
-    }
-  };
-
-  const handleVoidBuyback = async (id: string, reason: string) => {
-    try {
-      const voided = await posApi.voidBuyback(id, { reason });
-      setBuybacksRefreshKey(k => k + 1);
-      setDashboardRefreshKey(k => k + 1);
-      setCustomersRefreshKey(k => k + 1);
-      showToast('success', `Nota buyback ${voided.invoiceNo} berhasil di-void.`);
-    } catch (err) {
-      showToast('error', err instanceof Error ? err.message : 'Gagal mem-void transaksi buyback.');
       throw err;
     }
   };
@@ -822,9 +737,11 @@ const App: React.FC = () => {
 
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6 font-sans">
-        <Loader2 size={28} className="animate-spin text-orange-500 mb-3" />
-        <p className="text-sm font-semibold text-gray-700">Memeriksa sesi login...</p>
+      <div className="min-h-screen bg-zinc-100 flex flex-col items-center justify-center p-6 font-sans">
+        <div className="bg-white rounded-xl border border-zinc-200 px-8 py-6 flex flex-col items-center">
+          <Loader2 size={28} className="animate-spin text-zinc-900 mb-3" />
+          <p className="text-sm font-semibold text-zinc-700">Memeriksa sesi login...</p>
+        </div>
       </div>
     );
   }
@@ -841,28 +758,20 @@ const App: React.FC = () => {
       showToast('warning', 'Menu tersebut hanya dapat diakses oleh Owner atau Kepala Cabang.');
       return;
     }
+    if (menu !== 'Pengaturan') {
+      setPreviewAppTheme(null);
+    }
     setActiveMenu(menu);
   };
 
   return (
     <TooltipProvider delayDuration={120}>
-      <div className="flex flex-col h-full h-[100dvh] font-sans text-gray-800 overflow-hidden bg-gray-100">
-        {/* Header */}
-        <Header
-          onSelectMenu={handleGuardedSelectMenu}
-          isSidebarCollapsed={isSidebarCollapsed}
-          onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          hasNotification={hasNotification}
-          onToggleNotification={() => setHasNotification(!hasNotification)}
-          isAdminMenuOpen={isAdminMenuOpen}
-          onToggleAdminMenu={() => setIsAdminMenuOpen(prev => !prev)}
-          onCloseAdminMenu={() => setIsAdminMenuOpen(false)}
-          currentUser={currentUser}
-          activeTenant={activeTenant}
-          onLogout={handleLogout}
-        />
-
-        {/* Body */}
+      <div
+        className={`flex flex-col h-full h-[100dvh] font-sans text-zinc-800 overflow-hidden ${
+          effectiveAppTheme === 'indigo_night' ? 'bg-[#1E1B4B]' : 'bg-white'
+        }`}
+      >
+        {/* Main Horizontal Shell: Full-height Sidebar + Inset Rounded Content Container */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* Sidebar */}
           <Sidebar
@@ -884,183 +793,173 @@ const App: React.FC = () => {
             onSelectTenant={handleSelectTenant}
             onOpenRegisterModal={() => setIsRegisterTenantOpen(true)}
             userRole={currentUser.role}
+            isDarkSidebar={effectiveAppTheme === 'indigo_night'}
           />
 
-          {/* Main Content Area */}
-          <div className="flex-1 min-h-0 flex flex-col min-w-0 relative bg-gray-100 overflow-hidden">
-            <main
-              className={`flex-1 min-h-0 flex flex-col ${
-                activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS'
-                  ? 'p-2 sm:p-3 overflow-hidden'
-                  : 'p-2 sm:p-4 pb-20 md:pb-4 overflow-y-auto'
-              }`}
-            >
-              {isLoadingData ? (
-                <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-lg border border-gray-200 p-8 text-gray-500">
-                  <Loader2 size={28} className="animate-spin text-orange-500 mb-3" />
-                  <p className="text-sm font-semibold text-gray-700">Memuat data dari database SQLite...</p>
-                </div>
-              ) : loadError ? (
-                <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-lg border border-red-200 p-8 text-center">
-                  <AlertCircle size={32} className="text-red-500 mb-2" />
-                  <p className="text-sm font-bold text-gray-900">Gagal terhubung ke database SQLite</p>
-                  <p className="text-xs text-gray-500 mt-1 mb-4">{loadError}</p>
-                  <button
-                    type="button"
-                    onClick={fetchBootstrapData}
-                    className="h-9 px-4 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg cursor-pointer"
-                  >
-                    Coba Muat Ulang
-                  </button>
-                </div>
-              ) : activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS' ? (
-                <PosView
-                  categories={categories}
-                  refreshTrigger={productsRefreshKey}
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  onAutoScanCode={handleAutoScanCode}
-                  onOpenScanModal={() => setIsScanModalOpen(true)}
-                  cart={cart}
-                  onAddToCart={handleAddToCart}
-                  onUpdateQty={handleUpdateQty}
-                  onRemoveItem={handleRemoveItem}
-                  onClearCart={handleClearCart}
-                  subtotal={subtotal}
-                  tax={tax}
-                  taxLabel={taxLabel}
-                  grandTotal={grandTotal}
-                  onOpenPaymentModal={() => setIsPaymentModalOpen(true)}
-                />
-              ) : (
-                <Suspense fallback={<ViewLoadingFallback />}>
-                  {activeMenu === 'Transaksi' || activeMenu === 'Transaksi Harian' ? (
-                    <DailyTransactionsView
-                      refreshTrigger={transactionsRefreshKey}
-                      onSelectReceipt={tx => {
-                        setSelectedBuybackReceipt(null);
-                        setIsBuybackReceiptModalOpen(false);
-                        setSelectedReceipt(tx);
-                        setIsReceiptModalOpen(true);
-                      }}
-                      onVoidTransaction={handleVoidTransaction}
-                      onNavigateToPos={() => setActiveMenu('Kasir POS (Penjualan)')}
-                      canVoid={canManageOperations}
-                    />
-                  ) : activeMenu === 'Promo' && canManageOperations ? (
-                    <PromoManagementView
-                      refreshTrigger={promosRefreshKey}
-                      storeName={activeTenant?.name}
-                      onSavePromo={handleSavePromo}
-                      onDeletePromo={handleDeletePromo}
-                      onTogglePromoStatus={handleTogglePromoStatus}
-                    />
-                  ) : activeMenu === 'Daftar Barang' ? (
-                    <ProductListView
-                      refreshTrigger={productsRefreshKey}
-                      onOpenAddModal={() => {
-                        setEditingProduct(null);
-                        setIsAddProductModalOpen(true);
-                      }}
-                      onEditProduct={product => {
-                        setEditingProduct(product);
-                        setIsAddProductModalOpen(true);
-                      }}
-                      onDeleteProduct={handleDeleteProduct}
-                      canManageInventory={canManageOperations}
-                    />
-                  ) : activeMenu === 'Daftar Kategori' && canManageOperations ? (
-                    <CategoryListView
-                      refreshTrigger={categoriesRefreshKey}
-                      onOpenAddCategoryModal={() => {
-                        setEditingCategory(null);
-                        setIsAddCategoryModalOpen(true);
-                      }}
-                      onEditCategory={cat => {
-                        setEditingCategory(cat);
-                        setIsAddCategoryModalOpen(true);
-                      }}
-                      onDeleteCategory={handleDeleteCategory}
-                    />
-                  ) : activeMenu === 'Buyback (Pembelian)' || activeMenu === 'Pembelian (buyback)' ? (
-                    <BuybackView
-                      refreshTrigger={buybacksRefreshKey}
-                      branchName={activeTenant?.branchName}
-                      cashierName={currentUser.fullName}
-                      canVoid={canManageOperations}
-                      onSaveBuyback={handleSaveBuyback}
-                      onVoidBuyback={handleVoidBuyback}
-                      onSelectReceipt={bb => {
-                        setSelectedReceipt(null);
-                        setIsReceiptModalOpen(false);
-                        setSelectedBuybackReceipt(bb);
-                        setIsBuybackReceiptModalOpen(true);
-                      }}
-                      onBackToPos={() => setActiveMenu('Kasir POS (Penjualan)')}
-                    />
-                  ) : activeMenu === 'Pelanggan' ? (
-                    <CustomerView
-                      refreshTrigger={customersRefreshKey}
-                      onSaveCustomer={handleSaveCustomer}
-                      onDeleteCustomer={handleDeleteCustomer}
-                      canDelete={canManageOperations}
-                    />
-                  ) : activeMenu === 'Dashboard' && canManageOperations ? (
-                    <DashboardView
-                      refreshTrigger={dashboardRefreshKey}
-                      activeTenant={activeTenant}
-                      onNavigateTo={handleGuardedSelectMenu}
-                      onOpenRegisterTenant={() => setIsRegisterTenantOpen(true)}
-                    />
-                  ) : (activeMenu === 'Multi-Tenant & Outlet' ||
-                      activeMenu === 'Multi-Outlet' ||
-                      activeMenu === 'Multi-Tenant') &&
-                    canManageOperations ? (
-                    <TenantManagementView
-                      tenants={tenants}
-                      activeTenantId={activeTenantId}
-                      onSelectTenant={handleSelectTenant}
-                      onOpenRegisterModal={() => setIsRegisterTenantOpen(true)}
-                      onNavigateToPos={() => setActiveMenu('Kasir POS (Penjualan)')}
-                      canCreateOutlet={isOwner}
-                    />
-                  ) : activeMenu === 'Manajemen User' && isOwner ? (
-                    <UserManagementView currentUser={currentUser} tenants={tenants} />
-                  ) : activeMenu === 'Pengaturan' && canManageOperations ? (
-                    <StoreSettingsView
-                      activeTenant={activeTenant}
-                      storeSettings={storeSettings}
-                      userRole={currentUser.role}
-                      onSettingsSaved={({ tenant, storeSettings: saved }) => {
-                        setTenants(prev => prev.map(t => (t.id === tenant.id ? tenant : t)));
-                        setStoreSettings(saved);
-                      }}
-                    />
-                  ) : activeMenu === 'Rekap Shift' ||
-                    (activeMenu === 'Laporan & Analitik' && canManageOperations) ? (
-                    <ShiftClosingView
-                      currentUser={currentUser}
-                      activeTenant={activeTenant}
-                      onPrintShift={handlePrintShift}
-                    />
-                  ) : (
-                    <FallbackView title={activeMenu} onBackToPos={() => setActiveMenu('Kasir POS (Penjualan)')} />
-                  )}
-                </Suspense>
-              )}
-            </main>
+          {/* Right Outer Frame Padding + Single Large Inset Rounded Container */}
+          <div className="flex-1 min-h-0 min-w-0 flex flex-col p-2 sm:p-3 lg:pl-0 overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col rounded-2xl sm:rounded-[22px] bg-zinc-100 border border-zinc-200/60 overflow-hidden relative">
+              {/* Compact Top Header inside Inset Container */}
+              <Header
+                activeMenu={activeMenu}
+                onSelectMenu={handleGuardedSelectMenu}
+                isSidebarCollapsed={isSidebarCollapsed}
+                onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                hasNotification={hasNotification}
+                onToggleNotification={() => setHasNotification(!hasNotification)}
+                isAdminMenuOpen={isAdminMenuOpen}
+                onToggleAdminMenu={() => setIsAdminMenuOpen(prev => !prev)}
+                onCloseAdminMenu={() => setIsAdminMenuOpen(false)}
+                currentUser={currentUser}
+                activeTenant={activeTenant}
+                onLogout={handleLogout}
+              />
+
+              {/* Main Content Area */}
+              <main
+                className={`flex-1 min-h-0 flex flex-col ${
+                  activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS'
+                    ? 'px-2.5 pb-2.5 pt-0.5 sm:px-3.5 sm:pb-3.5 sm:pt-1 overflow-hidden'
+                    : 'px-2.5 pb-20 pt-0.5 sm:px-4 sm:pb-4 sm:pt-1 overflow-y-auto'
+                }`}
+              >
+                {isLoadingData ? (
+                  <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-xl border border-zinc-200 p-8 text-zinc-500">
+                    <Loader2 size={28} className="animate-spin text-zinc-900 mb-3" />
+                    <p className="text-sm font-semibold text-zinc-700">Memuat data dari database SQLite...</p>
+                  </div>
+                ) : loadError ? (
+                  <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-xl border border-red-200 p-8 text-center">
+                    <AlertCircle size={32} className="text-red-500 mb-2" />
+                    <p className="text-sm font-bold text-zinc-900">Gagal terhubung ke database SQLite</p>
+                    <p className="text-xs text-zinc-500 mt-1 mb-4">{loadError}</p>
+                    <button
+                      type="button"
+                      onClick={fetchBootstrapData}
+                      className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold rounded-lg cursor-pointer"
+                    >
+                      Coba Muat Ulang
+                    </button>
+                  </div>
+                ) : activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS' ? (
+                  <PosView
+                    categories={categories}
+                    refreshTrigger={productsRefreshKey}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    onAutoScanCode={handleAutoScanCode}
+                    onOpenScanModal={() => setIsScanModalOpen(true)}
+                    cart={cart}
+                    onAddToCart={handleAddToCart}
+                    onUpdateQty={handleUpdateQty}
+                    onRemoveItem={handleRemoveItem}
+                    onClearCart={handleClearCart}
+                    subtotal={subtotal}
+                    tax={tax}
+                    taxLabel={taxLabel}
+                    grandTotal={grandTotal}
+                    onOpenPaymentModal={() => setIsPaymentModalOpen(true)}
+                  />
+                ) : (
+                  <Suspense fallback={<ViewLoadingFallback />}>
+                    {activeMenu === 'Transaksi' || activeMenu === 'Transaksi Harian' ? (
+                      <DailyTransactionsView
+                        refreshTrigger={transactionsRefreshKey}
+                        onSelectReceipt={tx => {
+                          setSelectedReceipt(tx);
+                          setIsReceiptModalOpen(true);
+                        }}
+                        onVoidTransaction={handleVoidTransaction}
+                        onNavigateToPos={() => setActiveMenu('Kasir POS (Penjualan)')}
+                        canVoid={canManageOperations}
+                      />
+                    ) : activeMenu === 'Promo' && canManageOperations ? (
+                      <PromoManagementView
+                        refreshTrigger={promosRefreshKey}
+                        storeName={activeTenant?.name}
+                        onSavePromo={handleSavePromo}
+                        onDeletePromo={handleDeletePromo}
+                        onTogglePromoStatus={handleTogglePromoStatus}
+                      />
+                    ) : activeMenu === 'Daftar Barang' ? (
+                      <ProductListView
+                        refreshTrigger={productsRefreshKey}
+                        onOpenAddModal={() => {
+                          setEditingProduct(null);
+                          setIsAddProductModalOpen(true);
+                        }}
+                        onEditProduct={product => {
+                          setEditingProduct(product);
+                          setIsAddProductModalOpen(true);
+                        }}
+                        onDeleteProduct={handleDeleteProduct}
+                        canManageInventory={canManageOperations}
+                      />
+                    ) : activeMenu === 'Daftar Kategori' && canManageOperations ? (
+                      <CategoryListView
+                        refreshTrigger={categoriesRefreshKey}
+                        onOpenAddCategoryModal={() => {
+                          setEditingCategory(null);
+                          setIsAddCategoryModalOpen(true);
+                        }}
+                        onEditCategory={cat => {
+                          setEditingCategory(cat);
+                          setIsAddCategoryModalOpen(true);
+                        }}
+                        onDeleteCategory={handleDeleteCategory}
+                      />
+                    ) : activeMenu === 'Dashboard' && canManageOperations ? (
+                      <DashboardView
+                        refreshTrigger={dashboardRefreshKey}
+                        activeTenant={activeTenant}
+                        onNavigateTo={handleGuardedSelectMenu}
+                        onOpenRegisterTenant={() => setIsRegisterTenantOpen(true)}
+                      />
+                    ) : (activeMenu === 'Multi-Tenant & Outlet' ||
+                        activeMenu === 'Multi-Outlet' ||
+                        activeMenu === 'Multi-Tenant') &&
+                      canManageOperations ? (
+                      <TenantManagementView
+                        tenants={tenants}
+                        activeTenantId={activeTenantId}
+                        onSelectTenant={handleSelectTenant}
+                        onOpenRegisterModal={() => setIsRegisterTenantOpen(true)}
+                        onNavigateToPos={() => setActiveMenu('Kasir POS (Penjualan)')}
+                        canCreateOutlet={isOwner}
+                      />
+                    ) : activeMenu === 'Manajemen User' && isOwner ? (
+                      <UserManagementView currentUser={currentUser} tenants={tenants} />
+                    ) : activeMenu === 'Pengaturan' && canManageOperations ? (
+                      <StoreSettingsView
+                        activeTenant={activeTenant}
+                        storeSettings={storeSettings}
+                        userRole={currentUser.role}
+                        onPreviewAppTheme={setPreviewAppTheme}
+                        onSettingsSaved={({ tenant, storeSettings: saved }) => {
+                          setTenants(prev => prev.map(t => (t.id === tenant.id ? tenant : t)));
+                          setStoreSettings(saved);
+                          setPreviewAppTheme(null);
+                        }}
+                      />
+                    ) : (
+                      <FallbackView title={activeMenu} onBackToPos={() => setActiveMenu('Kasir POS (Penjualan)')} />
+                    )}
+                  </Suspense>
+                )}
+              </main>
+            </div>
           </div>
         </div>
 
         {/* Bottom Navigation for Tablet & Mobile (lg:hidden) */}
-        <nav className="lg:hidden shrink-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-1.5 sm:px-3 py-0.5 flex items-center justify-around z-30 min-h-[48px]">
+        <nav className="lg:hidden shrink-0 bg-white border-t border-zinc-200 px-1.5 sm:px-3 py-0.5 flex items-center justify-around z-30 min-h-[48px]">
           <button
             type="button"
             onClick={() => setActiveMenu('Kasir POS (Penjualan)')}
-            className={`flex flex-col items-center justify-center py-0.5 px-1.5 rounded-md transition-all min-w-[48px] min-h-[40px] cursor-pointer active:scale-95 ${
+            className={`flex flex-col items-center justify-center py-0.5 px-1.5 rounded-lg transition-colors min-w-[48px] min-h-[40px] cursor-pointer active:scale-95 ${
               activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS'
-                ? 'text-orange-600 font-bold bg-orange-50/80'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-zinc-950 font-semibold bg-zinc-100'
+                : 'text-zinc-500 hover:text-zinc-900'
             }`}
           >
             <div className="relative">
@@ -1068,12 +967,12 @@ const App: React.FC = () => {
                 size={18}
                 className={
                   activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS'
-                    ? 'text-orange-600'
-                    : 'text-gray-500'
+                    ? 'text-zinc-950'
+                    : 'text-zinc-500'
                 }
               />
               {cart.reduce((a, b) => a + b.qty, 0) > 0 && (
-                <span className="absolute -top-1 -right-2.5 w-4 h-4 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center font-mono">
+                <span className="absolute -top-1 -right-2.5 w-4 h-4 rounded-full bg-zinc-900 text-white text-xs font-bold flex items-center justify-center font-mono">
                   {cart.reduce((a, b) => a + b.qty, 0)}
                 </span>
               )}
@@ -1083,39 +982,19 @@ const App: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => setActiveMenu('Buyback (Pembelian)')}
-            className={`flex flex-col items-center justify-center py-0.5 px-1.5 rounded-md transition-all min-w-[48px] min-h-[40px] cursor-pointer active:scale-95 ${
-              activeMenu === 'Buyback (Pembelian)' || activeMenu === 'Pembelian (buyback)'
-                ? 'text-orange-600 font-bold bg-orange-50/80'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Scale
-              size={18}
-              className={
-                activeMenu === 'Buyback (Pembelian)' || activeMenu === 'Pembelian (buyback)'
-                  ? 'text-orange-600'
-                  : 'text-gray-500'
-              }
-            />
-            <span className="text-xs font-semibold mt-0.5 leading-none">Buyback</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => setActiveMenu('Transaksi')}
-            className={`flex flex-col items-center justify-center py-0.5 px-1.5 rounded-md transition-all min-w-[48px] min-h-[40px] cursor-pointer active:scale-95 ${
+            className={`flex flex-col items-center justify-center py-0.5 px-1.5 rounded-lg transition-all min-w-[48px] min-h-[40px] cursor-pointer active:scale-95 ${
               activeMenu === 'Transaksi' || activeMenu === 'Transaksi Harian'
-                ? 'text-orange-600 font-bold bg-orange-50/80'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-zinc-950 font-semibold bg-zinc-100'
+                : 'text-zinc-500 hover:text-zinc-900'
             }`}
           >
             <ReceiptText
               size={18}
               className={
                 activeMenu === 'Transaksi' || activeMenu === 'Transaksi Harian'
-                  ? 'text-orange-600'
-                  : 'text-gray-500'
+                  ? 'text-zinc-950'
+                  : 'text-zinc-500'
               }
             />
             <span className="text-xs font-semibold mt-0.5 leading-none">Transaksi</span>
@@ -1124,20 +1003,20 @@ const App: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveMenu('Daftar Barang')}
-            className={`flex flex-col items-center justify-center py-0.5 px-1.5 rounded-md transition-all min-w-[48px] min-h-[40px] cursor-pointer active:scale-95 ${
+            className={`flex flex-col items-center justify-center py-0.5 px-1.5 rounded-lg transition-all min-w-[48px] min-h-[40px] cursor-pointer active:scale-95 ${
               activeMenu === 'Daftar Barang'
-                ? 'text-orange-600 font-bold bg-orange-50/80'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-zinc-950 font-semibold bg-zinc-100'
+                : 'text-zinc-500 hover:text-zinc-900'
             }`}
           >
-            <Gem size={18} className={activeMenu === 'Daftar Barang' ? 'text-orange-600' : 'text-gray-500'} />
+            <Package size={18} className={activeMenu === 'Daftar Barang' ? 'text-zinc-950' : 'text-zinc-500'} />
             <span className="text-xs font-semibold mt-0.5 leading-none">Barang</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsSidebarCollapsed(false)}
-            className="flex flex-col items-center justify-center py-0.5 px-1.5 rounded-md transition-all text-gray-600 hover:text-gray-900 min-w-[48px] min-h-[40px] cursor-pointer active:scale-95"
+            className="flex flex-col items-center justify-center py-0.5 px-1.5 rounded-lg transition-all text-zinc-500 hover:text-zinc-900 min-w-[48px] min-h-[40px] cursor-pointer active:scale-95"
           >
             <Menu size={18} />
             <span className="text-xs font-semibold mt-0.5 leading-none">Menu</span>
@@ -1166,15 +1045,11 @@ const App: React.FC = () => {
               subtotal={subtotal}
               tax={tax}
               taxLabel={taxLabel}
-              requireCustomer={storeSettings.requireCustomerOnSale}
               grandTotal={grandTotal}
-              customerId={customerId}
               customerName={customerName}
               onCustomerChange={cust => {
-                setCustomerId(cust.id);
                 setCustomerName(cust.name);
               }}
-              onCustomerCreated={() => setCustomersRefreshKey(k => k + 1)}
               onConfirmPayment={handleConfirmPayment}
             />
           )}
@@ -1190,19 +1065,6 @@ const App: React.FC = () => {
               onPaperSizeChange={setReceiptPaperSize}
               onPrint={handlePrintSaleReceipt}
               onViewDailyTransactions={() => setActiveMenu('Transaksi')}
-            />
-          )}
-
-          {isBuybackReceiptModalOpen && (
-            <BuybackReceiptModal
-              isOpen={isBuybackReceiptModalOpen}
-              onClose={() => setIsBuybackReceiptModalOpen(false)}
-              receipt={selectedBuybackReceipt}
-              activeTenant={activeTenant}
-              storeSettings={storeSettings}
-              paperSize={receiptPaperSize}
-              onPaperSizeChange={setReceiptPaperSize}
-              onPrint={handlePrintBuybackReceipt}
             />
           )}
 
@@ -1249,13 +1111,6 @@ const App: React.FC = () => {
           storeSettings={storeSettings}
           paperSize={receiptPaperSize}
         />
-        <PrintableBuybackReceipt
-          receipt={selectedBuybackReceipt}
-          activeTenant={activeTenant}
-          storeSettings={storeSettings}
-          paperSize={receiptPaperSize}
-        />
-        <PrintableShiftReport shift={printingShift} activeTenant={activeTenant} />
       </div>
     </TooltipProvider>
   );

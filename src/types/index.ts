@@ -324,6 +324,14 @@ export interface AuthLoginResponse {
   activeTenantId: string;
 }
 
+export type AppThemeId =
+  | 'zinc_classic'
+  | 'ocean_slate'
+  | 'emerald_mint'
+  | 'rose_blossom'
+  | 'indigo_night'
+  | 'espresso_cream';
+
 export type ReceiptPaperSize = 'a5' | 'a6' | '80mm';
 export type ReceiptTheme =
   | 'classic_gold'
@@ -331,12 +339,13 @@ export type ReceiptTheme =
   | 'midnight_navy'
   | 'rose_gold'
   | 'monochrome';
-export type ReceiptLogoPreset = 'crown' | 'diamond' | 'monogram' | 'custom' | 'none';
+export type ReceiptLogoPreset = 'monogram' | 'bag' | 'sparkles' | 'custom' | 'none' | 'crown' | 'diamond';
 
 export interface StoreSettings {
   tenantId: string;
   ppnPercent: number;
   enablePpn: boolean;
+  appTheme: AppThemeId;
   goldPrice24kBuyback: number;
   goldPrice22kBuyback: number;
   goldPrice18kBuyback: number;

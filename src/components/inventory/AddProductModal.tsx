@@ -31,11 +31,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   const [formData, setFormData] = useState({
     sku: '',
     name: '',
-    category: categories[0] || 'Cincin',
-    berat: '2.50',
-    harga: '3500000',
-    stok: '10',
-    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=300&q=80',
+    category: categories[0] || 'Parfum',
+    berat: '50',
+    harga: '185000',
+    stok: '24',
+    image: '/assets/products/parfum.jpg',
   });
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +44,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setErrorMsg(null);
-      const defaultCategory = categories[0] || 'Cincin';
+      const defaultCategory = categories[0] || 'Parfum';
       if (editingProduct) {
         setFormData({
           sku: editingProduct.sku,
@@ -60,10 +60,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           sku: generateJewelrySku(defaultCategory, ''),
           name: '',
           category: defaultCategory,
-          berat: '2.50',
-          harga: '3500000',
-          stok: '10',
-          image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=300&q=80',
+          berat: '50',
+          harga: '185000',
+          stok: '24',
+          image: '/assets/products/parfum.jpg',
         });
       }
     }
@@ -96,11 +96,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       return;
     }
     if (!cleanName || cleanName.length < 2) {
-      failValidation('Nama perhiasan emas wajib diisi (minimal 2 karakter).');
+      failValidation('Nama produk wajib diisi (minimal 2 karakter).');
       return;
     }
     if (!formData.category.trim()) {
-      failValidation('Kategori perhiasan wajib dipilih.');
+      failValidation('Kategori produk wajib dipilih.');
       return;
     }
 
@@ -110,7 +110,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     const stokNum = parseInt(stokRaw, 10);
 
     if (Number.isNaN(beratNum) || beratNum <= 0) {
-      failValidation('Berat barang harus lebih dari 0 gram.');
+      failValidation('Netto / berat produk harus lebih dari 0 gram.');
       return;
     }
     if (Number.isNaN(hargaNum) || hargaNum <= 0) {
@@ -141,9 +141,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           berat: beratNum,
           harga: hargaNum,
           stok: stokNum,
-          image:
-            cleanImage ||
-            'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=300&q=80',
+          image: cleanImage || '/assets/products/parfum.jpg',
         },
         editingProduct?.id
       );
@@ -163,11 +161,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size="md"
-      title={editingProduct ? 'Edit Barang Perhiasan' : 'Tambah Barang Baru'}
+      title={editingProduct ? 'Edit Produk' : 'Tambah Barang Baru'}
       subtitle={
         editingProduct
           ? `Perbarui data barang SKU ${editingProduct.sku}`
-          : 'Tambahkan koleksi perhiasan ke inventaris'
+          : 'Tambahkan produk baru ke inventaris'
       }
       disableEscapeClose={isSubmitting}
       footer={
@@ -208,8 +206,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 <button
                   type="button"
                   onClick={handleRegenerateSku}
-                  className="text-xs font-semibold text-orange-600 hover:text-orange-700 cursor-pointer inline-flex items-center gap-1"
-                  title="Generate kode SKU standar toko emas (Kadar-Kategori-Urut)"
+                  className="text-xs font-semibold text-zinc-700 hover:text-zinc-950 cursor-pointer inline-flex items-center gap-1"
+                  title="Generate kode SKU otomatis"
                 >
                   <RefreshCw size={12} className="shrink-0" />
                   <span>Auto SKU</span>
@@ -220,13 +218,13 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 required
                 value={formData.sku}
                 onChange={e => setFormData({ ...formData, sku: e.target.value.toUpperCase() })}
-                placeholder="Cth: 22K-CN-418"
-                className="w-full px-3.5 py-2.5 text-sm font-mono font-bold bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-orange-500 focus:bg-white uppercase"
+                placeholder="Cth: PF-001"
+                className="w-full px-3.5 py-2.5 text-sm font-mono font-bold bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:bg-white uppercase"
               />
             </div>
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
-                Kategori Perhiasan
+              <label className="block text-xs sm:text-sm font-semibold text-zinc-700 mb-1.5">
+                Kategori Produk
               </label>
               <CustomSelect
                 value={formData.category}
@@ -237,57 +235,57 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
-              Nama Perhiasan Emas
+            <label className="block text-xs sm:text-sm font-semibold text-zinc-700 mb-1.5">
+              Nama Produk
             </label>
             <input
               type="text"
               required
               value={formData.name}
               onChange={e => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Cth: Cincin Solitaire Berlian 18K"
-              className="w-full px-3.5 py-2.5 text-sm font-medium bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-orange-500 focus:bg-white"
+              placeholder="Cth: Eau de Parfum Vanilla Noir 50ml"
+              className="w-full px-3.5 py-2.5 text-sm font-medium bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:bg-white"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
-                Berat (gram)
+              <label className="block text-xs sm:text-sm font-semibold text-zinc-700 mb-1.5">
+                Netto / Berat (gr)
               </label>
               <NumericInput
                 value={formData.berat}
                 onChange={val => setFormData({ ...formData, berat: String(val) })}
                 allowDecimal={true}
-                placeholder="2.50"
+                placeholder="50"
                 suffix="gr"
                 required
-                className="w-full px-3.5 py-2 text-sm font-bold font-mono bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-orange-500 focus:bg-white"
+                className="w-full px-3.5 py-2 text-sm font-bold font-mono bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:bg-white"
               />
             </div>
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+              <label className="block text-xs sm:text-sm font-semibold text-zinc-700 mb-1.5">
                 Harga Jual (Rp)
               </label>
               <NumericInput
                 value={formData.harga}
                 onChange={val => setFormData({ ...formData, harga: String(val) })}
                 prefix="Rp"
-                placeholder="3.500.000"
+                placeholder="185.000"
                 required
-                className="w-full px-3.5 py-2 text-sm font-bold font-mono text-orange-600 bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-orange-500 focus:bg-white"
+                className="w-full px-3.5 py-2 text-sm font-bold font-mono text-zinc-950 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:bg-white"
               />
             </div>
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+              <label className="block text-xs sm:text-sm font-semibold text-zinc-700 mb-1.5">
                 Stok (pcs)
               </label>
               <NumericInput
                 value={formData.stok}
                 onChange={val => setFormData({ ...formData, stok: String(val) })}
-                placeholder="10"
+                placeholder="24"
                 required
-                className="w-full px-3.5 py-2 text-sm font-bold font-mono bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-orange-500 focus:bg-white"
+                className="w-full px-3.5 py-2 text-sm font-bold font-mono bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:bg-white"
               />
             </div>
           </div>
@@ -309,7 +307,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                   format="hybrid"
                   product={{
                     sku: formData.sku.trim().toUpperCase(),
-                    name: formData.name.trim() || 'Nama Perhiasan',
+                    name: formData.name.trim() || 'Nama Produk',
                     category: formData.category,
                     berat: previewBerat,
                     harga: previewHarga,
@@ -322,44 +320,44 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs sm:text-sm font-semibold text-gray-700">
-                Pilihan Foto Cepat (Preset Gambar Emas)
+                Pilihan Foto Cepat (Preset Gambar)
               </label>
             </div>
             <div className="grid grid-cols-5 gap-1.5 sm:gap-2 mb-2">
               {[
                 {
-                  label: 'Cincin',
-                  img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=300&q=80',
+                  label: 'Parfum',
+                  img: '/assets/products/parfum.jpg',
                 },
                 {
-                  label: 'Gelang',
-                  img: 'https://images.unsplash.com/photo-1611591475711-d0b16f39e38d?auto=format&fit=crop&w=300&q=80',
+                  label: 'Serum',
+                  img: '/assets/products/serum.jpg',
                 },
                 {
-                  label: 'Kalung',
-                  img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=300&q=80',
+                  label: 'Krim',
+                  img: '/assets/products/cream.jpg',
                 },
                 {
-                  label: 'Anting',
-                  img: 'https://images.unsplash.com/photo-1630019852942-f89202989a59?auto=format&fit=crop&w=300&q=80',
+                  label: 'Body Care',
+                  img: '/assets/products/bodycare.jpg',
                 },
                 {
-                  label: 'Liontin',
-                  img: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=300&q=80',
+                  label: 'Make Up',
+                  img: '/assets/products/makeup.jpg',
                 },
               ].map((p, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setFormData({ ...formData, image: p.img })}
-                  className={`p-1.5 border rounded-md flex flex-col items-center gap-1 cursor-pointer transition-all ${
+                  className={`p-1.5 border rounded-xl flex flex-col items-center gap-1 cursor-pointer transition-all ${
                     formData.image === p.img
-                      ? 'border-orange-500 bg-orange-50/50 ring-2 ring-orange-400/20'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-zinc-900 bg-zinc-50 ring-2 ring-zinc-900/10'
+                      : 'border-zinc-200 hover:border-zinc-300'
                   }`}
                 >
                   <img src={p.img} alt={p.label} className="w-9 h-9 sm:w-10 sm:h-10 object-cover rounded-lg" />
-                  <span className="text-xs font-medium text-gray-700">{p.label}</span>
+                  <span className="text-xs font-medium text-zinc-700">{p.label}</span>
                 </button>
               ))}
             </div>
@@ -368,7 +366,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               value={formData.image}
               onChange={e => setFormData({ ...formData, image: e.target.value })}
               placeholder="Atau masukkan URL foto kustom..."
-              className="w-full px-3.5 py-2 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-orange-500 focus:bg-white text-gray-600 font-medium"
+              className="w-full px-3.5 py-2 text-xs sm:text-sm bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:bg-white text-zinc-600 font-medium"
             />
           </div>
 

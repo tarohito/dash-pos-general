@@ -13,6 +13,76 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  :root[data-app-theme='ocean_slate'] {
+    --color-zinc-50: #f4f8fb;
+    --color-zinc-100: #e8f0f7;
+    --color-zinc-200: #d1dfec;
+    --color-zinc-300: #b3c7dc;
+    --color-zinc-400: #728da8;
+    --color-zinc-500: #4c6782;
+    --color-zinc-600: #354f69;
+    --color-zinc-700: #1f3a56;
+    --color-zinc-800: #075985;
+    --color-zinc-900: #0369a1;
+    --color-zinc-950: #0c4a6e;
+  }
+
+  :root[data-app-theme='emerald_mint'] {
+    --color-zinc-50: #f2fbf6;
+    --color-zinc-100: #e6f4ec;
+    --color-zinc-200: #cce5d6;
+    --color-zinc-300: #a8d1b9;
+    --color-zinc-400: #66947a;
+    --color-zinc-500: #426d55;
+    --color-zinc-600: #2b543e;
+    --color-zinc-700: #1b432e;
+    --color-zinc-800: #065f46;
+    --color-zinc-900: #047857;
+    --color-zinc-950: #064e3b;
+  }
+
+  :root[data-app-theme='rose_blossom'] {
+    --color-zinc-50: #fdf5f6;
+    --color-zinc-100: #fae8eb;
+    --color-zinc-200: #f2cfd6;
+    --color-zinc-300: #e3aeb9;
+    --color-zinc-400: #9e6b78;
+    --color-zinc-500: #784754;
+    --color-zinc-600: #5c303d;
+    --color-zinc-700: #451d29;
+    --color-zinc-800: #9f1239;
+    --color-zinc-900: #be123c;
+    --color-zinc-950: #4c0519;
+  }
+
+  :root[data-app-theme='indigo_night'] {
+    --color-zinc-50: #f5f6fb;
+    --color-zinc-100: #ebedf7;
+    --color-zinc-200: #d6daf0;
+    --color-zinc-300: #b8bfe3;
+    --color-zinc-400: #767ea6;
+    --color-zinc-500: #505882;
+    --color-zinc-600: #383f66;
+    --color-zinc-700: #252a4a;
+    --color-zinc-800: #3730a3;
+    --color-zinc-900: #4338ca;
+    --color-zinc-950: #1e1b4b;
+  }
+
+  :root[data-app-theme='espresso_cream'] {
+    --color-zinc-50: #faf6f0;
+    --color-zinc-100: #f3ece1;
+    --color-zinc-200: #e3d6c4;
+    --color-zinc-300: #cbb89f;
+    --color-zinc-400: #8f775f;
+    --color-zinc-500: #6d5641;
+    --color-zinc-600: #523e2c;
+    --color-zinc-700: #3d2c1e;
+    --color-zinc-800: #6d3b1a;
+    --color-zinc-900: #7c3f18;
+    --color-zinc-950: #3b1d0a;
+  }
+
   html, body, #root {
     height: 100%;
     height: 100dvh;
@@ -25,7 +95,33 @@
     font-family: var(--font-sans);
     font-size: 0.875rem; /* 14px enterprise default */
     line-height: 1.5;
-    color: #111827;
+    color: var(--color-zinc-900);
+    background-color: var(--color-zinc-100);
+  }
+
+  .macos-canvas {
+    background-color: var(--color-zinc-100);
+  }
+
+  .macos-glass-bar {
+    background-color: #ffffff;
+  }
+
+  .macos-glass-sidebar {
+    background-color: #ffffff;
+  }
+
+  .macos-glass-card {
+    background-color: #ffffff;
+  }
+
+  .macos-glass-popover {
+    background-color: #ffffff;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.04);
+  }
+
+  .macos-glass-subsurface {
+    background-color: var(--color-zinc-50);
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -38,14 +134,7 @@
   }
 
   button:focus:not(:focus-visible) {
-    outline: none !important;
-    box-shadow: none !important;
-  }
-
-  /* Flat Minimalist: Strip all shadows for a lightweight, clean appearance */
-  *, *::before, *::after {
-    box-shadow: none !important;
-    text-shadow: none !important;
+    outline: none;
   }
 
   /* Remove default number input spin arrows (up/down) across all browsers */
@@ -73,30 +162,27 @@
   font-size: 12px;
   line-height: 1.4;
   font-weight: 500;
-  border-radius: 6px;
-  background-color: #1f2937;
-  color: #f9fafb;
+  border-radius: 8px;
+  background-color: var(--color-zinc-950);
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
 }
 
 .tippy-box[data-placement^='top'] > .tippy-arrow::before {
-  border-top-color: #1f2937;
+  border-top-color: var(--color-zinc-950);
 }
 .tippy-box[data-placement^='bottom'] > .tippy-arrow::before {
-  border-bottom-color: #1f2937;
+  border-bottom-color: var(--color-zinc-950);
 }
 .tippy-box[data-placement^='left'] > .tippy-arrow::before {
-  border-left-color: #1f2937;
+  border-left-color: var(--color-zinc-950);
 }
 .tippy-box[data-placement^='right'] > .tippy-arrow::before {
-  border-right-color: #1f2937;
+  border-right-color: var(--color-zinc-950);
 }
 
 .text-gradient-brand {
-  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: #ea580c;
+  color: var(--color-zinc-900);
 }
 
 @keyframes laser-sweep {
@@ -176,15 +262,16 @@
   display: none !important;
 }
 
-/* Official Gold Invoice Print Styles */
+/* Retail Receipt Print Styles */
 @media print {
   @page {
     size: auto;
     margin: 4mm;
   }
 
-  html, body, #root {
+  html, body, #root, .macos-canvas {
     background: white !important;
+    background-image: none !important;
     height: auto !important;
     min-height: 0 !important;
     margin: 0 !important;
@@ -219,7 +306,7 @@
     print-color-adjust: exact !important;
   }
 
-  .gold-invoice-sheet {
+  .retail-receipt-sheet {
     border: none !important;
     border-radius: 0 !important;
     width: 100% !important;
@@ -230,12 +317,12 @@
     page-break-inside: avoid !important;
   }
 
-  .gold-invoice-sheet[data-paper='a6'] {
+  .retail-receipt-sheet[data-paper='a6'] {
     padding: 1.5mm 2mm !important;
     font-size: 9px !important;
   }
 
-  .gold-invoice-sheet[data-paper='80mm'] {
+  .retail-receipt-sheet[data-paper='80mm'] {
     max-width: 76mm !important;
     margin: 0 auto !important;
     padding: 1.5mm 2mm !important;

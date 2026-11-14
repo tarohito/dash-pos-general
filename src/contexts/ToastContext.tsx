@@ -132,29 +132,29 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             const styles =
               toast.type === 'success'
                 ? {
-                    wrap: 'bg-white border-emerald-200 text-gray-900 shadow-lg shadow-emerald-950/5',
-                    iconWrap: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+                    wrap: 'bg-white shadow-lg border-emerald-200 text-gray-900',
+                    iconWrap: 'bg-emerald-50 text-emerald-600 border-emerald-200',
                     titleColor: 'text-emerald-800',
                     Icon: CheckCircle2,
                   }
                 : toast.type === 'error'
                 ? {
-                    wrap: 'bg-white border-red-200 text-gray-900 shadow-lg shadow-red-950/5',
-                    iconWrap: 'bg-red-50 text-red-600 border-red-100',
+                    wrap: 'bg-white shadow-lg border-red-200 text-gray-900',
+                    iconWrap: 'bg-red-50 text-red-600 border-red-200',
                     titleColor: 'text-red-800',
                     Icon: AlertCircle,
                   }
                 : toast.type === 'warning'
                 ? {
-                    wrap: 'bg-white border-amber-200 text-gray-900 shadow-lg shadow-amber-950/5',
-                    iconWrap: 'bg-amber-50 text-amber-600 border-amber-100',
+                    wrap: 'bg-white shadow-lg border-amber-200 text-gray-900',
+                    iconWrap: 'bg-amber-50 text-amber-600 border-amber-200',
                     titleColor: 'text-amber-800',
                     Icon: AlertTriangle,
                   }
                 : {
-                    wrap: 'bg-white border-blue-200 text-gray-900 shadow-lg shadow-blue-950/5',
-                    iconWrap: 'bg-blue-50 text-blue-600 border-blue-100',
-                    titleColor: 'text-blue-800',
+                    wrap: 'bg-white shadow-lg border-zinc-200 text-gray-900',
+                    iconWrap: 'bg-zinc-100 text-zinc-700 border-zinc-200',
+                    titleColor: 'text-zinc-900',
                     Icon: Info,
                   };
 
@@ -164,7 +164,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               <div
                 key={toast.id}
                 role="alert"
-                className={`pointer-events-auto flex items-start gap-3 p-3.5 rounded-xl border animate-in fade-in slide-in-from-top-2 duration-200 ${styles.wrap}`}
+                className={`pointer-events-auto flex items-start gap-3 p-3.5 rounded-2xl border animate-in fade-in slide-in-from-top-2 duration-200 ${styles.wrap}`}
               >
                 <span
                   className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${styles.iconWrap}`}

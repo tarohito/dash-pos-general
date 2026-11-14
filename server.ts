@@ -318,20 +318,20 @@ app.post('/api/products', requireRoles('owner', 'branch_manager'), (req, res) =>
     const body = req.body as Partial<Product>;
     const sku = (body.sku ?? '').trim().toUpperCase();
     const name = (body.name ?? '').trim();
-    const category = (body.category ?? '').trim() || 'Cincin';
+    const category = (body.category ?? '').trim() || 'Parfum';
     const berat = Number(body.berat);
     const harga = Math.round(Number(body.harga));
     const stok = Math.max(0, Math.round(Number(body.stok ?? 0)));
     const image =
       (body.image ?? '').trim() ||
-      'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=300&q=80';
+      '/assets/products/parfum.jpg';
 
     if (!sku || !name) {
       res.status(400).json({ error: 'SKU dan nama produk wajib diisi.' });
       return;
     }
     if (!Number.isFinite(berat) || berat <= 0) {
-      res.status(400).json({ error: 'Berat produk harus lebih dari 0 gram.' });
+      res.status(400).json({ error: 'Netto / berat produk harus lebih dari 0 gram.' });
       return;
     }
     if (!Number.isFinite(harga) || harga <= 0) {
@@ -954,7 +954,7 @@ app.post('/api/buybacks', (req, res) => {
             cleanPhone,
             cleanNik,
             cleanAddress,
-            body.kadar || '24K (99.9%)',
+            body.kadar || 'Umum',
             now.toISOString().slice(0, 10)
           );
           resolvedCustomerId = newCustId;
@@ -1241,92 +1241,12 @@ app.delete('/api/customers/:id', requireRoles('owner', 'branch_manager'), (req, 
 });
 
 // ============================================================
-// PROMOS CRUD & WHATSAPP BROADCAST
+// PROMOS CRUD & BROADCAST QUEUE
 // ============================================================
-function getWhatsappGatewayConfig() {
-  const url = (process.env.WHATSAPP_GATEWAY_URL ?? '').trim();
-  const token = (process.env.WHATSAPP_API_TOKEN ?? '').trim();
-  const provider = (process.env.WHATSAPP_GATEWAY_PROVIDER ?? 'webhook').trim().toLowerCase();
-  const providerLabel =
-    provider === 'fonnte'
-      ? 'Fonnte WhatsApp Gateway'
-      : provider === 'wablas'
-      ? 'Wablas WhatsApp Gateway'
-      : 'WhatsApp Gateway Webhook';
-
-  return {
-    gatewayConfigured: Boolean(url),
-    url,
-    token,
-    provider,
-    providerLabel,
-  };
-}
-
-async function sendViaWhatsappGateway(
-  cfg: ReturnType<typeof getWhatsappGatewayConfig>,
-  waPhone: string,
-  message: string
-): Promise<{ ok: boolean; error?: string }> {
-  if (!cfg.url) {
-    return { ok: false, error: 'WHATSAPP_GATEWAY_URL belum dikonfigurasi di server.' };
-  }
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  let bodyPayload: Record<string, unknown>;
-
-  if (cfg.provider === 'fonnte') {
-    if (cfg.token) headers.Authorization = cfg.token;
-    bodyPayload = { target: waPhone, message, countryCode: '62' };
-  } else if (cfg.provider === 'wablas') {
-    if (cfg.token) headers.Authorization = cfg.token;
-    bodyPayload = { phone: waPhone, message };
-  } else {
-    if (cfg.token) headers.Authorization = `Bearer ${cfg.token}`;
-    bodyPayload = { phone: waPhone, message, channel: 'whatsapp' };
-  }
-
-  try {
-    const response = await fetch(cfg.url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(bodyPayload),
-    });
-    const parsed = (await response.json().catch(() => ({}))) as {
-      status?: boolean;
-      reason?: string;
-      message?: string;
-      error?: string;
-    };
-    if (!response.ok || parsed.status === false) {
-      return {
-        ok: false,
-        error: parsed.reason || parsed.error || parsed.message || `Gateway HTTP ${response.status}`,
-      };
-    }
-    return { ok: true };
-  } catch (err) {
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : 'Gagal menghubungi WhatsApp Gateway.',
-    };
-  }
-}
-
-const activeGatewayJobs = new Map<string, { cancelled: boolean }>();
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 function getBroadcastSafeLimits() {
-  const dailySafeLimit = Math.max(10, Number(process.env.WHATSAPP_DAILY_SAFE_LIMIT) || 50);
-  const maxBatchSize = Math.max(10, Number(process.env.WHATSAPP_MAX_BATCH_SIZE) || 50);
   return {
-    dailySafeLimit,
-    maxBatchSize,
+    dailySafeLimit: 50,
+    maxBatchSize: 50,
     defaultDelayMinSec: 8,
     defaultDelayMaxSec: 15,
   };
@@ -1334,11 +1254,10 @@ function getBroadcastSafeLimits() {
 
 app.get('/api/promos/broadcast-config', requireRoles('owner', 'branch_manager'), (req, res) => {
   const { activeTenantId } = getAuth(req);
-  const cfg = getWhatsappGatewayConfig();
   const limits = getBroadcastSafeLimits();
   res.json({
-    gatewayConfigured: cfg.gatewayConfigured,
-    providerLabel: cfg.providerLabel,
+    gatewayConfigured: false,
+    providerLabel: 'Antrean WA Web (wa.me)',
     dailySafeLimit: limits.dailySafeLimit,
     dailySentCount: getDailyBroadcastSentCount(activeTenantId),
     maxBatchSize: limits.maxBatchSize,
@@ -1360,7 +1279,7 @@ app.get('/api/promos/broadcasts', requireRoles('owner', 'branch_manager'), (req,
     const { activeTenantId } = getAuth(req);
     const items = listPromoBroadcasts(activeTenantId).map(b => ({
       ...b,
-      isJobRunning: activeGatewayJobs.has(b.id),
+      isJobRunning: false,
     }));
     res.json(items);
   } catch (err) {
@@ -1379,7 +1298,7 @@ app.get('/api/promos/broadcasts/:broadcastId', requireRoles('owner', 'branch_man
     }
     res.json({
       ...record,
-      isJobRunning: activeGatewayJobs.has(record.id),
+      isJobRunning: false,
     });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal memuat detail broadcast.' });
@@ -1390,10 +1309,6 @@ app.post('/api/promos/broadcasts/:broadcastId/cancel', requireRoles('owner', 'br
   try {
     const { activeTenantId } = getAuth(req);
     const broadcastId = String(req.params.broadcastId);
-    const job = activeGatewayJobs.get(broadcastId);
-    if (job) {
-      job.cancelled = true;
-    }
     const updated = cancelPendingPromoBroadcastRecipients(broadcastId, activeTenantId);
     if (!updated) {
       res.status(404).json({ error: 'Riwayat broadcast tidak ditemukan di outlet aktif.' });
@@ -1433,7 +1348,7 @@ app.patch(
       }
       res.json({
         ...updated,
-        isJobRunning: activeGatewayJobs.has(updated.id),
+        isJobRunning: false,
       });
     } catch (err) {
       res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal memperbarui status pengiriman.' });
@@ -1465,7 +1380,6 @@ app.post('/api/promos/:id/broadcast', requireRoles('owner', 'branch_manager'), a
 
     const body = (req.body ?? {}) as Partial<PromoBroadcastCreatePayload>;
     const audienceMode = body.audienceMode ?? 'all';
-    const deliveryMode = body.deliveryMode === 'gateway' ? 'gateway' : 'wa_me';
     const messageTemplate = (body.messageTemplate ?? '').trim();
     if (!messageTemplate) {
       res.status(400).json({ error: 'Isi pesan promo tidak boleh kosong.' });
@@ -1502,33 +1416,6 @@ app.post('/api/promos/:id/broadcast', requireRoles('owner', 'branch_manager'), a
       return;
     }
 
-    const limits = getBroadcastSafeLimits();
-    const dailySentCount = getDailyBroadcastSentCount(tenantId);
-
-    const gatewayCfg = getWhatsappGatewayConfig();
-    if (deliveryMode === 'gateway') {
-      if (!gatewayCfg.gatewayConfigured) {
-        res.status(400).json({
-          error:
-            'WhatsApp Gateway server belum dikonfigurasi (WHATSAPP_GATEWAY_URL kosong). Gunakan mode Antrean WA Web (wa.me).',
-        });
-        return;
-      }
-      if (targets.length > limits.maxBatchSize) {
-        res.status(400).json({
-          error: `Mode Aman membatasi maksimal ${limits.maxBatchSize} penerima per batch (target saat ini: ${targets.length}). Bagi pengiriman menjadi beberapa batch kecil.`,
-        });
-        return;
-      }
-      if (dailySentCount + targets.length > limits.dailySafeLimit) {
-        const remaining = Math.max(0, limits.dailySafeLimit - dailySentCount);
-        res.status(400).json({
-          error: `Melebihi kuota aman harian (${limits.dailySafeLimit} pesan/hari). Sisa kuota hari ini: ${remaining} pesan.`,
-        });
-        return;
-      }
-    }
-
     const tenantRow = db.prepare('SELECT name FROM tenants WHERE id = ?').get(tenantId) as
       | { name: string }
       | undefined;
@@ -1544,68 +1431,14 @@ app.post('/api/promos/:id/broadcast', requireRoles('owner', 'branch_manager'), a
         endDate: promoRow.endDate,
         minPurchase: promoRow.minPurchase ?? undefined,
       },
-      storeName: tenantRow?.name || 'Toko Mas',
+      storeName: tenantRow?.name || 'Toko',
       audienceMode,
       audienceSegment: body.audienceSegment,
       customers: targets,
-      deliveryMode,
+      deliveryMode: 'wa_me',
       messageTemplate,
       createdBy: auth.user.fullName,
     });
-
-    if (deliveryMode === 'gateway' && batch.recipients) {
-      const rawMin = Number(body.delayMinSec);
-      const rawMax = Number(body.delayMaxSec);
-      const delayMinSec = Number.isFinite(rawMin)
-        ? Math.max(5, Math.min(30, Math.round(rawMin)))
-        : limits.defaultDelayMinSec;
-      const delayMaxSec = Number.isFinite(rawMax)
-        ? Math.max(delayMinSec, Math.min(60, Math.round(rawMax)))
-        : Math.max(delayMinSec, limits.defaultDelayMaxSec);
-
-      const jobState = { cancelled: false };
-      activeGatewayJobs.set(batch.id, jobState);
-
-      res.status(201).json({
-        ...batch,
-        isJobRunning: true,
-      });
-
-      const recipientsSnapshot = [...batch.recipients];
-      void (async () => {
-        try {
-          for (let i = 0; i < recipientsSnapshot.length; i += 1) {
-            if (jobState.cancelled) break;
-
-            const rec = recipientsSnapshot[i];
-            const result = await sendViaWhatsappGateway(gatewayCfg, rec.waPhone, rec.personalizedMessage);
-            updatePromoBroadcastRecipientStatus({
-              broadcastId: batch.id,
-              recipientId: rec.id,
-              tenantId,
-              status: result.ok ? 'sent' : 'failed',
-              errorMessage: result.error,
-            });
-
-            if (jobState.cancelled) break;
-
-            if (i < recipientsSnapshot.length - 1) {
-              const randomDelaySec =
-                delayMinSec + Math.random() * Math.max(0, delayMaxSec - delayMinSec);
-              await sleep(Math.round(randomDelaySec * 1000));
-            }
-          }
-          if (jobState.cancelled) {
-            cancelPendingPromoBroadcastRecipients(batch.id, tenantId);
-          }
-        } catch (err) {
-          console.error('[Broadcast Gateway Job] Error:', err);
-        } finally {
-          activeGatewayJobs.delete(batch.id);
-        }
-      })();
-      return;
-    }
 
     res.status(201).json({
       ...batch,

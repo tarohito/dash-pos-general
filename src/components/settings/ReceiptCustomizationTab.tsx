@@ -9,7 +9,6 @@ import {
   Eye,
 } from 'lucide-react';
 import {
-  BuybackItem,
   ReceiptLogoPreset,
   ReceiptPaperSize,
   ReceiptTheme,
@@ -17,16 +16,14 @@ import {
   Tenant,
   Transaction,
 } from '../../types';
-import { GoldInvoiceDocument } from '../common/GoldInvoiceDocument';
+import { RetailReceiptDocument } from '../common/RetailReceiptDocument';
 import { CustomSelect } from '../common/CustomSelect';
 import { CustomCheckbox } from '../common/CustomCheckbox';
 import { useToast } from '../../contexts/ToastContext';
 
 export const DEFAULT_RECEIPT_TERMS_TEMPLATE = [
-  'Wajib membawa surat ini saat jual kembali atau tukar tambah barang.',
-  'Barang dari {TOKO} diterima kembali sesuai ketentuan harga & potongan toko.',
-  'Jika rusak/cacat atau mata hilang dikenakan potongan tambahan sesuai kondisi.',
-  'Pesanan khusus (custom order), batu, dan ongkos lebur tidak dapat dikembalikan.',
+  'Simpan struk ini sebagai bukti pembayaran yang sah dari {TOKO}.',
+  'Penukaran produk dalam kemasan tersegel berlaku maksimal 3 hari.',
 ].join('\n');
 
 interface ReceiptCustomizationTabProps {
@@ -45,34 +42,34 @@ const THEME_OPTIONS: Array<{
   swatchClass: string;
 }> = [
   {
-    value: 'classic_gold',
-    label: 'Emas Klasik',
-    desc: 'Aksen emas khas toko perhiasan',
-    swatchClass: 'bg-[#d4a017]',
-  },
-  {
-    value: 'royal_emerald',
-    label: 'Zamrud Royal',
-    desc: 'Hijau zamrud elegan & berwibawa',
-    swatchClass: 'bg-emerald-700',
-  },
-  {
     value: 'midnight_navy',
-    label: 'Biru Malam',
-    desc: 'Slate gelap modern & formal',
+    label: 'Biru Malam (Standar)',
+    desc: 'Slate modern & bersih untuk retail',
     swatchClass: 'bg-slate-900',
-  },
-  {
-    value: 'rose_gold',
-    label: 'Rose Gold',
-    desc: 'Nuansa butik perhiasan modern',
-    swatchClass: 'bg-rose-700',
   },
   {
     value: 'monochrome',
     label: 'Monokrom Cetak',
     desc: 'Hitam putih kontras tinggi (Thermal)',
     swatchClass: 'bg-gray-950',
+  },
+  {
+    value: 'rose_gold',
+    label: 'Rose Quartz',
+    desc: 'Nuansa beauty, skincare & parfum',
+    swatchClass: 'bg-rose-700',
+  },
+  {
+    value: 'royal_emerald',
+    label: 'Zamrud Natural',
+    desc: 'Hijau natural segar & elegan',
+    swatchClass: 'bg-emerald-700',
+  },
+  {
+    value: 'classic_gold',
+    label: 'Amber Hangat',
+    desc: 'Aksen amber klasik & hangat',
+    swatchClass: 'bg-[#d4a017]',
   },
 ];
 
@@ -145,7 +142,6 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
 }) => {
   const { showToast } = useToast();
   const [editorTab, setEditorTab] = useState<EditorSubTab>('theme_header');
-  const [previewDocType, setPreviewDocType] = useState<'sale' | 'buyback'>('sale');
   const [previewPaperSize, setPreviewPaperSize] = useState<ReceiptPaperSize>(
     settings.receiptDefaultPaperSize || 'a5'
   );
@@ -156,7 +152,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
   }, [settings.receiptDefaultPaperSize]);
 
   const sampleSaleReceipt: Transaction = useMemo(() => {
-    const subtotal = 14850000;
+    const subtotal = 430000;
     const tax = settings.enablePpn ? Math.round(subtotal * (settings.ppnPercent / 100)) : 0;
     const grandTotal = subtotal + tax;
     return {
@@ -173,27 +169,27 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
       items: [
         {
           id: 1,
-          sku: 'CNC-18K-041',
-          name: 'Cincin Solitaire Berlian 18K',
-          category: 'Cincin',
-          berat: 3.45,
-          harga: 6850000,
+          sku: 'PF-001',
+          name: 'Eau de Parfum Vanilla Noir 50ml',
+          category: 'Parfum',
+          berat: 50,
+          harga: 285000,
           qty: 1,
-          subtotal: 6850000,
+          subtotal: 285000,
         },
         {
           id: 2,
-          sku: 'LM-ANTAM-5G',
-          name: 'Logam Mulia Antam CertiCard 5gr (24K)',
-          category: 'Logam Mulia',
-          berat: 5.0,
-          harga: 8000000,
+          sku: 'SK-002',
+          name: 'Barrier Repair Moisturizer 50g',
+          category: 'Skincare',
+          berat: 50,
+          harga: 145000,
           qty: 1,
-          subtotal: 8000000,
+          subtotal: 145000,
         },
       ],
       totalQty: 2,
-      totalBerat: 8.45,
+      totalBerat: 100,
       subtotal,
       tax,
       grandTotal,
@@ -205,51 +201,6 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
       status: 'completed',
     };
   }, [settings.enablePpn, settings.ppnPercent]);
-
-  const sampleBuybackReceipt: BuybackItem = useMemo(
-    () => ({
-      id: 'preview-bb-1',
-      invoiceNo: 'BB-20261114-003',
-      date: '14 Nov 2026',
-      timeStr: '15:10',
-      branchName: `${tenantPreview.name} • ${tenantPreview.branchName}`,
-      cashierName: 'Sinta Wijaya',
-      customerMemberCode: 'REG-0118',
-      customerName: 'Bapak Hendra Saputra',
-      customerPhone: '0813-7788-1122',
-      customerAddress: 'Jl. Sudirman Kav. 22, Jakarta',
-      sourceNote: 'INV-20250410-019',
-      itemType: 'Gelang Rantai Milan',
-      kadar: '22K (916)',
-      beratKotor: 8.4,
-      potonganBatu: 0.2,
-      beratBersih: 8.2,
-      hargaPerGram: settings.goldPrice22kBuyback || 1950000,
-      biayaLebur: 150000,
-      kondisi: 'Baik / Utuh',
-      totalKotor: Math.round(8.2 * (settings.goldPrice22kBuyback || 1950000)),
-      potonganBiaya: 150000,
-      pph22: 0,
-      totalBayar: Math.max(0, Math.round(8.2 * (settings.goldPrice22kBuyback || 1950000)) - 150000),
-      paymentMethod: 'transfer',
-      bankName: 'BCA',
-      accountNo: '5210-8899-12',
-      items: [
-        {
-          id: 'bb-item-1',
-          category: 'Perhiasan',
-          brandType: 'Gelang Rantai Milan',
-          kadar: '22K (916)',
-          berat: 8.2,
-          kondisi: 'Baik / Utuh',
-          hargaPerGram: settings.goldPrice22kBuyback || 1950000,
-          subtotal: Math.round(8.2 * (settings.goldPrice22kBuyback || 1950000)),
-        },
-      ],
-      status: 'completed',
-    }),
-    [settings.goldPrice22kBuyback, tenantPreview.branchName, tenantPreview.name]
-  );
 
   const handleUploadCustomLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -278,55 +229,55 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
     {
       key: 'receiptShowStoreAddress',
       label: 'Alamat & Telepon Outlet',
-      desc: 'Menampilkan alamat lengkap dan nomor telepon cabang di bawah nama toko.',
+      desc: 'Menampilkan alamat dan nomor telepon cabang di header struk.',
       checked: settings.receiptShowStoreAddress,
     },
     {
       key: 'receiptShowCashierName',
-      label: 'Nama Kasir / Gold Advisor',
+      label: 'Nama Kasir / Staff',
       desc: 'Mencetak nama petugas kasir yang memproses transaksi.',
       checked: settings.receiptShowCashierName,
     },
     {
-      key: 'receiptShowBarcode',
-      label: 'Barcode Code-128 Invoice',
-      desc: 'Barcode cepat di kanan atas untuk scan nota saat pelanggan buyback.',
-      checked: settings.receiptShowBarcode,
-    },
-    {
-      key: 'receiptShowQrCode',
-      label: 'QR Code Verifikasi Nota',
-      desc: 'Kode QR berisi identitas outlet, nomor nota, dan total transaksi.',
-      checked: settings.receiptShowQrCode,
-    },
-    {
-      key: 'receiptShowPhoto',
-      label: 'Foto Thumbnail Emas / Produk',
-      desc: 'Menampilkan gambar perhiasan atau foto bukti emas buyback di nota.',
-      checked: settings.receiptShowPhoto,
-    },
-    {
       key: 'receiptShowItemSku',
-      label: 'Kode SKU & Nomor Seri Barang',
-      desc: 'Menampilkan kode SKU perhiasan serta nomor seri & tahun sertifikat LM.',
+      label: 'Kode SKU Produk',
+      desc: 'Menampilkan kode SKU barang di bawah nama produk.',
       checked: settings.receiptShowItemSku,
     },
     {
       key: 'receiptShowTaxLine',
       label: 'Baris Rincian Pajak PPN',
-      desc: 'Tampilkan baris PPN di ringkasan total (matikan untuk nota Non-PKP ringkas).',
+      desc: 'Tampilkan baris PPN di ringkasan total.',
       checked: settings.receiptShowTaxLine,
     },
     {
+      key: 'receiptShowBarcode',
+      label: 'Barcode Invoice (Code-128)',
+      desc: 'Menampilkan barcode di bagian bawah struk untuk scan retur.',
+      checked: settings.receiptShowBarcode,
+    },
+    {
+      key: 'receiptShowQrCode',
+      label: 'QR Code Verifikasi',
+      desc: 'Menampilkan QR Code ringkas di bagian bawah struk.',
+      checked: settings.receiptShowQrCode,
+    },
+    {
+      key: 'receiptShowPhoto',
+      label: 'Thumbnail Foto Produk',
+      desc: 'Menampilkan gambar kecil produk pertama di samping ringkasan.',
+      checked: settings.receiptShowPhoto,
+    },
+    {
       key: 'receiptShowTerms',
-      label: 'Blok Syarat & Ketentuan',
-      desc: 'Menampilkan daftar poin ketentuan jual kembali di bagian bawah nota.',
+      label: 'Blok Catatan / Ketentuan',
+      desc: 'Menampilkan poin catatan tambahan di bagian bawah nota.',
       checked: settings.receiptShowTerms,
     },
     {
       key: 'receiptShowSignatures',
       label: 'Kolom Tanda Tangan',
-      desc: 'Menampilkan kotak tanda tangan Pembeli / Penjual dan Kasir outlet.',
+      desc: 'Menampilkan garis tanda tangan Pelanggan dan Kasir.',
       checked: settings.receiptShowSignatures,
     },
   ];
@@ -334,20 +285,20 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
       {/* Left Column: Customization Controls */}
-      <div className="lg:col-span-6 bg-white rounded-xl border border-gray-200/90 p-4 sm:p-6 space-y-5">
+      <div className="lg:col-span-6 bg-white rounded-2xl border border-zinc-200 p-4 sm:p-6 space-y-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h4 className="text-sm sm:text-base font-bold text-gray-900">
-              Kustomisasi Tampilan Nota Resmi
+              Desain Struk &amp; Nota Penjualan
             </h4>
             <p className="text-xs text-gray-500 mt-0.5">
-              Atur tema warna, logo, ukuran kertas default, elemen nota, dan ketentuan cetak untuk penjualan maupun buyback.
+              Atur tampilan struk agar tetap simpel, bersih, dan sesuai kebutuhan kasir outlet Anda.
             </p>
           </div>
           <button
             type="button"
             onClick={onResetReceiptDefaults}
-            className="h-8 px-2.5 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors inline-flex items-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap"
+            className="h-8 px-2.5 text-xs font-semibold text-zinc-600 hover:text-zinc-900 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-xl transition-colors inline-flex items-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap"
           >
             <RotateCcw size={13} />
             <span>Standar</span>
@@ -355,7 +306,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
         </div>
 
         {/* Sub-tab Switcher */}
-        <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 rounded-lg border border-gray-200/70">
+        <div className="grid grid-cols-3 gap-1 p-1 bg-zinc-100/90 rounded-xl border border-zinc-200/80">
           {(
             [
               { key: 'theme_header', label: 'Tema & Header', icon: Palette },
@@ -370,10 +321,10 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                 key={tab.key}
                 type="button"
                 onClick={() => setEditorTab(tab.key)}
-                className={`h-8 px-2 rounded-md text-xs font-semibold transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                className={`h-8 px-2 rounded-lg text-xs font-semibold transition-all inline-flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   active
-                    ? 'bg-white text-orange-600 shadow-2xs'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                    : 'text-zinc-600 hover:text-zinc-900'
                 }`}
               >
                 <Icon size={14} className="shrink-0" />
@@ -399,10 +350,10 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                       key={opt.value}
                       type="button"
                       onClick={() => onUpdateField('receiptDefaultPaperSize', opt.value)}
-                      className={`p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
+                      className={`p-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
                         active
-                          ? 'bg-orange-50/70 border-orange-400 text-orange-900'
-                          : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
+                          ? 'bg-zinc-50 border-zinc-900 ring-1 ring-zinc-900 text-zinc-950'
+                          : 'bg-white border-zinc-200 hover:bg-zinc-50 text-zinc-700'
                       }`}
                     >
                       <span className="text-xs font-bold block leading-tight">{opt.label}</span>
@@ -428,10 +379,10 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                       key={theme.value}
                       type="button"
                       onClick={() => onUpdateField('receiptTheme', theme.value)}
-                      className={`p-2.5 rounded-lg border flex items-center gap-2.5 text-left transition-colors cursor-pointer ${
+                      className={`p-2.5 rounded-xl border flex items-center gap-2.5 text-left transition-colors cursor-pointer ${
                         active
-                          ? 'bg-orange-50/60 border-orange-400'
-                          : 'bg-white border-gray-200 hover:bg-gray-50'
+                          ? 'bg-zinc-50 border-zinc-900 ring-1 ring-zinc-900'
+                          : 'bg-white border-zinc-200 hover:bg-zinc-50'
                       }`}
                     >
                       <span
@@ -463,9 +414,9 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                     value={settings.receiptLogoPreset}
                     onChange={val => onUpdateField('receiptLogoPreset', val as ReceiptLogoPreset)}
                     options={[
-                      { value: 'crown', label: 'Mahkota Emas (Klasik)' },
-                      { value: 'diamond', label: 'Berlian Geometris' },
                       { value: 'monogram', label: 'Monogram Inisial Toko' },
+                      { value: 'bag', label: 'Ikon Tas Belanja (Retail)' },
+                      { value: 'sparkles', label: 'Ikon Parfum & Skincare' },
                       { value: 'custom', label: 'Upload Logo Sendiri' },
                       { value: 'none', label: 'Tanpa Logo (Teks Saja)' },
                     ]}
@@ -545,10 +496,10 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
               <label className="flex items-center justify-between gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50/70 cursor-pointer">
                 <div>
                   <span className="text-xs font-semibold text-gray-900 block">
-                    Tampilkan Watermark Keamanan di Tengah Nota
+                    Tampilkan Watermark Nama Toko di Latar
                   </span>
                   <span className="text-[11px] text-gray-500">
-                    Membantu mencegah pemalsuan surat emas resmi toko.
+                    Opsional: tampilkan teks nama toko tipis di belakang struk.
                   </span>
                 </div>
                 <CustomCheckbox
@@ -562,46 +513,29 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
             <div className="pt-3 border-t border-gray-100 space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Tagline Brand di Header Nota
+                  Subjudul / Tagline Toko (Opsional)
                 </label>
                 <input
                   type="text"
                   value={settings.receiptTagline}
                   onChange={e => onUpdateField('receiptTagline', e.target.value)}
-                  className="w-full h-9 px-3 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 uppercase tracking-wider font-semibold"
-                  placeholder="GOLD & JEWELLERY"
+                  className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                  placeholder="Kosongkan untuk tampilan simpel"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Judul Nota Penjualan
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.receiptSaleTitle}
-                    onChange={e => onUpdateField('receiptSaleTitle', e.target.value)}
-                    className="w-full h-9 px-3 text-xs font-semibold bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 uppercase"
-                    placeholder="FAKTUR PENJUALAN EMAS"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Judul Nota Buyback
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.receiptBuybackTitle}
-                    onChange={e => onUpdateField('receiptBuybackTitle', e.target.value)}
-                    className="w-full h-9 px-3 text-xs font-semibold bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 uppercase"
-                    placeholder="SURAT PEMBELIAN KEMBALI (BUYBACK)"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Label Judul Atas Nota (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={settings.receiptSaleTitle}
+                  onChange={e => onUpdateField('receiptSaleTitle', e.target.value)}
+                  className="w-full h-9 px-3 text-xs font-semibold bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                  placeholder="Contoh: Struk Pembelian (kosongkan jika tidak perlu)"
+                />
               </div>
-              <p className="text-[11px] text-gray-400">
-                Kosongkan judul nota jika ingin menyembunyikan pita judul di bagian paling atas.
-              </p>
 
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">
@@ -611,8 +545,8 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                   type="text"
                   value={settings.receiptHeaderExtra}
                   onChange={e => onUpdateField('receiptHeaderExtra', e.target.value)}
-                  className="w-full h-9 px-3 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
-                  placeholder="IG @tokomas.id • Buka Setiap Hari 09:00–21:00"
+                  className="w-full h-9 px-3 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                  placeholder="IG @mki.kosmetik • Buka Setiap Hari 09:00–21:00"
                 />
               </div>
             </div>
@@ -654,8 +588,8 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                 type="text"
                 value={settings.receiptTermsTitle}
                 onChange={e => onUpdateField('receiptTermsTitle', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 font-semibold"
-                placeholder="Perhatian :"
+                className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 font-semibold"
+                placeholder="Catatan:"
               />
             </div>
 
@@ -667,7 +601,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                 <button
                   type="button"
                   onClick={() => onUpdateField('receiptTermsText', DEFAULT_RECEIPT_TERMS_TEMPLATE)}
-                  className="text-[11px] font-semibold text-orange-600 hover:text-orange-700 cursor-pointer whitespace-nowrap"
+                  className="text-[11px] font-semibold text-zinc-900 hover:text-zinc-600 underline underline-offset-2 cursor-pointer whitespace-nowrap"
                 >
                   Isi Template Standar
                 </button>
@@ -676,8 +610,8 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                 rows={5}
                 value={settings.receiptTermsText}
                 onChange={e => onUpdateField('receiptTermsText', e.target.value)}
-                className="w-full p-3 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 leading-relaxed"
-                placeholder="Wajib membawa surat ini saat jual kembali..."
+                className="w-full p-3 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 leading-relaxed"
+                placeholder="Harap simpan struk ini sebagai bukti transaksi resmi..."
               />
               <p className="text-[11px] text-gray-400 mt-1">
                 Gunakan variabel <span className="font-mono font-semibold text-gray-600">{'{TOKO}'}</span> untuk otomatis menampilkan nama outlet Anda.
@@ -692,8 +626,8 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                 rows={3}
                 value={settings.receiptFooterNote}
                 onChange={e => onUpdateField('receiptFooterNote', e.target.value)}
-                className="w-full p-3 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 leading-relaxed"
-                placeholder="Contoh: Gratis cuci perhiasan seumur hidup • WA Layanan Pelanggan 0812-xxxx"
+                className="w-full p-3 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 leading-relaxed"
+                placeholder="Contoh: Garansi tukar 7 hari dengan struk asli • WA Layanan Pelanggan 0812-xxxx"
               />
             </div>
 
@@ -708,7 +642,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                     type="text"
                     value={settings.receiptSignatureGreeting}
                     onChange={e => onUpdateField('receiptSignatureGreeting', e.target.value)}
-                    className="w-full h-9 px-2.5 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
+                    className="w-full h-9 px-2.5 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
                     placeholder="Hormat Kami,"
                   />
                 </div>
@@ -720,7 +654,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                     type="text"
                     value={settings.receiptCustomerSignLabel}
                     onChange={e => onUpdateField('receiptCustomerSignLabel', e.target.value)}
-                    className="w-full h-9 px-2.5 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
+                    className="w-full h-9 px-2.5 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
                     placeholder="Customer"
                   />
                 </div>
@@ -732,8 +666,8 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                     type="text"
                     value={settings.receiptCashierSignLabel}
                     onChange={e => onUpdateField('receiptCashierSignLabel', e.target.value)}
-                    className="w-full h-9 px-2.5 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
-                    placeholder="Kasir / Gold Advisor"
+                    className="w-full h-9 px-2.5 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                    placeholder="Kasir / Staff"
                   />
                 </div>
               </div>
@@ -743,10 +677,10 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
       </div>
 
       {/* Right Column: Live WYSIWYG Preview */}
-      <div className="lg:col-span-6 lg:sticky lg:top-4 bg-white rounded-xl border border-gray-200/90 p-4 sm:p-5 space-y-3">
+      <div className="lg:col-span-6 lg:sticky lg:top-4 bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2 min-w-0">
-            <Eye size={16} className="text-orange-500 shrink-0" />
+            <Eye size={16} className="text-zinc-700 shrink-0" />
             <div className="min-w-0">
               <h4 className="text-sm font-bold text-gray-900 leading-tight">
                 Pratinjau Nota Langsung
@@ -758,38 +692,16 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
           </div>
 
           <div className="flex items-center gap-2 flex-wrap shrink-0">
-            <div className="inline-flex p-0.5 bg-gray-100 rounded-lg border border-gray-200/80">
-              {(
-                [
-                  { key: 'sale', label: 'Penjualan' },
-                  { key: 'buyback', label: 'Buyback' },
-                ] as const
-              ).map(doc => (
-                <button
-                  key={doc.key}
-                  type="button"
-                  onClick={() => setPreviewDocType(doc.key)}
-                  className={`px-2.5 py-1 text-[11px] font-semibold rounded-md transition-colors cursor-pointer whitespace-nowrap ${
-                    previewDocType === doc.key
-                      ? 'bg-white text-orange-600 shadow-2xs'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  {doc.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="inline-flex p-0.5 bg-gray-100 rounded-lg border border-gray-200/80">
+            <div className="inline-flex p-0.5 bg-zinc-100/90 rounded-xl border border-zinc-200/80">
               {(['a5', 'a6', '80mm'] as const).map(size => (
                 <button
                   key={size}
                   type="button"
                   onClick={() => setPreviewPaperSize(size)}
-                  className={`px-2 py-1 text-[11px] font-bold uppercase rounded-md transition-colors cursor-pointer whitespace-nowrap ${
+                  className={`px-2 py-1 text-[11px] font-bold uppercase rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                     previewPaperSize === size
-                      ? 'bg-white text-gray-900 shadow-2xs'
-                      : 'text-gray-500 hover:text-gray-900'
+                      ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                      : 'text-zinc-500 hover:text-zinc-900'
                   }`}
                 >
                   {size}
@@ -799,10 +711,9 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-gray-100/90 p-3 sm:p-4 overflow-x-auto flex justify-center">
-          <GoldInvoiceDocument
-            receipt={previewDocType === 'buyback' ? sampleBuybackReceipt : sampleSaleReceipt}
-            type={previewDocType}
+        <div className="rounded-xl border border-zinc-200/80 bg-zinc-100/80 p-3 sm:p-4 overflow-x-auto flex justify-center">
+          <RetailReceiptDocument
+            receipt={sampleSaleReceipt}
             activeTenant={tenantPreview}
             storeSettings={settings}
             paperSize={previewPaperSize}

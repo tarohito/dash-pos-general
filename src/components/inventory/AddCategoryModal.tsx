@@ -72,7 +72,7 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
       onClose={onClose}
       size="sm"
       title={editingCategory ? 'Edit Kategori' : 'Tambah Kategori Baru'}
-      subtitle="Kelompokkan jenis perhiasan di etalase"
+      subtitle="Kelompokkan jenis produk di katalog"
       disableEscapeClose={isSubmitting}
       footer={
         <div className={MODAL_FOOTER_END_CLASS}>
@@ -105,7 +105,7 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
 
         <div>
           <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
-            Nama Kategori Perhiasan
+            Nama Kategori Produk
           </label>
           <input
             type="text"
@@ -113,8 +113,8 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
             autoFocus
             value={categoryName}
             onChange={e => setCategoryName(e.target.value)}
-            placeholder="Cth: Cincin Tunangan, Gelang Kaki, dsb..."
-            className="w-full px-4 py-2.5 text-sm font-medium bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-orange-500 focus:bg-white"
+            placeholder="Cth: Parfum, Skincare, Body Care, Make Up..."
+            className="w-full px-4 py-2.5 text-sm font-medium bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:bg-white"
           />
           <p className="text-xs text-gray-500 mt-1.5">
             {editingCategory

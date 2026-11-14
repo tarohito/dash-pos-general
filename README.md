@@ -1,32 +1,29 @@
-# e.paper - Kasir POS Perhiasan & Logam Mulia
+# KasirPOS - Sistem Kasir & Manajemen Inventaris
 
-Aplikasi Point of Sale (POS) dan manajemen inventaris berbasis web yang dirancang khusus untuk toko perhiasan, logam mulia, dan butik emas. Dilengkapi alur penjualan kasir, transaksi pembelian kembali (*buyback*), serta cetak nota/surat resmi perhiasan berstandar industri.
+Aplikasi Point of Sale (POS) dan manajemen inventaris berbasis web untuk berbagai jenis usaha ritel dan multi-outlet. Dilengkapi alur penjualan kasir, manajemen produk dan kategori, promo & broadcast pelanggan, pembelian kembali (*buyback* / retur), tutup kasir (shift closing), serta cetak struk/faktur resmi yang dapat dikustomisasi.
 
 ---
 
 ## Fitur Utama
 
 - **Kasir Penjualan (POS)**
-  - Pencarian cepat nama produk, kadar karat, dan barcode scanner SKU.
-  - Perhitungan otomatis subtotal, PPN (11%), dan total pembayaran.
+  - Pencarian cepat nama produk, SKU, dan barcode scanner kamera/hardware.
+  - Perhitungan otomatis subtotal, PPN/pajak yang dapat disesuaikan, dan total pembayaran.
   - Kalkulasi uang tunai diterima dan kembalian secara otomatis dengan format ribuan.
   - Verifikasi transaksi non-tunai (EDC Debit, Transfer Bank, QRIS).
 
-- **Pembelian Kembali (Buyback)**
-  - Penimbangan gramasi emas (berat kotor, potongan batu, berat bersih).
-  - Pilihan preset kadar emas (24K, 22K, 18K, 17K, 16K, 10K, dll.) dan penyesuaian harga harian per gram.
-  - Kalkulasi potongan biaya lebur dan metode pencairan dana (tunai / transfer).
+- **Pembelian Kembali / Retur (Buyback)**
+  - Pencatatan rincian item, berat bersih/qty, dan kondisi barang.
+  - Kalkulasi potongan biaya administrasi/kondisi dan metode pencairan dana (tunai / transfer).
 
-- **Cetak Nota & Sertifikat Kepemilikan Emas**
-  - Desain dokumen nota resmi A5 Landscape dengan watermark pengaman di tengah.
-  - Rincian tabel barang: Jumlah, Nama Barang, Kadar Karat, Gramasi, dan Harga.
-  - Dilengkapi kode barcode, QR code digital, ketentuan jual/tukar, dan area tanda tangan customer serta advisor.
-  - Siap cetak langsung ke printer laser, inkjet, maupun dot matrix (*print-friendly*).
+- **Cetak Nota & Kustomisasi Struk**
+  - Dukungan ukuran kertas A5, A6, dan Thermal 80mm dengan tema warna dan watermark.
+  - Dilengkapi kode barcode, QR code verifikasi, ketentuan toko, serta blok tanda tangan.
+  - Siap cetak langsung ke printer thermal, laser, maupun inkjet (*print-friendly*).
 
-- **Manajemen Inventaris & Transaksi**
-  - Katalog barang dan stok produk terorganisir per kategori (Cincin, Gelang, Kalung, Anting, Liontin, Bros).
-  - Tambah produk dan kategori baru secara dinamis.
-  - Riwayat transaksi harian dan filter status pembayaran.
+- **Manajemen Inventaris, Pelanggan & Multi-Outlet**
+  - Katalog barang dan stok produk terorganisir per kategori beserta cetak label barcode.
+  - Manajemen data member pelanggan, promo diskon, manajemen staf/role, dan perpindahan outlet.
 
 ---
 
@@ -34,39 +31,30 @@ Aplikasi Point of Sale (POS) dan manajemen inventaris berbasis web yang dirancan
 
 - **Frontend**: React 19, TypeScript
 - **Styling**: Tailwind CSS
+- **Backend**: Node.js, Express, SQLite (`better-sqlite3`)
 - **Icons & UI**: Lucide React, Tippy.js
-- **Tooling**: Vite, Bun / Node.js
+- **Tooling**: Vite, TypeScript (`tsx`)
 
 ---
 
 ## Memulai Proyek
 
 ### Prasyarat
-- [Node.js](https://nodejs.org/) (versi 18+) atau [Bun](https://bun.sh/)
+- [Node.js](https://nodejs.org/) (versi 18+)
 
 ### Instalasi & Menjalankan
 
-1. Clone repositori:
+1. Pasang dependensi:
    ```bash
-   git clone https://github.com/tarohito/dash-epaper-pos.git
-   cd dash-epaper-pos
-   ```
-
-2. Pasang dependensi:
-   ```bash
-   bun install
-   # atau
    npm install
    ```
 
-3. Jalankan server pengembangan lokal:
+2. Jalankan server pengembangan lokal:
    ```bash
-   bun run dev
-   # atau
    npm run dev
    ```
 
-4. Buka di peramban:
+3. Buka di peramban:
    ```
    http://localhost:3000
    ```
@@ -74,8 +62,6 @@ Aplikasi Point of Sale (POS) dan manajemen inventaris berbasis web yang dirancan
 ### Build Produksi
 
 ```bash
-bun run build
-# atau
 npm run build
 ```
 
@@ -83,4 +69,4 @@ npm run build
 
 ## Lisensi
 
-Proyek ini dilisensikan di bawah lisensi pribadi / internal untuk operasional kasir perhiasan e.paper.
+Aplikasi internal untuk operasional kasir dan manajemen inventaris KasirPOS.

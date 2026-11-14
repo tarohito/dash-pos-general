@@ -1,6 +1,6 @@
 import React from 'react';
 import { Transaction, Tenant, StoreSettings } from '../../types';
-import { GoldInvoiceDocument, ReceiptPaperSize } from '../common/GoldInvoiceDocument';
+import { RetailReceiptDocument, ReceiptPaperSize } from '../common/RetailReceiptDocument';
 
 interface PrintableReceiptProps {
   receipt: Transaction | null;
@@ -19,9 +19,8 @@ export const PrintableReceipt: React.FC<PrintableReceiptProps> = ({
 
   return (
     <div id="printable-receipt" className="print-only">
-      <GoldInvoiceDocument
+      <RetailReceiptDocument
         receipt={receipt}
-        type="sale"
         activeTenant={activeTenant}
         storeSettings={storeSettings}
         paperSize={paperSize}

@@ -17,7 +17,7 @@ interface JewelryBarcodeTagProps {
 export const JewelryBarcodeTag: React.FC<JewelryBarcodeTagProps> = ({
   product,
   format = 'hybrid',
-  storeName = 'TOKO MAS SEJAHTERA',
+  storeName = 'LOGICPOS STORE',
   compact = false,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -63,10 +63,10 @@ export const JewelryBarcodeTag: React.FC<JewelryBarcodeTagProps> = ({
         )}
         <div className="min-w-0 flex-1 leading-tight">
           <p className="text-[9px] font-bold text-gray-500 uppercase truncate">{storeName}</p>
-          <p className="text-[11px] font-bold text-gray-900 truncate mt-0.5">{product.name || 'Produk Emas'}</p>
-          <p className="text-[10px] font-mono font-bold text-orange-700 mt-0.5">{skuValue}</p>
+          <p className="text-[11px] font-bold text-gray-900 truncate mt-0.5">{product.name || 'Nama Produk'}</p>
+          <p className="text-[10px] font-mono font-bold text-zinc-900 mt-0.5">{skuValue}</p>
           <div className="flex items-center justify-between text-[10px] font-mono font-bold text-gray-800 mt-1 pt-1 border-t border-gray-200">
-            <span>{product.berat.toFixed(2)}g</span>
+            <span>{Number(product.berat.toFixed(2))}g</span>
             <span>{formatIDR(product.harga)}</span>
           </div>
         </div>
@@ -78,7 +78,7 @@ export const JewelryBarcodeTag: React.FC<JewelryBarcodeTagProps> = ({
     return (
       <div className="bg-white border border-gray-300 rounded-md p-2 w-[265px] text-gray-900">
         <div className="grid grid-cols-2 divide-x divide-dashed divide-gray-300 gap-2 items-center">
-          {/* Sisi Kiri: Info Perhiasan + QR */}
+          {/* Sisi Kiri: Info Produk + QR */}
           <div className="pr-1.5 flex items-center gap-1.5 min-w-0">
             {qrDataUrl ? (
               <img src={qrDataUrl} alt={`QR ${skuValue}`} className="w-11 h-11 shrink-0" />
@@ -88,8 +88,8 @@ export const JewelryBarcodeTag: React.FC<JewelryBarcodeTagProps> = ({
             <div className="min-w-0 flex-1 leading-tight">
               <p className="text-[8px] font-bold text-gray-500 uppercase truncate">{product.category}</p>
               <p className="text-[10px] font-bold text-gray-900 truncate">{product.name || 'Item'}</p>
-              <p className="text-[10px] font-mono font-bold text-gray-900 mt-0.5">{product.berat.toFixed(2)} gr</p>
-              <p className="text-[9px] font-mono font-bold text-orange-700">{formatIDR(product.harga)}</p>
+              <p className="text-[10px] font-mono font-bold text-gray-900 mt-0.5">{Number(product.berat.toFixed(2))} gr</p>
+              <p className="text-[9px] font-mono font-bold text-zinc-900">{formatIDR(product.harga)}</p>
             </div>
           </div>
 
@@ -111,10 +111,10 @@ export const JewelryBarcodeTag: React.FC<JewelryBarcodeTagProps> = ({
       <div className="bg-white border border-gray-300 rounded-md p-2.5 w-[225px] text-gray-900 flex flex-col items-center">
         <div className="w-full flex items-center justify-between text-[9px] font-bold text-gray-600 uppercase mb-0.5">
           <span className="truncate max-w-[130px]">{storeName}</span>
-          <span className="font-mono text-gray-900">{product.berat.toFixed(2)}g</span>
+          <span className="font-mono text-gray-900">{Number(product.berat.toFixed(2))}g</span>
         </div>
         <p className="w-full text-[11px] font-bold text-gray-900 truncate text-center mb-1">
-          {product.name || 'Produk Perhiasan'}
+          {product.name || 'Nama Produk'}
         </p>
         {code128Valid ? (
           <svg ref={svgRef} className="max-w-full h-auto" />
@@ -137,11 +137,11 @@ export const JewelryBarcodeTag: React.FC<JewelryBarcodeTagProps> = ({
           {storeName}
         </span>
         <span className="text-[10px] font-mono font-bold text-gray-900 shrink-0">
-          {product.berat.toFixed(2)} gr &bull; {formatIDR(product.harga)}
+          {Number(product.berat.toFixed(2))} gr &bull; {formatIDR(product.harga)}
         </span>
       </div>
       <p className="text-[11px] font-bold text-gray-900 truncate mb-1">
-        {product.name || 'Produk Perhiasan Emas'}
+        {product.name || 'Nama Produk'}
       </p>
       <div className="flex items-center justify-between gap-2">
         <div className="flex-1 min-w-0 flex justify-center overflow-hidden">

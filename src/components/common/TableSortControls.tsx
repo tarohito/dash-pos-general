@@ -37,19 +37,19 @@ export const SortableTh: React.FC<SortableThProps> = ({
         type="button"
         onClick={() => onSort(sortKey)}
         className={`group w-full inline-flex items-center gap-1.5 ${justifyClass} uppercase font-semibold tracking-wider text-xs cursor-pointer transition-colors select-none ${
-          isActive ? 'text-orange-600' : 'text-gray-500 hover:text-gray-800'
+          isActive ? 'text-zinc-950' : 'text-zinc-500 hover:text-zinc-800'
         }`}
         title={`Urutkan berdasarkan ${label}`}
       >
         <span>{label}</span>
         {isActive ? (
           currentSortDir === 'asc' ? (
-            <ArrowUp size={13} className="text-orange-600 shrink-0" />
+            <ArrowUp size={13} className="text-zinc-950 shrink-0" />
           ) : (
-            <ArrowDown size={13} className="text-orange-600 shrink-0" />
+            <ArrowDown size={13} className="text-zinc-950 shrink-0" />
           )
         ) : (
-          <ArrowUpDown size={13} className="text-gray-300 group-hover:text-gray-500 shrink-0 transition-colors" />
+          <ArrowUpDown size={13} className="text-zinc-300 group-hover:text-zinc-500 shrink-0 transition-colors" />
         )}
       </button>
     </th>

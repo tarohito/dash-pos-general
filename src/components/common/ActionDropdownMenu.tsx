@@ -213,11 +213,11 @@ export const ActionDropdownMenu: React.FC<ActionDropdownMenuProps> = ({
       case 'warning':
         return 'text-amber-700 hover:bg-amber-50 hover:text-amber-800 cursor-pointer';
       case 'primary':
-        return 'text-orange-600 hover:bg-orange-50 hover:text-orange-700 cursor-pointer';
+        return 'text-zinc-950 hover:bg-zinc-100 hover:text-zinc-950 cursor-pointer';
       case 'whatsapp':
         return 'text-[#128C7E] hover:bg-[#25D366]/10 hover:text-[#075E54] cursor-pointer';
       default:
-        return 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 cursor-pointer';
+        return 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 cursor-pointer';
     }
   };
 
@@ -243,8 +243,8 @@ export const ActionDropdownMenu: React.FC<ActionDropdownMenuProps> = ({
           aria-label={ariaLabel}
           aria-haspopup="menu"
           aria-expanded={isOpen}
-          className={`w-8 h-8 rounded-lg bg-gray-100 hover:bg-orange-50 text-gray-600 hover:text-orange-600 border border-gray-200 hover:border-orange-200 inline-flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs disabled:opacity-45 disabled:cursor-not-allowed ${
-            isOpen ? 'bg-orange-50 text-orange-600 border-orange-200' : ''
+          className={`w-8 h-8 rounded-lg bg-zinc-100/90 hover:bg-zinc-200/80 text-zinc-600 hover:text-zinc-950 border border-zinc-200/80 hover:border-zinc-300 inline-flex items-center justify-center transition-colors cursor-pointer active:scale-95 disabled:opacity-45 disabled:cursor-not-allowed ${
+            isOpen ? 'bg-zinc-200/80 text-zinc-950 border-zinc-300' : ''
           } ${buttonClassName}`}
         >
           <MoreVertical size={16} />
@@ -268,7 +268,7 @@ export const ActionDropdownMenu: React.FC<ActionDropdownMenuProps> = ({
               zIndex: 2147483647,
               opacity: pos.ready ? 1 : 0,
             }}
-            className={`min-w-[190px] max-w-[260px] bg-white rounded-xl border border-gray-200 p-1.5 space-y-0.5 text-left transition-opacity duration-75 before:content-[''] before:absolute before:left-0 before:right-0 before:h-2 ${
+            className={`min-w-[190px] max-w-[260px] bg-white shadow-lg rounded-xl border border-zinc-200 p-1.5 space-y-0.5 text-left transition-opacity duration-75 before:content-[''] before:absolute before:left-0 before:right-0 before:h-2 ${
               pos.placement === 'top' ? 'before:-bottom-2' : 'before:-top-2'
             }`}
           >

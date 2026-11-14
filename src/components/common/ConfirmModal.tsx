@@ -127,7 +127,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 if (localError) setLocalError(null);
               }}
               placeholder={inputPlaceholder}
-              className="w-full h-9 px-3 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+              className="w-full h-9 px-3 text-xs sm:text-sm bg-white border border-zinc-300 rounded-lg focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
             />
           </div>
         )}

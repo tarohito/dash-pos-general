@@ -129,13 +129,13 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
   return (
     <div className="space-y-4 pb-8">
       {/* Top Header Card */}
-      <div className="bg-white rounded-xl border border-gray-200/90 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">
-            Kelola Multi-Outlet Toko Emas
+            Kelola Multi-Outlet Bisnis
           </h3>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Kelola daftar gerai toko emas, peralihan cabang kasir aktif, dan informasi operasional setiap outlet.
+            Kelola daftar gerai / cabang bisnis, peralihan cabang kasir aktif, dan informasi operasional setiap outlet.
           </p>
         </div>
 
@@ -144,7 +144,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
             <button
               type="button"
               onClick={onOpenRegisterModal}
-              className="h-9 px-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-xs sm:text-sm rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-xs shrink-0 active:scale-[0.98]"
+              className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-xs shrink-0 active:scale-[0.98]"
             >
               <Plus size={16} />
               <span>Tambah Toko / Outlet Baru</span>
@@ -157,15 +157,14 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <KpiCard
           title="Total Outlet Terdaftar"
-          accent="orange"
           icon={<Store size={16} strokeWidth={2} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 group-hover:text-white tracking-tight truncate tabular-nums transition-colors duration-200">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 tracking-tight truncate tabular-nums">
               {summary.totalTenants} Outlet
             </div>
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
+            <p className="text-xs text-gray-400 mt-1 truncate">
               {summary.activeCount} gerai berstatus aktif
             </p>
           }
@@ -173,15 +172,14 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
 
         <KpiCard
           title="Outlet Aktif Saat Ini"
-          accent="emerald"
           icon={<CheckCircle2 size={16} strokeWidth={2} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 group-hover:text-white tracking-tight truncate tabular-nums transition-colors duration-200">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 tracking-tight truncate tabular-nums">
               {activeTenant?.code || '-'}
             </div>
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
+            <p className="text-xs text-gray-400 mt-1 truncate">
               {activeTenant ? activeTenant.name : 'Belum ada outlet dipilih'}
             </p>
           }
@@ -189,15 +187,14 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
 
         <KpiCard
           title="Total Staf Kasir"
-          accent="blue"
           icon={<Users size={16} strokeWidth={2} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 group-hover:text-white tracking-tight truncate tabular-nums transition-colors duration-200">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 tracking-tight truncate tabular-nums">
               {summary.totalCashiers} Kasir
             </div>
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
+            <p className="text-xs text-gray-400 mt-1 truncate">
               Akumulasi operator POS aktif
             </p>
           }
@@ -205,15 +202,14 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
 
         <KpiCard
           title="Cakupan Wilayah"
-          accent="amber"
           icon={<MapPin size={16} strokeWidth={2} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 group-hover:text-white tracking-tight truncate tabular-nums transition-colors duration-200">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 tracking-tight truncate tabular-nums">
               {summary.uniqueCities} Kota
             </div>
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
+            <p className="text-xs text-gray-400 mt-1 truncate">
               Lokasi cabang operasional
             </p>
           }
@@ -221,7 +217,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
       </div>
 
       {/* Search, Filter & Outlet Cards Workspace */}
-      <div className="bg-white rounded-xl border border-gray-200/90 p-4 sm:p-5 space-y-4">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 space-y-4">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           <SearchInput
             value={searchQuery}
@@ -229,7 +225,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
             placeholder="Cari nama outlet, kode gerai, cabang, kota, atau kontak..."
           />
 
-          <div className="inline-flex h-9 p-0.5 bg-gray-100 rounded-lg border border-gray-200 items-center self-start lg:self-auto overflow-x-auto max-w-full shrink-0">
+          <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-xl border border-zinc-200 items-center self-start lg:self-auto overflow-x-auto max-w-full shrink-0">
             {[
               { id: 'all' as const, label: `Semua (${summary.totalTenants})` },
               { id: 'active' as const, label: `Aktif (${summary.activeCount})` },
@@ -240,10 +236,10 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => handleTabChange(tab.id)}
-                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-md transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
+                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   filterTab === tab.id
-                    ? 'bg-orange-500 text-white shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                    : 'text-zinc-600 hover:text-zinc-900'
                 }`}
               >
                 {tab.label}
@@ -254,13 +250,13 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
 
         {/* Outlet Card Grid or Empty State */}
         {visibleTenants.length === 0 ? (
-          <div className="border border-gray-200 rounded-lg py-12 px-4 text-center text-gray-400 bg-gray-50/40">
+          <div className="border border-zinc-200/80 rounded-xl py-12 px-4 text-center text-gray-400 bg-zinc-50/50">
             <Store size={36} className="mx-auto mb-2 text-gray-300" />
             <p className="text-sm font-semibold text-gray-600">Tidak ada outlet ditemukan</p>
             <p className="text-xs text-gray-400 mt-0.5 max-w-sm mx-auto">
               {hasActiveFilter
                 ? 'Coba ubah filter atau kata kunci pencarian outlet.'
-                : 'Belum ada outlet toko emas yang terdaftar.'}
+                : 'Belum ada outlet bisnis yang terdaftar.'}
             </p>
             {hasActiveFilter ? (
               <button
@@ -270,7 +266,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                   setFilterTab('all');
                   setVisibleCount(OUTLET_BATCH_SIZE);
                 }}
-                className="mt-3 px-3.5 py-1.5 text-xs font-bold text-orange-600 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer"
+                className="mt-3 px-3.5 py-1.5 text-xs font-bold text-zinc-900 bg-white rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-colors cursor-pointer"
               >
                 Reset Filter
               </button>
@@ -278,7 +274,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
               <button
                 type="button"
                 onClick={onOpenRegisterModal}
-                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors cursor-pointer border border-orange-200"
+                className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-zinc-900 hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer"
               >
                 <Plus size={14} />
                 <span>Tambah Outlet Baru</span>
@@ -292,10 +288,10 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
               return (
                 <div
                   key={tenant.id}
-                  className={`rounded-xl border p-4 sm:p-5 flex flex-col justify-between transition-all ${
+                  className={`rounded-2xl border p-4 sm:p-5 flex flex-col justify-between transition-colors ${
                     isSelected
-                      ? 'bg-emerald-600 border-emerald-700 text-white'
-                      : 'bg-white border-gray-200 hover:border-gray-300 shadow-[0_1px_2px_rgba(15,23,42,0.03)]'
+                      ? 'bg-emerald-600 border-emerald-600 text-white'
+                      : 'bg-white border-zinc-200 hover:border-zinc-400'
                   }`}
                 >
                   <div>
@@ -336,10 +332,10 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                     {/* Outlet Identity */}
                     <div className="flex items-center gap-3 mb-4">
                       <div
-                        className={`w-11 h-11 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 ${
+                        className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
                           isSelected
                             ? 'bg-white text-emerald-700'
-                            : 'bg-gradient-to-tr from-orange-500 to-amber-500 text-white'
+                            : 'bg-zinc-900 text-white'
                         }`}
                       >
                         {tenant.logoInitial}
@@ -420,7 +416,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                       <button
                         type="button"
                         onClick={onNavigateToPos}
-                        className="flex-1 h-9 px-3.5 bg-white hover:bg-emerald-50 text-emerald-700 font-bold text-xs sm:text-sm rounded-lg transition-colors inline-flex items-center justify-center cursor-pointer active:scale-[0.98]"
+                        className="flex-1 h-9 px-3.5 bg-white hover:bg-emerald-50 text-emerald-700 font-bold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center cursor-pointer active:scale-[0.98]"
                       >
                         Buka Kasir POS
                       </button>
@@ -428,7 +424,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                       <button
                         type="button"
                         onClick={() => onSelectTenant(tenant.id)}
-                        className="flex-1 h-9 px-3.5 bg-gray-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 border border-gray-200 text-gray-800 font-semibold text-xs sm:text-sm rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center active:scale-[0.98]"
+                        className="flex-1 h-9 px-3.5 bg-zinc-50 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 border border-zinc-200 text-zinc-800 font-semibold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer inline-flex items-center justify-center active:scale-[0.98]"
                       >
                         Pilih &amp; Aktifkan Outlet
                       </button>
@@ -476,7 +472,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                 ref={loadMoreRef}
                 className="col-span-full py-6 flex items-center justify-center text-xs text-gray-400 gap-2"
               >
-                <Loader2 size={16} className="animate-spin text-orange-500" />
+                <Loader2 size={16} className="animate-spin text-zinc-900" />
                 <span>
                   Memuat outlet lainnya ({visibleTenants.length} dari {filteredTenants.length})...
                 </span>

@@ -201,13 +201,13 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   return (
     <div className="space-y-4 pb-8">
       {/* 1. HEADER SECTION */}
-      <div className="bg-white rounded-xl border border-gray-200/90 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">
               Manajemen Pengguna &amp; Hak Akses
             </h3>
-            {isLoading && <Loader2 size={14} className="animate-spin text-orange-500" />}
+            {isLoading && <Loader2 size={14} className="animate-spin text-zinc-900" />}
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
             Kelola akun staf kasir, kepala cabang, jadwal shift, dan pembatasan akses per outlet toko.
@@ -221,7 +221,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
               setEditingUser(null);
               setIsModalOpen(true);
             }}
-            className="h-9 px-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-xs sm:text-sm rounded-lg transition-colors cursor-pointer shadow-xs shrink-0 inline-flex items-center justify-center gap-1.5 active:scale-[0.98]"
+            className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer shadow-xs shrink-0 inline-flex items-center justify-center gap-1.5 active:scale-[0.98]"
           >
             <Plus size={16} />
             <span>Tambah Pengguna Baru</span>
@@ -233,15 +233,14 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <KpiCard
           title="Total Pengguna"
-          accent="blue"
           icon={<Users size={16} strokeWidth={2} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-white font-mono tabular-nums tracking-tight truncate transition-colors duration-200">
+            <div className="text-xl sm:text-2xl font-bold text-gray-900 font-mono tabular-nums tracking-tight truncate">
               {stats.totalUsers} Akun
             </div>
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
+            <p className="text-xs text-gray-400 mt-1 truncate">
               Terdaftar di seluruh jaringan
             </p>
           }
@@ -249,15 +248,14 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
         <KpiCard
           title="Akun Aktif"
-          accent="emerald"
           icon={<UserCheck size={16} strokeWidth={2} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-white font-mono tabular-nums tracking-tight truncate transition-colors duration-200">
+            <div className="text-xl sm:text-2xl font-bold text-gray-900 font-mono tabular-nums tracking-tight truncate">
               {stats.activeUsers} Aktif
             </div>
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
+            <p className="text-xs text-gray-400 mt-1 truncate">
               Diizinkan masuk ke sistem
             </p>
           }
@@ -265,15 +263,14 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
         <KpiCard
           title="Kepala Cabang"
-          accent="amber"
           icon={<Shield size={16} strokeWidth={2} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-white font-mono tabular-nums tracking-tight truncate transition-colors duration-200">
+            <div className="text-xl sm:text-2xl font-bold text-gray-900 font-mono tabular-nums tracking-tight truncate">
               {stats.managerCount} Orang
             </div>
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
+            <p className="text-xs text-gray-400 mt-1 truncate">
               Supervisor stok, promo &amp; void
             </p>
           }
@@ -281,23 +278,22 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
         <KpiCard
           title="Staf Kasir"
-          accent="orange"
           icon={<UserCog size={16} strokeWidth={2} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-white font-mono tabular-nums tracking-tight truncate transition-colors duration-200">
+            <div className="text-xl sm:text-2xl font-bold text-gray-900 font-mono tabular-nums tracking-tight truncate">
               {stats.cashierCount} Orang
             </div>
           }
           footer={
-            <p className="text-xs text-gray-400 group-hover:text-white/85 mt-1 truncate transition-colors duration-200">
-              Operator POS penjualan &amp; buyback
+            <p className="text-xs text-gray-400 mt-1 truncate">
+              Operator kasir &amp; transaksi penjualan
             </p>
           }
         />
       </div>
 
       {/* 3. TABLE WORKSPACE CARD */}
-      <div className="bg-white rounded-xl border border-gray-200/90 p-4 sm:p-5">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5">
         {/* Toolbar Pencarian & Segmented Tabs */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 mb-4">
           <SearchInput
@@ -306,7 +302,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
             placeholder="Cari nama, username, email, atau shift..."
           />
 
-          <div className="inline-flex h-9 p-0.5 bg-gray-100 rounded-lg border border-gray-200 items-center self-start md:self-auto shrink-0 overflow-x-auto max-w-full">
+          <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-xl border border-zinc-200 items-center self-start md:self-auto shrink-0 overflow-x-auto max-w-full">
             {(
               [
                 { id: 'all', label: 'Semua' },
@@ -319,10 +315,10 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => setRoleFilter(tab.id)}
-                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-md transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
+                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   roleFilter === tab.id
-                    ? 'bg-orange-500 text-white shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                    : 'text-zinc-600 hover:text-zinc-900'
                 }`}
               >
                 {tab.label}
@@ -340,10 +336,10 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
         )}
 
         {/* Inner Table & Mobile Cards Container */}
-        <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+        <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
           {isLoading && items.length === 0 ? (
             <div className="p-12 text-center text-gray-500 flex items-center justify-center gap-2 text-xs sm:text-sm">
-              <Loader2 size={18} className="animate-spin text-orange-500" />
+              <Loader2 size={18} className="animate-spin text-zinc-900" />
               <span>Memuat data pengguna...</span>
             </div>
           ) : items.length === 0 ? (
@@ -362,7 +358,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                     setSearchQuery('');
                     setRoleFilter('all');
                   }}
-                  className="mt-3 px-3.5 py-1.5 text-xs font-bold text-orange-600 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer"
+                  className="mt-3 px-3.5 py-1.5 text-xs font-bold text-zinc-900 bg-zinc-100 rounded-xl border border-zinc-200 hover:bg-zinc-200/80 transition-colors cursor-pointer"
                 >
                   Reset Filter
                 </button>
@@ -410,7 +406,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                       const meta = ROLE_META[u.role];
                       const isSelf = u.id === currentUser.id;
                       return (
-                        <tr key={u.id} className="hover:bg-orange-50/25 transition-colors">
+                        <tr key={u.id} className="hover:bg-zinc-50/80 transition-colors">
                           <td className="py-3.5 px-3.5 sm:px-4 align-top min-w-[200px]">
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
@@ -418,7 +414,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                                   {u.fullName}
                                 </p>
                                 {isSelf && (
-                                  <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200">
+                                  <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-zinc-900 text-white">
                                     Anda
                                   </span>
                                 )}
@@ -514,7 +510,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                               {meta.label}
                             </span>
                             {isSelf && (
-                              <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200 shrink-0">
+                              <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-zinc-900 text-white shrink-0">
                                 Anda
                               </span>
                             )}

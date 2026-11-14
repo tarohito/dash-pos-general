@@ -187,33 +187,33 @@ export const PosView: React.FC<PosViewProps> = ({
   return (
     <div className="flex flex-col lg:flex-row flex-1 min-h-0 w-full gap-2 sm:gap-3 relative overflow-hidden">
       {/* Mobile/Tablet Segmented View Switcher */}
-      <div className="lg:hidden flex items-center p-1 bg-gray-200/80 rounded-md shrink-0">
+      <div className="lg:hidden flex items-center p-1 bg-zinc-200/70 border border-zinc-200 rounded-xl shrink-0">
         <button
           type="button"
           onClick={() => setMobileTab('catalog')}
-          className={`flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px] ${
+          className={`flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px] ${
             mobileTab === 'catalog'
-              ? 'bg-white text-gray-900 shadow-xs'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-white text-zinc-950'
+              : 'text-zinc-600 hover:text-zinc-950'
           }`}
         >
           <span>Katalog Produk</span>
-          <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full font-semibold">
+          <span className="text-xs px-2 py-0.5 bg-zinc-100 rounded-full font-semibold">
             {totalFiltered}
           </span>
         </button>
         <button
           type="button"
           onClick={() => setMobileTab('cart')}
-          className={`flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px] ${
+          className={`flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px] ${
             mobileTab === 'cart'
-              ? 'bg-white text-gray-900 shadow-xs'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-white text-zinc-950'
+              : 'text-zinc-600 hover:text-zinc-950'
           }`}
         >
           <span>Keranjang</span>
           {totalCartQty > 0 && (
-            <span className="text-xs px-2 py-0.5 bg-orange-500 text-white rounded-full font-bold font-mono">
+            <span className="text-xs px-2 py-0.5 bg-zinc-900 text-white rounded-full font-bold font-mono">
               {totalCartQty}
             </span>
           )}
@@ -222,12 +222,12 @@ export const PosView: React.FC<PosViewProps> = ({
 
       {/* Catalog Panel */}
       <div
-        className={`flex-1 min-h-0 flex flex-col min-w-0 bg-white rounded-lg border border-gray-200 overflow-hidden ${
+        className={`flex-1 min-h-0 flex flex-col min-w-0 bg-white rounded-xl border border-zinc-200 overflow-hidden ${
           mobileTab === 'cart' ? 'hidden lg:flex' : 'flex'
         }`}
       >
         {/* Search & Action Bar */}
-        <div className="p-2.5 sm:p-3 border-b border-gray-100 bg-gray-50 flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <div className="p-2.5 sm:p-3 border-b border-zinc-200 bg-zinc-50 flex items-center gap-2 sm:gap-2.5 shrink-0">
           {/* Button Filter Kategori */}
           <div className="relative" ref={categoryDropdownRef}>
             <button
@@ -237,12 +237,12 @@ export const PosView: React.FC<PosViewProps> = ({
               aria-expanded={isCategoryDropdownOpen}
               className={`h-9 px-3 rounded-lg border text-xs sm:text-sm font-semibold inline-flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
                 isCategoryDropdownOpen
-                  ? 'bg-orange-50/50 border-orange-500 text-orange-600'
+                  ? 'bg-zinc-100 border-zinc-900 text-zinc-950'
                   : selectedCategory !== 'Semua'
-                  ? 'bg-orange-50 border-orange-300 text-orange-600'
-                  : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:text-orange-600'
+                  ? 'bg-zinc-900 border-zinc-900 text-white'
+                  : 'bg-white hover:bg-zinc-50 border-zinc-300 text-zinc-700 hover:text-zinc-950'
               }`}
-              title="Filter Kategori Perhiasan"
+              title="Filter Kategori Produk"
             >
               <Filter size={13} className="mr-1.5 shrink-0 opacity-70" />
               <span className="max-w-[70px] sm:max-w-[110px] truncate">
@@ -251,7 +251,11 @@ export const PosView: React.FC<PosViewProps> = ({
               <ChevronDown
                 size={14}
                 className={`ml-1.5 shrink-0 transition-transform duration-200 ${
-                  isCategoryDropdownOpen ? 'rotate-180 text-orange-500' : 'text-gray-400'
+                  isCategoryDropdownOpen
+                    ? 'rotate-180 text-zinc-900'
+                    : selectedCategory !== 'Semua'
+                    ? 'text-zinc-300'
+                    : 'text-zinc-400'
                 }`}
               />
             </button>
@@ -260,9 +264,9 @@ export const PosView: React.FC<PosViewProps> = ({
             {isCategoryDropdownOpen && (
               <div
                 role="listbox"
-                className="absolute left-0 mt-1.5 w-56 bg-white rounded-xl border border-gray-200 p-1.5 z-40 animate-in fade-in zoom-in-95 duration-100"
+                className="absolute left-0 mt-1.5 w-56 bg-white rounded-xl border border-zinc-200 shadow-lg p-1.5 z-40 animate-in fade-in zoom-in-95 duration-100"
               >
-                <div className="px-2.5 py-1.5 mb-1 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 flex items-center justify-between">
+                <div className="px-2.5 py-1.5 mb-1 text-xs font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-100 flex items-center justify-between">
                   <span>Pilih Kategori</span>
                   {selectedCategory !== 'Semua' && (
                     <button
@@ -271,7 +275,7 @@ export const PosView: React.FC<PosViewProps> = ({
                         setSelectedCategory('Semua');
                         setIsCategoryDropdownOpen(false);
                       }}
-                      className="text-xs font-bold text-orange-600 hover:underline cursor-pointer normal-case"
+                      className="text-xs font-bold text-zinc-900 hover:underline cursor-pointer normal-case"
                     >
                       Reset
                     </button>
@@ -294,8 +298,8 @@ export const PosView: React.FC<PosViewProps> = ({
                         }}
                         className={`w-full px-2.5 py-2 rounded-lg text-xs sm:text-sm flex items-center justify-between gap-2 text-left transition-colors cursor-pointer ${
                           isSelected
-                            ? 'bg-orange-50 text-orange-700 font-bold'
-                            : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-medium'
+                            ? 'bg-zinc-100 text-zinc-950 font-bold'
+                            : 'text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 font-medium'
                         }`}
                       >
                         <span className="truncate">{cat === 'Semua' ? 'Semua Kategori' : cat}</span>
@@ -303,13 +307,13 @@ export const PosView: React.FC<PosViewProps> = ({
                           <span
                             className={`text-xs px-1.5 py-0.5 rounded font-mono font-semibold ${
                               isSelected
-                                ? 'bg-orange-100 text-orange-700'
-                                : 'bg-gray-100 text-gray-600'
+                                ? 'bg-zinc-200/80 text-zinc-950'
+                                : 'bg-zinc-100 text-zinc-600'
                             }`}
                           >
                             {count}
                           </span>
-                          {isSelected && <Check size={14} className="text-orange-600 shrink-0" />}
+                          {isSelected && <Check size={14} className="text-zinc-900 shrink-0" />}
                         </div>
                       </button>
                     );
@@ -323,7 +327,7 @@ export const PosView: React.FC<PosViewProps> = ({
           <SearchInput
             value={searchQuery}
             onChange={onSearchChange}
-            placeholder="Cari perhiasan atau scan barcode..."
+            placeholder="Cari produk atau scan barcode..."
             onKeyDown={e => {
               if (e.key === 'Enter') {
                 e.preventDefault();
@@ -336,10 +340,10 @@ export const PosView: React.FC<PosViewProps> = ({
           <button
             type="button"
             onClick={onOpenScanModal}
-            className="h-9 px-3.5 bg-white border border-gray-200 hover:border-orange-500 hover:text-orange-600 rounded-lg text-gray-700 text-xs sm:text-sm font-semibold inline-flex items-center justify-center transition-all cursor-pointer shrink-0 shadow-2xs"
+            className="h-9 px-3.5 bg-white hover:bg-zinc-50 border border-zinc-300 hover:text-zinc-950 rounded-lg text-zinc-700 text-xs sm:text-sm font-semibold inline-flex items-center justify-center transition-colors cursor-pointer shrink-0"
             title="Buka Scanner Barcode"
           >
-            <Barcode size={16} className="mr-1.5 text-orange-600 shrink-0" />
+            <Barcode size={16} className="mr-1.5 text-zinc-700 shrink-0" />
             <span className="hidden sm:inline">Scan Barcode</span>
             <span className="sm:hidden text-xs">Scan</span>
           </button>
@@ -347,11 +351,11 @@ export const PosView: React.FC<PosViewProps> = ({
 
         {/* Active Filters Banner */}
         {(selectedCategory !== 'Semua' || isPromoOnlyFilter) && (
-          <div className="bg-orange-50/70 border-b border-orange-100 px-3 py-2 flex items-center justify-between text-xs sm:text-sm text-orange-950 shrink-0 flex-wrap gap-2">
+          <div className="bg-zinc-50 border-b border-zinc-200 px-3 py-2 flex items-center justify-between text-xs sm:text-sm text-zinc-800 shrink-0 flex-wrap gap-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-gray-500 font-medium">Filter Aktif:</span>
+              <span className="text-zinc-500 font-medium">Filter Aktif:</span>
               {selectedCategory !== 'Semua' && (
-                <span className="inline-flex items-center gap-1 bg-white border border-orange-200 text-orange-700 px-2 py-0.5 rounded text-xs font-semibold">
+                <span className="inline-flex items-center gap-1 bg-white border border-zinc-200 text-zinc-800 px-2 py-0.5 rounded-md text-xs font-semibold">
                   Kategori: {selectedCategory}
                   <button
                     type="button"
@@ -364,19 +368,19 @@ export const PosView: React.FC<PosViewProps> = ({
                 </span>
               )}
               {isPromoOnlyFilter && (
-                <span className="inline-flex items-center gap-1 bg-yellow-400 text-gray-950 px-2 py-0.5 rounded text-xs font-bold">
+                <span className="inline-flex items-center gap-1 bg-zinc-900 text-white px-2 py-0.5 rounded-md text-xs font-semibold">
                   Khusus Promo ({promoCount} item)
                   <button
                     type="button"
                     onClick={() => setIsPromoOnlyFilter(false)}
-                    className="hover:text-red-600 ml-0.5 cursor-pointer"
+                    className="hover:text-red-300 ml-0.5 cursor-pointer"
                     title="Hapus filter promo"
                   >
                     <X size={12} />
                   </button>
                 </span>
               )}
-              <span className="text-xs text-gray-500">({totalFiltered} produk ditemukan)</span>
+              <span className="text-xs text-zinc-500">({totalFiltered} produk ditemukan)</span>
             </div>
 
             <button
@@ -385,7 +389,7 @@ export const PosView: React.FC<PosViewProps> = ({
                 setSelectedCategory('Semua');
                 setIsPromoOnlyFilter(false);
               }}
-              className="text-xs font-semibold text-orange-600 hover:text-orange-800 hover:underline cursor-pointer"
+              className="text-xs font-semibold text-zinc-700 hover:text-zinc-950 hover:underline cursor-pointer"
             >
               Reset Semua Filter
             </button>
@@ -406,9 +410,9 @@ export const PosView: React.FC<PosViewProps> = ({
           />
 
           {isInitialLoading && products.length === 0 ? (
-            <div className="col-span-full py-12 flex items-center justify-center text-xs text-gray-400 gap-2">
-              <Loader2 size={18} className="animate-spin text-orange-500" />
-              <span>Memuat katalog perhiasan...</span>
+            <div className="col-span-full py-12 flex items-center justify-center text-xs text-zinc-400 gap-2">
+              <Loader2 size={18} className="animate-spin text-zinc-900" />
+              <span>Memuat katalog produk...</span>
             </div>
           ) : (
             products.map(product => (
@@ -418,8 +422,8 @@ export const PosView: React.FC<PosViewProps> = ({
 
           {/* Sentinel Element untuk auto-load halaman berikutnya dari server */}
           {page < totalPages && !isInitialLoading && (
-            <div ref={loadMoreRef} className="col-span-full py-6 flex items-center justify-center text-xs text-gray-400 gap-2">
-              <Loader2 size={16} className="animate-spin text-orange-500" />
+            <div ref={loadMoreRef} className="col-span-full py-6 flex items-center justify-center text-xs text-zinc-400 gap-2">
+              <Loader2 size={16} className="animate-spin text-zinc-900" />
               <span>
                 Memuat produk lainnya ({products.length} dari {totalFiltered})...
               </span>
@@ -465,18 +469,18 @@ export const PosView: React.FC<PosViewProps> = ({
           <button
             type="button"
             onClick={() => setMobileTab('cart')}
-            className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white p-3 rounded-lg flex items-center justify-between active:scale-[0.99] transition-transform cursor-pointer"
+            className="w-full bg-zinc-900 hover:bg-zinc-800 text-white p-3 rounded-xl shadow-[0_12px_28px_rgba(0,0,0,0.18)] flex items-center justify-between active:scale-[0.99] transition-all cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-md bg-white/20 flex items-center justify-center font-bold text-xs sm:text-sm font-mono">
+              <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center font-bold text-xs sm:text-sm font-mono">
                 {totalCartQty}
               </div>
               <div className="text-left">
-                <p className="text-xs text-orange-100 font-semibold leading-none">Total Tagihan ({totalCartQty} item)</p>
+                <p className="text-xs text-zinc-300 font-semibold leading-none">Total Tagihan ({totalCartQty} item)</p>
                 <p className="text-base font-bold font-mono tracking-tight mt-0.5">{formatIDR(grandTotal)}</p>
               </div>
             </div>
-            <div className="flex items-center text-xs sm:text-sm font-semibold bg-white text-orange-600 px-3 py-1.5 rounded-md">
+            <div className="flex items-center text-xs sm:text-sm font-semibold bg-white text-zinc-950 px-3 py-1.5 rounded-lg">
               Buka Keranjang
             </div>
           </button>

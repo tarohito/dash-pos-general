@@ -181,27 +181,27 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         onClick={() => {
           if (!disabled) setIsOpen(prev => !prev);
         }}
-        className={`w-full bg-white border rounded-lg flex items-center justify-between transition-colors cursor-pointer focus:outline-none focus-visible:border-orange-500 ${triggerSizeClass} ${
-          disabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
-        } ${isOpen ? '!border-orange-500 bg-orange-50/30' : ''} ${className}`}
+        className={`w-full bg-white border rounded-lg flex items-center justify-between transition-colors cursor-pointer focus:outline-none focus-visible:border-zinc-900 ${triggerSizeClass} ${
+          disabled ? 'opacity-50 cursor-not-allowed bg-zinc-100' : ''
+        } ${isOpen ? '!border-zinc-900 bg-zinc-50/70' : ''} ${className}`}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
         <div className="flex items-center gap-2 truncate min-w-0">
-          {icon && <span className="text-gray-400 shrink-0">{icon}</span>}
+          {icon && <span className="text-zinc-400 shrink-0">{icon}</span>}
           {selectedOption ? (
-            <span className="font-semibold text-gray-800 truncate">
+            <span className="font-semibold text-zinc-900 truncate">
               {selectedOption.label}
             </span>
           ) : (
-            <span className="text-gray-400 truncate">{placeholder}</span>
+            <span className="text-zinc-400 truncate">{placeholder}</span>
           )}
         </div>
 
         <ChevronDown
           size={size === 'sm' ? 14 : 16}
-          className={`text-gray-400 transition-transform duration-200 shrink-0 ml-2 ${
-            isOpen ? 'rotate-180 text-orange-500' : ''
+          className={`text-zinc-400 transition-transform duration-200 shrink-0 ml-2 ${
+            isOpen ? 'rotate-180 text-zinc-900' : ''
           }`}
         />
       </button>
@@ -222,7 +222,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
               zIndex: 2147483647,
               opacity: pos.ready ? 1 : 0,
             }}
-            className="bg-white border border-gray-200 rounded-xl p-1.5 overflow-y-auto space-y-0.5 transition-opacity duration-75"
+            className="bg-white shadow-lg border border-zinc-200 rounded-xl p-1.5 overflow-y-auto space-y-0.5 transition-opacity duration-75"
           >
             {normalizedOptions.map(opt => {
               const isSelected = opt.value === value;
@@ -238,14 +238,14 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                     size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-xs sm:text-sm'
                   } ${
                     isSelected
-                      ? 'bg-orange-50 text-orange-700 font-bold'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-medium'
+                      ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                      : 'text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 font-medium'
                   }`}
                 >
                   <div className="flex flex-col truncate pr-1">
                     <span className="truncate">{opt.label}</span>
                     {opt.sublabel && (
-                      <span className="text-xs text-gray-400 font-normal mt-0.5 truncate">
+                      <span className="text-xs text-zinc-400 font-normal mt-0.5 truncate">
                         {opt.sublabel}
                       </span>
                     )}
@@ -253,11 +253,11 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
 
                   <div className="flex items-center gap-1.5 shrink-0">
                     {opt.badge && (
-                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
+                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200">
                         {opt.badge}
                       </span>
                     )}
-                    {isSelected && <Check size={14} className="text-orange-600 shrink-0" />}
+                    {isSelected && <Check size={14} className="text-zinc-900 shrink-0" />}
                   </div>
                 </button>
               );

@@ -27,8 +27,8 @@ const FORMAT_OPTIONS: Array<{
   },
   {
     id: 'butterfly',
-    label: 'Tag Kupu-Kupu (Perhiasan)',
-    desc: 'Label lipat khusus cincin, kalung, & gelang',
+    label: 'Tag Kupu-Kupu (Gantung)',
+    desc: 'Label lipat khusus produk gantung & aksesoris',
   },
   {
     id: 'code128',
@@ -110,15 +110,15 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({ product, o
                       key={opt.id}
                       type="button"
                       onClick={() => setFormat(opt.id)}
-                      className={`p-3 rounded-lg border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
                         active
-                          ? 'border-orange-500 bg-orange-50/70 ring-1 ring-orange-500'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                          ? 'border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900'
+                          : 'border-zinc-200 hover:border-zinc-300 bg-white'
                       }`}
                     >
                       <div
-                        className={`p-1.5 rounded-md shrink-0 ${
-                          active ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'
+                        className={`p-1.5 rounded-lg shrink-0 ${
+                          active ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-600'
                         }`}
                       >
                         {opt.id === 'qr' ? (
@@ -130,10 +130,10 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({ product, o
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs sm:text-sm font-bold text-gray-900 leading-tight">
+                        <p className="text-xs sm:text-sm font-bold text-zinc-950 leading-tight">
                           {opt.label}
                         </p>
-                        <p className="text-xs text-gray-500 mt-0.5 leading-snug">{opt.desc}</p>
+                        <p className="text-xs text-zinc-500 mt-0.5 leading-snug">{opt.desc}</p>
                       </div>
                     </button>
                   );
@@ -142,9 +142,9 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({ product, o
             </div>
 
             {/* Copies Input */}
-            <div className="flex flex-wrap items-end justify-between gap-3 bg-gray-50 p-3.5 rounded-lg border border-gray-200">
+            <div className="flex flex-wrap items-end justify-between gap-3 bg-zinc-50 p-3.5 rounded-xl border border-zinc-200">
               <div className="w-36">
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-zinc-700 mb-1">
                   Jumlah Label Cetak
                 </label>
                 <NumericInput
@@ -153,7 +153,7 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({ product, o
                   min={1}
                   max={60}
                   suffix="pcs"
-                  className="w-full px-3 py-1.5 text-sm font-bold font-mono bg-white border border-gray-300 rounded-md outline-none focus:border-orange-500"
+                  className="w-full px-3 py-1.5 text-sm font-bold font-mono bg-white border border-zinc-300 rounded-lg outline-none focus:border-zinc-900"
                 />
               </div>
 
@@ -161,7 +161,7 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({ product, o
                 <button
                   type="button"
                   onClick={() => setCopies(1)}
-                  className="px-2.5 py-1.5 text-xs font-semibold bg-white border border-gray-200 hover:border-orange-300 rounded-md text-gray-700 cursor-pointer"
+                  className="px-2.5 py-1.5 text-xs font-semibold bg-white border border-zinc-200 hover:border-zinc-400 rounded-lg text-zinc-700 cursor-pointer"
                 >
                   1 Label
                 </button>
@@ -169,7 +169,7 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({ product, o
                   <button
                     type="button"
                     onClick={() => setCopies(Math.min(product.stok, 60))}
-                    className="px-2.5 py-1.5 text-xs font-semibold bg-white border border-gray-200 hover:border-orange-300 rounded-md text-orange-700 cursor-pointer"
+                    className="px-2.5 py-1.5 text-xs font-semibold bg-white border border-zinc-200 hover:border-zinc-400 rounded-lg text-zinc-900 cursor-pointer"
                   >
                     Sesuai Stok ({Math.min(product.stok, 60)})
                   </button>

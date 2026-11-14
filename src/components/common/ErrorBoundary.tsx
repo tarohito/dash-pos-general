@@ -33,8 +33,8 @@ export class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl border border-red-200 max-w-md w-full p-6 text-center shadow-sm space-y-4">
+        <div className="min-h-screen bg-zinc-100 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm max-w-md w-full p-6 text-center space-y-4">
             <div className="w-12 h-12 rounded-xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center mx-auto">
               <AlertTriangle size={24} />
             </div>
@@ -50,7 +50,7 @@ export class ErrorBoundary extends React.Component<
               <button
                 type="button"
                 onClick={this.handleReset}
-                className="h-9 px-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-semibold rounded-lg inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                className="h-9 px-4 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-xs sm:text-sm font-semibold rounded-xl inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
               >
                 <RotateCcw size={14} className="shrink-0" />
                 <span>Coba Lagi</span>
@@ -58,7 +58,7 @@ export class ErrorBoundary extends React.Component<
               <button
                 type="button"
                 onClick={() => window.location.reload()}
-                className="h-9 px-4 bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm font-semibold rounded-lg inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-xs sm:text-sm font-semibold rounded-xl inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
               >
                 <RefreshCw size={14} className="shrink-0" />
                 <span>Muat Ulang</span>

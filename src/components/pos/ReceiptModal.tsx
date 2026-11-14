@@ -1,7 +1,7 @@
 import React from 'react';
 import { Printer } from 'lucide-react';
 import { Transaction, Tenant, StoreSettings, ReceiptPaperSize } from '../../types';
-import { GoldInvoiceDocument } from '../common/GoldInvoiceDocument';
+import { RetailReceiptDocument } from '../common/RetailReceiptDocument';
 import {
   ModalShell,
   MODAL_BTN_SECONDARY_CLASS,
@@ -38,19 +38,19 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
       isOpen={isOpen && Boolean(receipt)}
       onClose={onClose}
       size="2xl"
-      title="Nota Penjualan Emas"
+      title="Struk & Nota Penjualan"
       subtitle={`${receipt.invoiceNo} • ${receipt.customerName || 'Pelanggan Umum'}`}
       headerActions={
-        <div className="inline-flex p-0.5 bg-gray-200/80 rounded-lg border border-gray-300/70">
+        <div className="inline-flex p-0.5 bg-zinc-200/80 rounded-xl border border-zinc-300/70">
           {(['a5', 'a6', '80mm'] as const).map(size => (
             <button
               key={size}
               type="button"
               onClick={() => onPaperSizeChange(size)}
-              className={`px-2.5 py-1 text-xs font-bold uppercase rounded-md transition-colors cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1 text-xs font-bold uppercase rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
                 paperSize === size
-                  ? 'bg-white text-orange-600 shadow-2xs'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white text-zinc-950 shadow-2xs'
+                  : 'text-zinc-600 hover:text-zinc-950'
               }`}
             >
               {size === '80mm' ? '80mm' : `Kertas ${size.toUpperCase()}`}
@@ -58,7 +58,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           ))}
         </div>
       }
-      bodyClassName="p-3 sm:p-5 overflow-y-auto bg-gray-100/90 flex-1"
+      bodyClassName="p-3 sm:p-5 overflow-y-auto bg-zinc-100/90 flex-1"
       footer={
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <button
@@ -92,9 +92,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
       }
     >
       <div className="w-full mx-auto flex justify-center">
-        <GoldInvoiceDocument
+        <RetailReceiptDocument
           receipt={receipt}
-          type="sale"
           activeTenant={activeTenant}
           storeSettings={storeSettings}
           paperSize={paperSize}

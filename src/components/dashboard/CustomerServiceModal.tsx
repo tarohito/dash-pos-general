@@ -24,7 +24,7 @@ interface CustomerServiceModalProps {
 
 const CS_WHATSAPP_NUMBER = '6281122334455';
 const CS_WHATSAPP_DISPLAY = '+62 811-2233-4455';
-const CS_EMAIL = 'cs@epaper-pos.id';
+const CS_EMAIL = 'cs@logicpos.id';
 
 export const CustomerServiceModal: React.FC<CustomerServiceModalProps> = ({
   isOpen,
@@ -38,9 +38,9 @@ export const CustomerServiceModal: React.FC<CustomerServiceModalProps> = ({
     ? `${activeTenant.name} (${activeTenant.branchName})`
     : 'Toko Saya';
 
-  const prefilledMessage = `Halo Customer Service e.paper, saya ingin konsultasi dan berlangganan sistem Kasir POS untuk ${storeLabel}.`;
+  const prefilledMessage = `Halo Customer Service LogicPOS, saya ingin konsultasi dan berlangganan sistem Kasir POS untuk ${storeLabel}.`;
   const whatsappUrl = `https://wa.me/${CS_WHATSAPP_NUMBER}?text=${encodeURIComponent(prefilledMessage)}`;
-  const mailtoUrl = `mailto:${CS_EMAIL}?subject=${encodeURIComponent(`Berlangganan e.paper POS - ${storeLabel}`)}&body=${encodeURIComponent(prefilledMessage)}`;
+  const mailtoUrl = `mailto:${CS_EMAIL}?subject=${encodeURIComponent(`Berlangganan LogicPOS - ${storeLabel}`)}&body=${encodeURIComponent(prefilledMessage)}`;
 
   const handleCopy = async (value: string, field: 'wa' | 'email', label: string) => {
     try {
@@ -61,7 +61,7 @@ export const CustomerServiceModal: React.FC<CustomerServiceModalProps> = ({
       onClose={onClose}
       size="md"
       title="Hubungi Customer Service"
-      subtitle="Konsultasi paket & aktivasi berlangganan e.paper POS"
+      subtitle="Konsultasi paket & aktivasi berlangganan LogicPOS"
       footer={
         <div className={MODAL_FOOTER_END_CLASS}>
           <button
@@ -91,15 +91,15 @@ export const CustomerServiceModal: React.FC<CustomerServiceModalProps> = ({
     >
       <div className="space-y-4">
         <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-          Tim Customer Service kami siap membantu aktivasi paket berlangganan, penambahan cabang outlet, serta pendampingan penggunaan sistem e.paper POS.
+          Tim Customer Service kami siap membantu aktivasi paket berlangganan, penambahan cabang outlet, serta pendampingan penggunaan sistem LogicPOS.
         </p>
 
         {activeTenant && (
-          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg bg-orange-50/80 border border-orange-200/80 text-xs sm:text-sm">
-            <Store size={16} className="text-orange-600 shrink-0" />
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200/80 text-xs sm:text-sm">
+            <Store size={16} className="text-zinc-700 shrink-0" />
             <div className="min-w-0">
-              <span className="text-gray-500">Outlet terdaftar: </span>
-              <span className="font-semibold text-gray-900">{storeLabel}</span>
+              <span className="text-zinc-500">Outlet terdaftar: </span>
+              <span className="font-semibold text-zinc-950">{storeLabel}</span>
             </div>
           </div>
         )}
@@ -142,7 +142,7 @@ export const CustomerServiceModal: React.FC<CustomerServiceModalProps> = ({
                 <p className="text-xs text-gray-500 font-medium">Email Layanan Pelanggan</p>
                 <a
                   href={mailtoUrl}
-                  className="text-sm font-bold text-gray-900 hover:text-orange-600 transition-colors truncate block"
+                  className="text-sm font-bold text-zinc-950 hover:text-zinc-600 transition-colors truncate block"
                 >
                   {CS_EMAIL}
                 </a>

@@ -4,47 +4,38 @@ import QRCode from 'qrcode';
 export type BarcodeLabelFormat = 'hybrid' | 'code128' | 'qr' | 'butterfly';
 
 const CATEGORY_CODE_MAP: Record<string, string> = {
-  cincin: 'CN',
-  kalung: 'KL',
-  gelang: 'GL',
-  anting: 'AT',
-  liontin: 'LN',
-  'logam mulia': 'LM',
-  'emas batangan': 'LM',
-  bros: 'BR',
-  giwang: 'GW',
+  parfum: 'PF',
+  skincare: 'SK',
+  'body care': 'BC',
+  'make up': 'MU',
+  makeup: 'MU',
+  'hair care': 'HC',
+  'paket bundling': 'PB',
+  aksesoris: 'AK',
+  minuman: 'MN',
+  makanan: 'MK',
+  elektronik: 'EL',
+  umum: 'UM',
 };
 
 /**
- * Menghasilkan SKU standar toko emas: [KADAR]-[KATEGORI]-[3 DIGIT ACAK]
- * Contoh: 22K-CN-418, 18K-KL-705, 24K-LM-109
+ * Menghasilkan SKU standar retail: [KATEGORI]-[3 DIGIT ACAK]
+ * Contoh: PF-418, SK-705, BC-109
  * Kompatibel penuh dengan Code 128 dan QR Code.
  */
-export function generateJewelrySku(category: string, productName = ''): string {
-  const upperName = productName.toUpperCase();
-  const kadarMatch = upperName.match(/\b(24K|23K|22K|20K|18K|17K|16K|10K|9K|8K)\b/);
-  let kadar = kadarMatch ? kadarMatch[1] : '22K';
-
-  if (
-    !kadarMatch &&
-    (upperName.includes('LOGAM MULIA') ||
-      upperName.includes('ANTAM') ||
-      upperName.includes('UBS') ||
-      category.toLowerCase().includes('logam mulia'))
-  ) {
-    kadar = '24K';
-  }
-
+export function generateRetailSku(category: string, _productName = ''): string {
   const normalizedCat = category.trim().toLowerCase();
   let catCode = CATEGORY_CODE_MAP[normalizedCat];
   if (!catCode) {
     const cleanAlpha = normalizedCat.replace(/[^a-z]/g, '');
-    catCode = (cleanAlpha.slice(0, 2) || 'EM').toUpperCase();
+    catCode = (cleanAlpha.slice(0, 2) || 'PR').toUpperCase();
   }
 
   const randomSeq = Math.floor(100 + Math.random() * 900);
-  return `${kadar}-${catCode}-${randomSeq}`;
+  return `${catCode}-${randomSeq}`;
 }
+
+export const generateJewelrySku = generateRetailSku;
 
 /**
  * Validasi karakter ASCII printable untuk standar Code 128.
@@ -61,7 +52,7 @@ export function isValidCode128(value: string): boolean {
 
 /**
  * Mengekstrak kode SKU bersih dari hasil scan Code 128, EAN-13, maupun QR Code
- * (mendukung teks polos `22K-CN-418`, prefix `SKU:22K-CN-418`, atau JSON `{"sku":"22K-CN-418"}`).
+ * (mendukung teks polos `PF-418`, prefix `SKU:PF-418`, atau JSON `{"sku":"PF-418"}`).
  */
 export function extractBarcodeValue(rawScan: string): string {
   const trimmed = rawScan.trim();
