@@ -1,5 +1,5 @@
 import React from 'react';
-import { Printer } from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { Transaction, Tenant, StoreSettings, ReceiptPaperSize } from '../../types';
 import { RetailReceiptDocument } from '../common/RetailReceiptDocument';
 import {
@@ -84,7 +84,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               onClick={onPrint}
               className={`${MODAL_BTN_PRIMARY_CLASS} gap-1.5`}
             >
-              <Printer size={15} className="shrink-0" />
+              <GoogleIcon name="print" size={15} className="shrink-0" />
               <span>Cetak Nota ({paperSize.toUpperCase()})</span>
             </button>
           </div>

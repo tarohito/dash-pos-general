@@ -1,12 +1,5 @@
 import React, { useState } from 'react';
-import {
-  MessageCircle,
-  Mail,
-  Clock,
-  Copy,
-  Check,
-  Store,
-} from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { Tenant } from '../../types';
 import {
   ModalShell,
@@ -70,9 +63,9 @@ export const CustomerServiceModal: React.FC<CustomerServiceModalProps> = ({
             className={`${MODAL_BTN_SECONDARY_CLASS} gap-1.5`}
           >
             {copiedField === 'wa' ? (
-              <Check size={14} className="text-emerald-600 shrink-0" />
+              <GoogleIcon name="check" size={14} className="text-emerald-600 shrink-0" />
             ) : (
-              <Copy size={14} className="shrink-0" />
+              <GoogleIcon name="content_copy" size={14} className="shrink-0" />
             )}
             <span>{copiedField === 'wa' ? 'Nomor Tersalin' : 'Salin Nomor WA'}</span>
           </button>
@@ -83,7 +76,7 @@ export const CustomerServiceModal: React.FC<CustomerServiceModalProps> = ({
             rel="noopener noreferrer"
             className={`${MODAL_BTN_PRIMARY_CLASS} gap-1.5`}
           >
-            <MessageCircle size={15} className="shrink-0" />
+            <GoogleIcon name="chat" size={15} className="shrink-0" />
             <span>Chat WhatsApp CS</span>
           </a>
         </div>
@@ -96,7 +89,7 @@ export const CustomerServiceModal: React.FC<CustomerServiceModalProps> = ({
 
         {activeTenant && (
           <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200/80 text-xs sm:text-sm">
-            <Store size={16} className="text-zinc-700 shrink-0" />
+            <GoogleIcon name="storefront" size={16} className="text-zinc-700 shrink-0" />
             <div className="min-w-0">
               <span className="text-zinc-500">Outlet terdaftar: </span>
               <span className="font-semibold text-zinc-950">{storeLabel}</span>
@@ -109,7 +102,7 @@ export const CustomerServiceModal: React.FC<CustomerServiceModalProps> = ({
           <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-gray-200 bg-white">
             <div className="flex items-center gap-3 min-w-0">
               <span className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200/80 flex items-center justify-center shrink-0">
-                <MessageCircle size={18} />
+                <GoogleIcon name="chat" size={18} />
               </span>
               <div className="min-w-0">
                 <p className="text-xs text-gray-500 font-medium">WhatsApp Customer Service</p>
@@ -125,9 +118,9 @@ export const CustomerServiceModal: React.FC<CustomerServiceModalProps> = ({
               aria-label="Salin Nomor WhatsApp CS"
             >
               {copiedField === 'wa' ? (
-                <Check size={15} className="text-emerald-600" />
+                <GoogleIcon name="check" size={15} className="text-emerald-600" />
               ) : (
-                <Copy size={15} />
+                <GoogleIcon name="content_copy" size={15} />
               )}
             </button>
           </div>
@@ -136,7 +129,7 @@ export const CustomerServiceModal: React.FC<CustomerServiceModalProps> = ({
           <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-gray-200 bg-white">
             <div className="flex items-center gap-3 min-w-0">
               <span className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 border border-blue-200/80 flex items-center justify-center shrink-0">
-                <Mail size={18} />
+                <GoogleIcon name="mail" size={18} />
               </span>
               <div className="min-w-0">
                 <p className="text-xs text-gray-500 font-medium">Email Layanan Pelanggan</p>
@@ -155,16 +148,16 @@ export const CustomerServiceModal: React.FC<CustomerServiceModalProps> = ({
               aria-label="Salin Email Customer Service"
             >
               {copiedField === 'email' ? (
-                <Check size={15} className="text-emerald-600" />
+                <GoogleIcon name="check" size={15} className="text-emerald-600" />
               ) : (
-                <Copy size={15} />
+                <GoogleIcon name="content_copy" size={15} />
               )}
             </button>
           </div>
         </div>
 
         <div className="flex items-center gap-2 text-xs text-gray-500 pt-1">
-          <Clock size={14} className="text-gray-400 shrink-0" />
+          <GoogleIcon name="schedule" size={14} className="text-gray-400 shrink-0" />
           <span>Jam layanan Customer Service: Senin – Sabtu, 08:00 – 17:00 WIB</span>
         </div>
       </div>

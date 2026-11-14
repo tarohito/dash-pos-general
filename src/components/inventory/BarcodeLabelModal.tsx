@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Barcode, QrCode, Layers, Printer } from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { Product } from '../../types';
 import { BarcodeLabelFormat } from '../../utils/barcode';
 import { JewelryBarcodeTag } from '../common/JewelryBarcodeTag';
@@ -90,7 +90,7 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({ product, o
               onClick={handlePrint}
               className={`${MODAL_BTN_PRIMARY_CLASS} gap-1.5`}
             >
-              <Printer size={15} className="shrink-0" />
+              <GoogleIcon name="print" size={15} className="shrink-0" />
               <span>Cetak {safeCopies} Label</span>
             </button>
           </div>
@@ -122,11 +122,11 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({ product, o
                         }`}
                       >
                         {opt.id === 'qr' ? (
-                          <QrCode size={15} />
+                          <GoogleIcon name="qr_code_2" size={15} />
                         ) : opt.id === 'code128' ? (
-                          <Barcode size={15} />
+                          <GoogleIcon name="barcode" size={15} />
                         ) : (
-                          <Layers size={15} />
+                          <GoogleIcon name="layers" size={15} />
                         )}
                       </div>
                       <div className="min-w-0">

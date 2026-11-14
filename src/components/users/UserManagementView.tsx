@@ -1,14 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Users,
-  UserCheck,
-  Shield,
-  UserCog,
-  Plus,
-  Pencil,
-  Trash2,
-  Loader2,
-} from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import {
   Tenant,
   UserAccount,
@@ -40,15 +31,15 @@ interface UserManagementViewProps {
 const ROLE_META: Record<UserRole, { label: string; badgeClass: string }> = {
   owner: {
     label: 'Owner',
-    badgeClass: 'bg-amber-50 text-amber-800 border border-amber-200',
+    badgeClass: 'bg-accent-soft text-accent-text border border-accent-border',
   },
   branch_manager: {
     label: 'Kepala Cabang',
-    badgeClass: 'bg-blue-50 text-blue-700 border border-blue-200',
+    badgeClass: 'bg-primary-soft text-primary-text border border-primary-border',
   },
   cashier: {
     label: 'Kasir',
-    badgeClass: 'bg-gray-100 text-gray-700',
+    badgeClass: 'bg-secondary-soft text-secondary-text border border-secondary-border',
   },
 };
 
@@ -172,7 +163,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   const renderAllowedTenants = (user: UserAccount) => {
     if (user.role === 'owner') {
       return (
-        <span className="inline-block text-xs bg-amber-50 text-amber-800 font-semibold px-2 py-0.5 rounded border border-amber-200">
+        <span className="inline-block text-xs bg-accent-soft text-accent-text font-semibold px-2 py-0.5 rounded border border-accent-border">
           Semua Outlet ({tenants.length})
         </span>
       );
@@ -207,7 +198,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
             <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">
               Manajemen Pengguna &amp; Hak Akses
             </h3>
-            {isLoading && <Loader2 size={14} className="animate-spin text-zinc-900" />}
+            {isLoading && <GoogleIcon name="progress_activity" size={14} className="animate-spin text-zinc-900" />}
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
             Kelola akun staf kasir, kepala cabang, jadwal shift, dan pembatasan akses per outlet toko.
@@ -221,9 +212,9 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
               setEditingUser(null);
               setIsModalOpen(true);
             }}
-            className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer shadow-xs shrink-0 inline-flex items-center justify-center gap-1.5 active:scale-[0.98]"
+            className="h-9 px-4 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer shadow-xs shrink-0 inline-flex items-center justify-center gap-1.5 active:scale-[0.98]"
           >
-            <Plus size={16} />
+            <GoogleIcon name="add" size={16} />
             <span>Tambah Pengguna Baru</span>
           </button>
         </div>
@@ -233,7 +224,8 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <KpiCard
           title="Total Pengguna"
-          icon={<Users size={16} strokeWidth={2} />}
+          accent="primary"
+          icon={<GoogleIcon name="group" size={16} />}
           value={
             <div className="text-xl sm:text-2xl font-bold text-gray-900 font-mono tabular-nums tracking-tight truncate">
               {stats.totalUsers} Akun
@@ -248,9 +240,10 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
         <KpiCard
           title="Akun Aktif"
-          icon={<UserCheck size={16} strokeWidth={2} />}
+          accent="emerald"
+          icon={<GoogleIcon name="verified" size={16} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold text-gray-900 font-mono tabular-nums tracking-tight truncate">
+            <div className="text-xl sm:text-2xl font-bold text-emerald-700 font-mono tabular-nums tracking-tight truncate">
               {stats.activeUsers} Aktif
             </div>
           }
@@ -263,7 +256,8 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
         <KpiCard
           title="Kepala Cabang"
-          icon={<Shield size={16} strokeWidth={2} />}
+          accent="accent"
+          icon={<GoogleIcon name="verified_user" size={16} />}
           value={
             <div className="text-xl sm:text-2xl font-bold text-gray-900 font-mono tabular-nums tracking-tight truncate">
               {stats.managerCount} Orang
@@ -278,7 +272,8 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
         <KpiCard
           title="Staf Kasir"
-          icon={<UserCog size={16} strokeWidth={2} />}
+          accent="secondary"
+          icon={<GoogleIcon name="manage_accounts" size={16} />}
           value={
             <div className="text-xl sm:text-2xl font-bold text-gray-900 font-mono tabular-nums tracking-tight truncate">
               {stats.cashierCount} Orang
@@ -317,7 +312,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 onClick={() => setRoleFilter(tab.id)}
                 className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   roleFilter === tab.id
-                    ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                    ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                     : 'text-zinc-600 hover:text-zinc-900'
                 }`}
               >
@@ -339,12 +334,12 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
         <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
           {isLoading && items.length === 0 ? (
             <div className="p-12 text-center text-gray-500 flex items-center justify-center gap-2 text-xs sm:text-sm">
-              <Loader2 size={18} className="animate-spin text-zinc-900" />
+              <GoogleIcon name="progress_activity" size={18} className="animate-spin text-zinc-900" />
               <span>Memuat data pengguna...</span>
             </div>
           ) : items.length === 0 ? (
             <div className="py-12 px-4 text-center text-gray-400">
-              <Users size={36} className="mx-auto mb-2 text-gray-300" />
+              <GoogleIcon name="group" size={36} className="mx-auto mb-2 text-gray-300" />
               <p className="text-sm font-semibold text-gray-600">Tidak ada pengguna ditemukan</p>
               <p className="text-xs text-gray-400 mt-0.5 max-w-sm mx-auto">
                 {searchQuery
@@ -414,7 +409,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                                   {u.fullName}
                                 </p>
                                 {isSelf && (
-                                  <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-zinc-900 text-white">
+                                  <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-primary text-white">
                                     Anda
                                   </span>
                                 )}
@@ -467,7 +462,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                                 {
                                   id: 'edit',
                                   label: 'Edit Pengguna',
-                                  icon: <Pencil size={14} />,
+                                  icon: <GoogleIcon name="edit" size={14} />,
                                   onClick: () => {
                                     setEditingUser(u);
                                     setIsModalOpen(true);
@@ -476,7 +471,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                                 {
                                   id: 'delete',
                                   label: 'Hapus Pengguna',
-                                  icon: <Trash2 size={14} />,
+                                  icon: <GoogleIcon name="delete" size={14} />,
                                   tone: 'danger',
                                   dividerBefore: true,
                                   disabled: isSelf,
@@ -510,7 +505,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                               {meta.label}
                             </span>
                             {isSelf && (
-                              <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-zinc-900 text-white shrink-0">
+                              <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-primary text-white shrink-0">
                                 Anda
                               </span>
                             )}
@@ -543,7 +538,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                             {
                               id: 'edit',
                               label: 'Edit Pengguna',
-                              icon: <Pencil size={14} />,
+                              icon: <GoogleIcon name="edit" size={14} />,
                               onClick: () => {
                                 setEditingUser(u);
                                 setIsModalOpen(true);
@@ -552,7 +547,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                             {
                               id: 'delete',
                               label: 'Hapus Pengguna',
-                              icon: <Trash2 size={14} />,
+                              icon: <GoogleIcon name="delete" size={14} />,
                               tone: 'danger',
                               dividerBefore: true,
                               disabled: isSelf,

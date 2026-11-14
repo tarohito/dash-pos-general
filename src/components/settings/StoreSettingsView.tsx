@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Store,
-  Percent,
-  FileText,
-  Palette,
-  Save,
-  RotateCcw,
-  Loader2,
-  CheckCircle2,
-  Check,
-} from 'lucide-react';
+import { GoogleIcon, GoogleIconName } from '../common/GoogleIcon';
 import {
   AppThemeId,
   ReceiptLogoPreset,
@@ -313,7 +303,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
             <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">
               Pengaturan Toko &amp; Operasional Outlet
             </h3>
-            {isLoading && <Loader2 size={15} className="animate-spin text-zinc-900" />}
+            {isLoading && <GoogleIcon name="progress_activity" size={15} className="animate-spin text-zinc-900" />}
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
             <span>{activeTenant?.code || 'OUTLET'}</span>
@@ -331,16 +321,16 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
             disabled={isSaving || isLoading}
             className="h-9 px-3.5 bg-white hover:bg-zinc-50 text-zinc-700 border border-zinc-200 text-xs sm:text-sm font-semibold rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-50"
           >
-            <RotateCcw size={15} />
+            <GoogleIcon name="undo" size={15} />
             <span>Reset</span>
           </button>
 
           <button
             type="submit"
             disabled={isSaving || isLoading}
-            className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-[0.98] disabled:opacity-50"
+            className="h-9 px-4 bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-[0.98] disabled:opacity-50"
           >
-            {isSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+            {isSaving ? <GoogleIcon name="progress_activity" size={15} className="animate-spin" /> : <GoogleIcon name="save" size={15} />}
             <span>{isSaving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
           </button>
         </div>
@@ -352,10 +342,10 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
       <div className="bg-zinc-100 rounded-2xl border border-zinc-200 p-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
         {(
           [
-            { key: 'profile', label: 'Profil Outlet', icon: Store },
-            { key: 'pos_tax', label: 'Pajak PPN & POS', icon: Percent },
-            { key: 'receipt', label: 'Tampilan Nota', icon: FileText },
-            { key: 'appearance', label: 'Tema & Warna', icon: Palette },
+            { key: 'profile', label: 'Profil Outlet', icon: 'storefront' as GoogleIconName },
+            { key: 'pos_tax', label: 'Pajak PPN & POS', icon: 'percent' as GoogleIconName },
+            { key: 'receipt', label: 'Tampilan Nota', icon: 'receipt_long' as GoogleIconName },
+            { key: 'appearance', label: 'Tema & Warna', icon: 'palette' as GoogleIconName },
           ] as const
         ).map(tab => {
           const Icon = tab.icon;
@@ -367,11 +357,11 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
               onClick={() => setActiveTab(tab.key)}
               className={`h-9 px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all inline-flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer ${
                 active
-                  ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                  ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                   : 'text-zinc-600 hover:text-zinc-900'
               }`}
             >
-              <Icon size={15} />
+              <GoogleIcon name={Icon} size={15} filled={active} />
               <span>{tab.label}</span>
             </button>
           );
@@ -504,7 +494,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                 aria-checked={enablePpn}
                 onClick={() => setEnablePpn(prev => !prev)}
                 className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ${
-                  enablePpn ? 'bg-zinc-900' : 'bg-zinc-300'
+                  enablePpn ? 'bg-primary' : 'bg-zinc-300'
                 }`}
               >
                 <span
@@ -531,7 +521,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                       onClick={() => setPpnPercent(preset.value)}
                       className={`h-8 px-3 rounded-xl text-xs font-semibold border transition-colors cursor-pointer whitespace-nowrap ${
                         Number(ppnPercent) === preset.value
-                          ? 'bg-zinc-900 text-white border-zinc-900'
+                          ? 'bg-primary text-white border-primary'
                           : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
                       }`}
                     >
@@ -603,7 +593,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
             </div>
 
             <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 flex items-start gap-2.5 text-xs text-emerald-800">
-              <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+              <GoogleIcon name="check_circle" size={16} className="text-emerald-600 shrink-0 mt-0.5" />
               <p>
                 Perubahan tarif PPN akan langsung aktif pada keranjang POS &amp; server checkout tanpa perlu restart aplikasi.
               </p>
@@ -799,7 +789,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
               disabled={appTheme === 'zinc_classic'}
               className="h-9 px-3.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold text-zinc-700 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-default"
             >
-              <RotateCcw size={14} />
+              <GoogleIcon name="undo" size={14} />
               <span>Kembalikan ke Bawaan</span>
             </button>
           </div>
@@ -911,15 +901,21 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                           </div>
                           <div className="flex items-center justify-between pt-1">
                             <span
-                              className="h-2 w-10 rounded-xs"
-                              style={{ backgroundColor: theme.swatches.canvas }}
+                              className="h-2 w-8 rounded-xs"
+                              style={{ backgroundColor: theme.swatches.secondary }}
                             />
-                            <span
-                              className="h-4 px-2 rounded-sm inline-flex items-center justify-center text-[8px] font-semibold text-white"
-                              style={{ backgroundColor: theme.swatches.accent }}
-                            >
-                              Bayar
-                            </span>
+                            <div className="flex items-center gap-1">
+                              <span
+                                className="h-3.5 w-3.5 rounded-sm"
+                                style={{ backgroundColor: theme.swatches.accent }}
+                              />
+                              <span
+                                className="h-4 px-2 rounded-sm inline-flex items-center justify-center text-[8px] font-semibold text-white"
+                                style={{ backgroundColor: theme.swatches.primary }}
+                              >
+                                Bayar
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -938,8 +934,8 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                         </p>
                       </div>
                       {isSelected && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-900 shrink-0">
-                          <Check size={14} strokeWidth={2.4} />
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary shrink-0">
+                          <GoogleIcon name="check" size={14} />
                           <span>Aktif</span>
                         </span>
                       )}
@@ -949,20 +945,20 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                       {theme.description}
                     </p>
 
-                    <div className="pt-2 border-t border-zinc-100 flex items-center gap-3 text-[11px] text-zinc-600 font-medium">
+                    <div className="pt-2 border-t border-zinc-100 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-600 font-medium">
                       <span className="inline-flex items-center gap-1.5">
                         <span
                           className="w-3 h-3 rounded-full border border-black/15 shrink-0"
-                          style={{ backgroundColor: theme.swatches.canvas }}
+                          style={{ backgroundColor: theme.swatches.primary }}
                         />
-                        <span>Kanvas</span>
+                        <span>Primary</span>
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <span
                           className="w-3 h-3 rounded-full border border-black/15 shrink-0"
-                          style={{ backgroundColor: theme.swatches.sidebar }}
+                          style={{ backgroundColor: theme.swatches.secondary }}
                         />
-                        <span>Sidebar</span>
+                        <span>Secondary</span>
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <span
@@ -987,9 +983,9 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
             <button
               type="submit"
               disabled={isSaving || isLoading}
-              className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-[0.98] disabled:opacity-50 shrink-0"
+              className="h-9 px-4 bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-[0.98] disabled:opacity-50 shrink-0"
             >
-              {isSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+              {isSaving ? <GoogleIcon name="progress_activity" size={15} className="animate-spin" /> : <GoogleIcon name="save" size={15} />}
               <span>{isSaving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
             </button>
           </div>

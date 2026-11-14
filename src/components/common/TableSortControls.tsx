@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { GoogleIcon } from './GoogleIcon';
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -44,12 +44,12 @@ export const SortableTh: React.FC<SortableThProps> = ({
         <span>{label}</span>
         {isActive ? (
           currentSortDir === 'asc' ? (
-            <ArrowUp size={13} className="text-zinc-950 shrink-0" />
+            <GoogleIcon name="arrow_upward" size={13} className="text-zinc-950 shrink-0" />
           ) : (
-            <ArrowDown size={13} className="text-zinc-950 shrink-0" />
+            <GoogleIcon name="arrow_downward" size={13} className="text-zinc-950 shrink-0" />
           )
         ) : (
-          <ArrowUpDown size={13} className="text-zinc-300 group-hover:text-zinc-500 shrink-0 transition-colors" />
+          <GoogleIcon name="swap_vert" size={13} className="text-zinc-300 group-hover:text-zinc-500 shrink-0 transition-colors" />
         )}
       </button>
     </th>

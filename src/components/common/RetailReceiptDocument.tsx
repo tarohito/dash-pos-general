@@ -336,10 +336,10 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
       data-paper={effectivePaperSize}
       className={`retail-receipt-sheet relative bg-white text-zinc-900 font-sans rounded-xl border border-zinc-200 w-full mx-auto leading-normal select-none ${
         isThermal80
-          ? 'max-w-[304px] p-4 text-[11px]'
+          ? 'max-w-[304px] p-4 text-xs'
           : isA6
-          ? 'max-w-[420px] p-4 sm:p-5 text-[11px]'
-          : 'max-w-[580px] p-5 sm:p-7 text-[12px]'
+          ? 'max-w-[420px] p-4 sm:p-5 text-xs'
+          : 'max-w-[580px] p-5 sm:p-7 text-sm'
       }`}
     >
       {/* OPTIONAL SUBTLE WATERMARK */}
@@ -375,7 +375,7 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
           }`}
         >
           {docTitle && (
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">
               {docTitle}
             </p>
           )}
@@ -386,18 +386,18 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
           )}
           <h1
             className={`font-bold tracking-tight leading-tight ${palette.accentText} ${
-              isThermal80 ? 'text-sm' : isA6 ? 'text-sm' : 'text-base sm:text-lg'
+              isThermal80 ? 'text-base' : isA6 ? 'text-base' : 'text-lg sm:text-xl'
             }`}
           >
             {storeName}
           </h1>
           {tagline && (
-            <p className="text-[10.5px] text-zinc-500 font-medium mt-0.5">{tagline}</p>
+            <p className="text-xs text-zinc-500 font-medium mt-0.5">{tagline}</p>
           )}
           {showStoreAddress && storeAddressLine && (
             <p
               className={`text-zinc-500 mt-1 leading-snug max-w-sm ${
-                isThermal80 ? 'text-[10px]' : 'text-[11px]'
+                isThermal80 ? 'text-[11px]' : 'text-xs'
               }`}
             >
               {storeAddressLine}
@@ -406,20 +406,20 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
           {showStoreAddress && activeTenant?.phone && (
             <p
               className={`text-zinc-600 font-mono mt-0.5 leading-snug ${
-                isThermal80 ? 'text-[10px]' : 'text-[11px]'
+                isThermal80 ? 'text-[11px]' : 'text-xs'
               }`}
             >
               Telp. {activeTenant.phone}
             </p>
           )}
           {headerExtra && (
-            <p className="text-[10px] text-zinc-500 mt-0.5 leading-snug">{headerExtra}</p>
+            <p className="text-xs text-zinc-500 mt-0.5 leading-snug">{headerExtra}</p>
           )}
         </div>
 
         {/* METADATA SECTION */}
         {isThermal80 ? (
-          <div className="py-2.5 space-y-1 text-[10.5px] border-b border-dashed border-zinc-300">
+          <div className="py-2.5 space-y-1 text-xs border-b border-dashed border-zinc-300">
             <div className="flex justify-between gap-2">
               <span className="text-zinc-500">No. Struk</span>
               <span className="font-mono font-semibold text-zinc-900 tabular-nums">{invoiceNo}</span>
@@ -443,7 +443,7 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
             </div>
           </div>
         ) : (
-          <div className="py-2.5 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-zinc-600 border-b border-zinc-100">
+          <div className="py-2.5 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-zinc-600 border-b border-zinc-100">
             <div className="space-y-0.5 min-w-0">
               <p className="truncate">
                 <span className="text-zinc-400">No. Struk: </span>
@@ -481,7 +481,7 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
               receipt.items.map((it, idx) => (
                 <div key={`${it.id}-${idx}`} className="space-y-0.5">
                   <div className="font-medium text-zinc-900 leading-snug">{it.name}</div>
-                  <div className="flex items-center justify-between gap-2 text-[10.5px] font-mono tabular-nums">
+                  <div className="flex items-center justify-between gap-2 text-xs font-mono tabular-nums">
                     <span className="text-zinc-500">
                       {it.qty} &times; {formatIDR(it.harga)}
                       {showItemSku && it.sku ? ` · ${it.sku}` : ''}
@@ -493,14 +493,14 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
                 </div>
               ))
             ) : (
-              <p className="text-center text-[11px] text-zinc-400 py-2">Tidak ada rincian item.</p>
+              <p className="text-center text-xs text-zinc-400 py-2">Tidak ada rincian item.</p>
             )}
           </div>
         ) : (
           <div className="py-2">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b border-zinc-200 text-[10.5px] font-semibold text-zinc-500">
+                <tr className="border-b border-zinc-200 text-xs font-semibold text-zinc-500">
                   <th className="py-2 pr-2 text-left">Produk</th>
                   <th className="py-2 px-2 text-center w-12">Qty</th>
                   <th className="py-2 px-2 text-right w-24">Harga</th>
@@ -514,7 +514,7 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
                       <td className="py-2 pr-2 align-top">
                         <div className="font-medium text-zinc-900 leading-snug">{it.name}</div>
                         {showItemSku && it.sku && (
-                          <div className="text-[10px] font-mono text-zinc-400 mt-0.5">
+                          <div className="text-xs font-mono text-zinc-400 mt-0.5">
                             SKU: {it.sku}
                           </div>
                         )}
@@ -544,7 +544,7 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
 
         {/* TOTALS & PAYMENT SUMMARY */}
         {isThermal80 ? (
-          <div className="py-2.5 space-y-1 text-[11px] border-b border-dashed border-zinc-300">
+          <div className="py-2.5 space-y-1 text-xs border-b border-dashed border-zinc-300">
             <div className="flex justify-between gap-2 text-zinc-600">
               <span>Subtotal ({receipt.totalQty} item)</span>
               <span className="font-mono tabular-nums">{formatIDR(subtotalAmount)}</span>
@@ -555,13 +555,13 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
                 <span className="font-mono tabular-nums">{formatIDR(taxAmount)}</span>
               </div>
             )}
-            <div className="pt-1.5 mt-1 border-t border-dashed border-zinc-300 flex justify-between items-baseline gap-2 font-bold text-zinc-950 text-xs">
+            <div className="pt-1.5 mt-1 border-t border-dashed border-zinc-300 flex justify-between items-baseline gap-2 font-bold text-zinc-950 text-sm">
               <span>Total</span>
               <span className="font-mono tabular-nums">{formatIDR(totalAmount)}</span>
             </div>
 
             {receipt.paymentMethod === 'cash' ? (
-              <div className="pt-1.5 space-y-0.5 text-[10.5px] text-zinc-600">
+              <div className="pt-1.5 space-y-0.5 text-xs text-zinc-600">
                 <div className="flex justify-between gap-2">
                   <span>Bayar (Tunai)</span>
                   <span className="font-mono tabular-nums">{formatIDR(cashReceived)}</span>
@@ -572,7 +572,7 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="pt-1 text-[10.5px] text-zinc-600 flex justify-between gap-2">
+              <div className="pt-1 text-xs text-zinc-600 flex justify-between gap-2">
                 <span>{getSalePaymentMethodLabel(receipt)}</span>
                 <span className="font-mono text-right truncate">{getSalePaymentReferenceLine(receipt)}</span>
               </div>
@@ -590,11 +590,11 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
                   className="w-11 h-11 rounded-lg border border-zinc-200 object-cover shrink-0"
                 />
               )}
-              <div className="text-[11px] text-zinc-500 space-y-0.5">
+              <div className="text-xs text-zinc-500 space-y-0.5">
                 <p>
                   Total Item: <span className="font-semibold text-zinc-800">{receipt.totalQty} pcs</span>
                 </p>
-                <p className="font-mono text-[10.5px] text-zinc-500">
+                <p className="font-mono text-xs text-zinc-500">
                   {getSalePaymentReferenceLine(receipt)}
                 </p>
               </div>
@@ -632,7 +632,7 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
         {(showTerms || showSignatures || showBarcode || showQrCode || Boolean(footerNote)) && (
           <div className={`mt-3.5 pt-3 border-t ${isThermal80 ? 'border-dashed border-zinc-300' : 'border-zinc-100'} space-y-3`}>
             {showTerms && termsLines.length > 0 && (
-              <div className="text-[10px] text-zinc-500 leading-relaxed space-y-0.5">
+              <div className="text-xs text-zinc-500 leading-relaxed space-y-0.5">
                 <p className="font-semibold text-zinc-700">{termsTitle}</p>
                 <ul className="list-disc pl-4 space-y-0.5">
                   {termsLines.map((line, i) => (
@@ -643,7 +643,7 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
             )}
 
             {showSignatures && (
-              <div className="grid grid-cols-2 gap-6 pt-2 text-center text-[10.5px] text-zinc-700">
+              <div className="grid grid-cols-2 gap-6 pt-2 text-center text-xs text-zinc-700">
                 <div>
                   <p className="text-zinc-500 mb-9">{customerSignLabel}</p>
                   <div className="border-t border-zinc-300 pt-1 font-medium">{customerName}</div>
@@ -662,7 +662,7 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
                 {showBarcode && (
                   <div className="flex flex-col items-center">
                     <svg ref={barcodeSvgRef} className={isThermal80 ? 'w-[140px] h-auto' : 'w-[156px] h-auto'} />
-                    <span className="text-[9.5px] font-mono text-zinc-400 mt-0.5">{invoiceNo}</span>
+                    <span className="text-[11px] font-mono text-zinc-400 mt-0.5">{invoiceNo}</span>
                   </div>
                 )}
                 {showQrCode && qrDataUrl && (
@@ -676,7 +676,7 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
             )}
 
             {footerNote && (
-              <p className="text-center text-[10.5px] text-zinc-500 whitespace-pre-line leading-relaxed">
+              <p className="text-center text-xs text-zinc-500 whitespace-pre-line leading-relaxed">
                 {footerNote}
               </p>
             )}

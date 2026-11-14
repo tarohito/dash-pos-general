@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, Search, Loader2 } from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { PromoCampaign, Product } from '../../types';
 import { formatIDR } from '../../utils/formatters';
 import { NumericInput } from '../common/NumericInput';
@@ -229,7 +229,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
       <form id="add-edit-promo-form" noValidate onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-xs sm:text-sm flex items-center gap-2">
-              <AlertCircle size={16} className="shrink-0" />
+              <GoogleIcon name="error" size={16} className="shrink-0" />
               <span>{error}</span>
             </div>
           )}
@@ -362,7 +362,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
 
             {/* Search bar inside product picker */}
             <div className="relative mb-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
+              <GoogleIcon name="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"
                 value={productSearch}
@@ -375,7 +375,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
             <div className="max-h-52 overflow-y-auto border border-zinc-200 rounded-xl divide-y divide-zinc-100 bg-zinc-50/50">
               {isLoadingProducts ? (
                 <div className="py-8 flex items-center justify-center gap-2 text-xs text-zinc-500">
-                  <Loader2 size={16} className="animate-spin text-zinc-900" />
+                  <GoogleIcon name="progress_activity" size={16} className="animate-spin text-zinc-900" />
                   <span>Memuat daftar produk...</span>
                 </div>
               ) : productLoadError ? (

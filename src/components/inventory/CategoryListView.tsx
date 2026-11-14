@@ -1,12 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Package,
-  Layers,
-  Loader2,
-  Pencil,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { CategoryStatsItem } from '../../types';
 import { ActionDropdownMenu } from '../common/ActionDropdownMenu';
 import { ConfirmModal } from '../common/ConfirmModal';
@@ -177,7 +170,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
             <h3 className="text-base sm:text-lg font-bold text-zinc-950 leading-tight">
               Daftar Kategori Produk
             </h3>
-            {isLoading && <Loader2 size={14} className="animate-spin text-zinc-900" />}
+            {isLoading && <GoogleIcon name="progress_activity" size={14} className="animate-spin text-primary" />}
           </div>
           <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
             Kelola klasifikasi kategori produk serta pantau sebaran model SKU, stok fisik, dan total netto.
@@ -188,9 +181,9 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
           <button
             type="button"
             onClick={onOpenAddCategoryModal}
-            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
+            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
           >
-            <Plus size={16} />
+            <GoogleIcon name="add" size={16} />
             <span>Tambah Kategori</span>
           </button>
         </div>
@@ -241,12 +234,12 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
           <div className="md:hidden divide-y divide-zinc-100">
             {isLoading && rows.length === 0 ? (
               <div className="py-12 px-4 flex items-center justify-center gap-2 text-xs text-zinc-400">
-                <Loader2 size={18} className="animate-spin text-zinc-900" />
+                <GoogleIcon name="progress_activity" size={18} className="animate-spin text-zinc-900" />
                 <span>Memuat daftar kategori...</span>
               </div>
             ) : paginatedItems.length === 0 ? (
               <div className="py-12 px-4 text-center text-zinc-400">
-                <Layers size={36} className="mx-auto mb-2 text-zinc-300" />
+                <GoogleIcon name="layers" size={36} className="mx-auto mb-2 text-zinc-300" />
                 <p className="text-sm font-semibold text-zinc-600">Tidak ada kategori produk</p>
                 <p className="text-xs text-zinc-400 mt-0.5">
                   {hasActiveFilter
@@ -259,7 +252,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                     onClick={onOpenAddCategoryModal}
                     className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-800 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors cursor-pointer border border-zinc-200"
                   >
-                    <Plus size={14} />
+                    <GoogleIcon name="add" size={14} />
                     <span>Tambah Kategori Baru</span>
                   </button>
                 )}
@@ -276,7 +269,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="w-10 h-10 rounded-xl bg-zinc-50 text-zinc-700 border border-zinc-200/80 flex items-center justify-center shrink-0">
-                          <Package size={18} />
+                          <GoogleIcon name="deployed_code" size={18} />
                         </span>
                         <div className="min-w-0">
                           <h4 className="text-sm sm:text-base font-bold text-gray-900 truncate">{row.name}</h4>
@@ -319,13 +312,13 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                           {
                             id: 'edit',
                             label: 'Edit Kategori',
-                            icon: <Pencil size={14} />,
+                            icon: <GoogleIcon name="edit" size={14} />,
                             onClick: () => onEditCategory(row.name),
                           },
                           {
                             id: 'delete',
                             label: 'Hapus Kategori',
-                            icon: <Trash2 size={14} />,
+                            icon: <GoogleIcon name="delete" size={14} />,
                             tone: 'danger',
                             dividerBefore: true,
                             disabled: row.count > 0,
@@ -390,7 +383,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-zinc-400">
                       <div className="inline-flex items-center gap-2">
-                        <Loader2 size={18} className="animate-spin text-zinc-900" />
+                        <GoogleIcon name="progress_activity" size={18} className="animate-spin text-zinc-900" />
                         <span>Memuat daftar kategori...</span>
                       </div>
                     </td>
@@ -398,7 +391,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                 ) : paginatedItems.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-zinc-400">
-                      <Layers size={36} className="mx-auto mb-2 text-zinc-300" />
+                      <GoogleIcon name="layers" size={36} className="mx-auto mb-2 text-zinc-300" />
                       <p className="text-sm font-semibold text-zinc-600">
                         Tidak ada kategori produk
                       </p>
@@ -413,7 +406,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                           onClick={onOpenAddCategoryModal}
                           className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-800 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors cursor-pointer border border-zinc-200"
                         >
-                          <Plus size={14} />
+                          <GoogleIcon name="add" size={14} />
                           <span>Tambah Kategori Baru</span>
                         </button>
                       )}
@@ -428,7 +421,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                         <td className="py-3.5 px-3.5 sm:px-4">
                           <div className="flex items-center gap-3">
                             <span className="w-9 h-9 rounded-lg bg-zinc-50 text-zinc-700 border border-zinc-200/80 flex items-center justify-center shrink-0">
-                              <Package size={16} />
+                              <GoogleIcon name="deployed_code" size={16} />
                             </span>
                             <div className="min-w-0">
                               <span className="font-bold text-zinc-950 text-xs sm:text-sm block truncate">
@@ -473,13 +466,13 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                               {
                                 id: 'edit',
                                 label: 'Edit Kategori',
-                                icon: <Pencil size={14} />,
+                                icon: <GoogleIcon name="edit" size={14} />,
                                 onClick: () => onEditCategory(row.name),
                               },
                               {
                                 id: 'delete',
                                 label: 'Hapus Kategori',
-                                icon: <Trash2 size={14} />,
+                                icon: <GoogleIcon name="delete" size={14} />,
                                 tone: 'danger',
                                 dividerBefore: true,
                                 disabled: row.count > 0,

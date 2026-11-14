@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { useToast } from '../../contexts/ToastContext';
 import {
   ModalShell,
@@ -98,7 +98,7 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
       <form id="category-form" noValidate onSubmit={handleSubmit} className="space-y-4">
         {errorMsg && (
           <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700 flex items-center gap-2">
-            <AlertCircle size={15} className="shrink-0" />
+            <GoogleIcon name="error" size={15} className="shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}

@@ -1,14 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  TrendingDown,
-  Loader2,
-  Coins,
-  ReceiptText,
-  TrendingUp,
-  Wallet,
-  ShoppingBag,
-  Package,
-} from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { DashboardSummaryResponse, Tenant } from '../../types';
 import { CustomerServiceModal } from './CustomerServiceModal';
 import { SalesVolumeChart } from './SalesVolumeChart';
@@ -89,12 +80,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-4 pb-6">
       {/* Hero Banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="relative overflow-hidden rounded-2xl border border-primary-border bg-gradient-to-r from-primary-soft/80 via-white to-secondary-soft/60 p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="max-w-xl">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-accent-soft text-accent-text border border-accent-border text-xs font-bold uppercase tracking-wider mb-2">
+            Ringkasan Real-Time
+          </div>
           <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-950 leading-tight tracking-tight">
             Kelola Penjualan dan Stok dalam Satu Sistem
           </h2>
-          <p className="text-xs sm:text-sm text-zinc-500 mt-1.5 leading-relaxed">
+          <p className="text-xs sm:text-sm text-zinc-600 mt-1.5 leading-relaxed">
             Pantau transaksi kasir, manajemen inventaris, dan performa multi-outlet secara real-time dalam tampilan yang ringkas.
           </p>
         </div>
@@ -102,7 +96,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <button
             type="button"
             onClick={() => setIsCsModalOpen(true)}
-            className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white font-semibold text-xs sm:text-sm rounded-xl transition-all inline-flex items-center justify-center whitespace-nowrap cursor-pointer shadow-xs active:scale-[0.98]"
+            className="h-9 px-4 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-xl transition-all inline-flex items-center justify-center whitespace-nowrap cursor-pointer shadow-xs active:scale-[0.98]"
           >
             Berlangganan Sekarang
           </button>
@@ -117,10 +111,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               Ringkasan Penjualan {period === 'HARI' ? 'Harian' : 'Bulanan'}
             </h3>
             <span className="text-xs text-zinc-400" aria-hidden="true">&middot;</span>
-            <span className="text-xs sm:text-sm font-medium text-zinc-500">
+            <span className="text-xs sm:text-sm font-medium text-secondary-text">
               {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
-            {isLoading && <Loader2 size={14} className="animate-spin text-zinc-900" />}
+            {isLoading && <GoogleIcon name="progress_activity" size={14} className="animate-spin text-primary" />}
           </div>
           <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
             {period === 'HARI'
@@ -135,7 +129,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={() => setPeriod('HARI')}
             className={`h-full px-3.5 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center ${
               period === 'HARI'
-                ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                 : 'text-zinc-500 hover:text-zinc-900'
             }`}
           >
@@ -146,7 +140,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={() => setPeriod('BULAN')}
             className={`h-full px-3.5 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center ${
               period === 'BULAN'
-                ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                 : 'text-zinc-500 hover:text-zinc-900'
             }`}
           >
@@ -163,21 +157,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3.5">
         <KpiCard
           title="Total Penjualan"
+          accent="primary"
           compactMobile
           tooltip="Total uang riil yang dibayarkan pembeli (Grand Total di struk termasuk pajak/PPN)."
-          icon={<Coins size={15} strokeWidth={2} />}
+          icon={<GoogleIcon name="payments" size={15} />}
           value={
             <MoneyAmount
               value={displayTotalPenjualan}
               maxFontPx={24}
               minFontPx={12}
-              className="font-bold font-mono text-zinc-950 tracking-tight tabular-nums"
+              className="font-bold font-mono text-primary tracking-tight tabular-nums"
             />
           }
           footer={
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 text-xs min-w-0">
               <span className="inline-flex items-center gap-0.5 font-semibold text-rose-600 font-mono shrink-0">
-                <TrendingDown size={12} />
+                <GoogleIcon name="trending_down" size={12} />
                 <span>92.23%</span>
               </span>
               <span className="text-zinc-400 truncate">
@@ -189,9 +184,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         <KpiCard
           title="Penjualan Kotor"
+          accent="secondary"
           compactMobile
           tooltip="Total harga murni produk yang terjual sebelum ditambah pajak atau potongan diskon."
-          icon={<ReceiptText size={15} strokeWidth={2} />}
+          icon={<GoogleIcon name="receipt_long" size={15} />}
           value={
             <MoneyAmount
               value={displayPenjualanKotor}
@@ -203,7 +199,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           footer={
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 text-xs min-w-0">
               <span className="inline-flex items-center gap-0.5 font-semibold text-rose-600 font-mono shrink-0">
-                <TrendingDown size={12} />
+                <GoogleIcon name="trending_down" size={12} />
                 <span>96.04%</span>
               </span>
               <span className="text-zinc-400 truncate">
@@ -215,21 +211,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         <KpiCard
           title="Laba Kotor"
+          accent="emerald"
           compactMobile
           tooltip="Keuntungan bersih penjualan setelah dikurangi harga pokok pembelian (HPP modal produk)."
-          icon={<TrendingUp size={15} strokeWidth={2} />}
+          icon={<GoogleIcon name="trending_up" size={15} />}
           value={
             <MoneyAmount
               value={displayLabaKotor}
               maxFontPx={24}
               minFontPx={12}
-              className="font-bold font-mono text-zinc-950 tracking-tight tabular-nums"
+              className="font-bold font-mono text-emerald-700 tracking-tight tabular-nums"
             />
           }
           footer={
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 text-xs min-w-0">
               <span className="inline-flex items-center gap-0.5 font-semibold text-rose-600 font-mono shrink-0">
-                <TrendingDown size={12} />
+                <GoogleIcon name="trending_down" size={12} />
                 <span>91.4%</span>
               </span>
               <span className="text-zinc-400 truncate">
@@ -241,9 +238,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         <KpiCard
           title="Penerimaan Kas Bersih"
+          accent="primary"
           compactMobile
           tooltip="Total penerimaan kas bersih dari transaksi penjualan aktif."
-          icon={<Wallet size={15} strokeWidth={2} />}
+          icon={<GoogleIcon name="account_balance_wallet" size={15} />}
           value={
             <MoneyAmount
               value={displayPenerimaan}
@@ -254,7 +252,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           }
           footer={
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 text-xs min-w-0">
-              <span className="font-semibold text-zinc-500 font-mono shrink-0">
+              <span className="font-semibold text-secondary font-mono shrink-0">
                 100%
               </span>
               <span className="text-zinc-400 truncate">
@@ -266,9 +264,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         <KpiCard
           title="Total Transaksi"
+          accent="accent"
           compactMobile
           tooltip="Jumlah nota/struk belanja yang berhasil diselesaikan dan dibayar oleh pelanggan."
-          icon={<ShoppingBag size={15} strokeWidth={2} />}
+          icon={<GoogleIcon name="shopping_bag" size={15} />}
           value={
             <div className="text-lg sm:text-2xl font-bold font-mono text-zinc-950 truncate tabular-nums tracking-tight">
               {displayTransaksi} Nota
@@ -277,7 +276,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           footer={
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 text-xs min-w-0">
               <span className="inline-flex items-center gap-0.5 font-semibold text-rose-600 font-mono shrink-0">
-                <TrendingDown size={12} />
+                <GoogleIcon name="trending_down" size={12} />
                 <span>85%</span>
               </span>
               <span className="text-zinc-400 truncate">
@@ -289,9 +288,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         <KpiCard
           title="Produk Terjual"
+          accent="secondary"
           compactMobile
           tooltip="Jumlah fisik produk yang terjual keluar dari stok toko."
-          icon={<Package size={15} strokeWidth={2} />}
+          icon={<GoogleIcon name="deployed_code" size={15} />}
           value={
             <div className="text-lg sm:text-2xl font-bold font-mono text-zinc-950 truncate tabular-nums tracking-tight">
               {displayProduk} Pcs
@@ -300,7 +300,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           footer={
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 text-xs min-w-0">
               <span className="inline-flex items-center gap-0.5 font-semibold text-rose-600 font-mono shrink-0">
-                <TrendingDown size={12} />
+                <GoogleIcon name="trending_down" size={12} />
                 <span>88.89%</span>
               </span>
               <span className="text-zinc-400 truncate">

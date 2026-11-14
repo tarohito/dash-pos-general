@@ -1,13 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import {
-  Store,
-  Users,
-  MapPin,
-  CheckCircle2,
-  Eye,
-  Plus,
-  Loader2,
-} from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { Tenant } from '../../types';
 import { SearchInput } from '../common/SearchInput';
 import { ActionDropdownMenu } from '../common/ActionDropdownMenu';
@@ -144,9 +136,9 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
             <button
               type="button"
               onClick={onOpenRegisterModal}
-              className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-xs shrink-0 active:scale-[0.98]"
+              className="h-9 px-4 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-xs shrink-0 active:scale-[0.98]"
             >
-              <Plus size={16} />
+              <GoogleIcon name="add" size={16} />
               <span>Tambah Toko / Outlet Baru</span>
             </button>
           </div>
@@ -157,7 +149,8 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <KpiCard
           title="Total Outlet Terdaftar"
-          icon={<Store size={16} strokeWidth={2} />}
+          accent="primary"
+          icon={<GoogleIcon name="storefront" size={16} />}
           value={
             <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 tracking-tight truncate tabular-nums">
               {summary.totalTenants} Outlet
@@ -172,9 +165,10 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
 
         <KpiCard
           title="Outlet Aktif Saat Ini"
-          icon={<CheckCircle2 size={16} strokeWidth={2} />}
+          accent="emerald"
+          icon={<GoogleIcon name="check_circle" size={16} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 tracking-tight truncate tabular-nums">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight truncate tabular-nums">
               {activeTenant?.code || '-'}
             </div>
           }
@@ -187,7 +181,8 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
 
         <KpiCard
           title="Total Staf Kasir"
-          icon={<Users size={16} strokeWidth={2} />}
+          accent="secondary"
+          icon={<GoogleIcon name="group" size={16} />}
           value={
             <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 tracking-tight truncate tabular-nums">
               {summary.totalCashiers} Kasir
@@ -202,7 +197,8 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
 
         <KpiCard
           title="Cakupan Wilayah"
-          icon={<MapPin size={16} strokeWidth={2} />}
+          accent="accent"
+          icon={<GoogleIcon name="location_on" size={16} />}
           value={
             <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 tracking-tight truncate tabular-nums">
               {summary.uniqueCities} Kota
@@ -238,7 +234,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                 onClick={() => handleTabChange(tab.id)}
                 className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   filterTab === tab.id
-                    ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                    ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                     : 'text-zinc-600 hover:text-zinc-900'
                 }`}
               >
@@ -251,7 +247,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
         {/* Outlet Card Grid or Empty State */}
         {visibleTenants.length === 0 ? (
           <div className="border border-zinc-200/80 rounded-xl py-12 px-4 text-center text-gray-400 bg-zinc-50/50">
-            <Store size={36} className="mx-auto mb-2 text-gray-300" />
+            <GoogleIcon name="storefront" size={36} className="mx-auto mb-2 text-gray-300" />
             <p className="text-sm font-semibold text-gray-600">Tidak ada outlet ditemukan</p>
             <p className="text-xs text-gray-400 mt-0.5 max-w-sm mx-auto">
               {hasActiveFilter
@@ -274,9 +270,9 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
               <button
                 type="button"
                 onClick={onOpenRegisterModal}
-                className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-zinc-900 hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer"
+                className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-primary hover:bg-primary-hover rounded-xl transition-colors cursor-pointer"
               >
-                <Plus size={14} />
+                <GoogleIcon name="add" size={14} />
                 <span>Tambah Outlet Baru</span>
               </button>
             ) : null}
@@ -290,8 +286,8 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                   key={tenant.id}
                   className={`rounded-2xl border p-4 sm:p-5 flex flex-col justify-between transition-colors ${
                     isSelected
-                      ? 'bg-emerald-600 border-emerald-600 text-white'
-                      : 'bg-white border-zinc-200 hover:border-zinc-400'
+                      ? 'bg-primary border-primary text-white'
+                      : 'bg-white border-zinc-200 hover:border-primary/50'
                   }`}
                 >
                   <div>
@@ -323,7 +319,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                       </div>
 
                       {isSelected && (
-                        <span className="text-xs font-bold text-emerald-700 bg-white px-2.5 py-0.5 rounded border border-white shrink-0">
+                        <span className="text-xs font-bold text-primary bg-white px-2.5 py-0.5 rounded border border-white shrink-0">
                           Aktif Digunakan
                         </span>
                       )}
@@ -334,8 +330,8 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                       <div
                         className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
                           isSelected
-                            ? 'bg-white text-emerald-700'
-                            : 'bg-zinc-900 text-white'
+                            ? 'bg-white text-primary'
+                            : 'bg-secondary-soft text-secondary-text border border-secondary-border'
                         }`}
                       >
                         {tenant.logoInitial}
@@ -350,14 +346,14 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                         </h4>
                         <p
                           className={`text-xs sm:text-sm truncate mt-0.5 ${
-                            isSelected ? 'text-emerald-50' : 'text-gray-600'
+                            isSelected ? 'text-white/90' : 'text-gray-600'
                           }`}
                         >
                           {tenant.branchName}
                         </p>
                         <p
                           className={`text-xs font-mono truncate mt-0.5 ${
-                            isSelected ? 'text-emerald-100/90' : 'text-gray-400'
+                            isSelected ? 'text-white/75' : 'text-gray-400'
                           }`}
                         >
                           {tenant.slug}
@@ -416,7 +412,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                       <button
                         type="button"
                         onClick={onNavigateToPos}
-                        className="flex-1 h-9 px-3.5 bg-white hover:bg-emerald-50 text-emerald-700 font-bold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center cursor-pointer active:scale-[0.98]"
+                        className="flex-1 h-9 px-3.5 bg-white hover:bg-primary-soft text-primary font-bold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center cursor-pointer active:scale-[0.98]"
                       >
                         Buka Kasir POS
                       </button>
@@ -424,7 +420,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                       <button
                         type="button"
                         onClick={() => onSelectTenant(tenant.id)}
-                        className="flex-1 h-9 px-3.5 bg-zinc-50 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 border border-zinc-200 text-zinc-800 font-semibold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer inline-flex items-center justify-center active:scale-[0.98]"
+                        className="flex-1 h-9 px-3.5 bg-zinc-50 hover:bg-primary hover:text-white hover:border-primary border border-zinc-200 text-zinc-800 font-semibold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer inline-flex items-center justify-center active:scale-[0.98]"
                       >
                         Pilih &amp; Aktifkan Outlet
                       </button>
@@ -441,21 +437,21 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                         {
                           id: 'detail',
                           label: 'Lihat Detail Outlet',
-                          icon: <Eye size={14} />,
+                          icon: <GoogleIcon name="visibility" size={14} />,
                           onClick: () => setDetailTenant(tenant),
                         },
                         isSelected
                           ? {
                               id: 'pos',
                               label: 'Buka Kasir POS',
-                              icon: <Store size={14} />,
+                              icon: <GoogleIcon name="storefront" size={14} />,
                               tone: 'primary',
                               onClick: onNavigateToPos,
                             }
                           : {
                               id: 'activate',
                               label: 'Pilih & Aktifkan Outlet',
-                              icon: <CheckCircle2 size={14} />,
+                              icon: <GoogleIcon name="check_circle" size={14} />,
                               tone: 'primary',
                               onClick: () => onSelectTenant(tenant.id),
                             },
@@ -472,7 +468,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                 ref={loadMoreRef}
                 className="col-span-full py-6 flex items-center justify-center text-xs text-gray-400 gap-2"
               >
-                <Loader2 size={16} className="animate-spin text-zinc-900" />
+                <GoogleIcon name="progress_activity" size={16} className="animate-spin text-zinc-900" />
                 <span>
                   Memuat outlet lainnya ({visibleTenants.length} dari {filteredTenants.length})...
                 </span>

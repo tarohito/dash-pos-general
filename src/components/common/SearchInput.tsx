@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, X } from 'lucide-react';
+import { GoogleIcon } from './GoogleIcon';
 
 interface SearchInputProps {
   value: string;
@@ -20,8 +20,8 @@ export const SearchInput: React.FC<SearchInputProps> = ({
 }) => {
   return (
     <div className={`relative flex-1 min-w-0 w-full ${className}`}>
-      <Search
-        size={15}
+      <GoogleIcon name="search" size={15}
+       
         className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
       />
       <input
@@ -42,7 +42,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
           aria-label="Hapus kata kunci"
         >
-          <X size={14} />
+          <GoogleIcon name="close" size={14} />
         </button>
       )}
     </div>

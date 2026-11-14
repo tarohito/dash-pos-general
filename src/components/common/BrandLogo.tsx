@@ -25,7 +25,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
           inverted ? 'text-white' : 'text-zinc-950'
         }`}
       >
-        Logic<span className={`font-semibold ${inverted ? 'text-indigo-200' : 'text-zinc-500'}`}>POS</span>
+        Logic<span className={`font-bold ${inverted ? 'text-indigo-300' : 'text-primary'}`}>POS</span>
       </span>
     </span>
   );

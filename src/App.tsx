@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
-import { ShoppingCart, ReceiptText, Package, Menu, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
+import { GoogleIcon } from './components/common/GoogleIcon';
 import { TooltipProvider } from './components/Tooltip';
 import { useToast } from './contexts/ToastContext';
 import { Header } from './components/layout/Header';
@@ -130,7 +130,7 @@ const RegisterTenantModal = lazy(() =>
 
 const ViewLoadingFallback: React.FC = () => (
   <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-xl border border-zinc-200 p-8 text-zinc-500 min-h-[280px]">
-    <Loader2 size={24} className="animate-spin text-zinc-900 mb-2" />
+    <GoogleIcon name="progress_activity" size={24} className="animate-spin text-zinc-900 mb-2" />
     <p className="text-xs font-medium text-zinc-500">Memuat tampilan...</p>
   </div>
 );
@@ -162,6 +162,13 @@ const App: React.FC = () => {
   const [isProdukExpanded, setIsProdukExpanded] = useState(true);
   const [hasNotification, setHasNotification] = useState(true);
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
+  const mainScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTop = 0;
+    }
+  }, [activeMenu]);
 
   // Lightweight bootstrap metadata state (full tables are paginated per-view)
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -739,7 +746,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-zinc-100 flex flex-col items-center justify-center p-6 font-sans">
         <div className="bg-white rounded-xl border border-zinc-200 px-8 py-6 flex flex-col items-center">
-          <Loader2 size={28} className="animate-spin text-zinc-900 mb-3" />
+          <GoogleIcon name="progress_activity" size={28} className="animate-spin text-zinc-900 mb-3" />
           <p className="text-sm font-semibold text-zinc-700">Memeriksa sesi login...</p>
         </div>
       </div>
@@ -796,41 +803,68 @@ const App: React.FC = () => {
             isDarkSidebar={effectiveAppTheme === 'indigo_night'}
           />
 
-          {/* Right Outer Frame Padding + Single Large Inset Rounded Container */}
-          <div className="flex-1 min-h-0 min-w-0 flex flex-col p-2 sm:p-3 lg:pl-0 overflow-hidden">
-            <div className="flex-1 min-h-0 flex flex-col rounded-2xl sm:rounded-[22px] bg-zinc-100 border border-zinc-200/60 overflow-hidden relative">
-              {/* Compact Top Header inside Inset Container */}
-              <Header
-                activeMenu={activeMenu}
-                onSelectMenu={handleGuardedSelectMenu}
-                isSidebarCollapsed={isSidebarCollapsed}
-                onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                hasNotification={hasNotification}
-                onToggleNotification={() => setHasNotification(!hasNotification)}
-                isAdminMenuOpen={isAdminMenuOpen}
-                onToggleAdminMenu={() => setIsAdminMenuOpen(prev => !prev)}
-                onCloseAdminMenu={() => setIsAdminMenuOpen(false)}
-                currentUser={currentUser}
-                activeTenant={activeTenant}
-                onLogout={handleLogout}
-              />
-
-              {/* Main Content Area */}
-              <main
-                className={`flex-1 min-h-0 flex flex-col ${
-                  activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS'
-                    ? 'px-2.5 pb-2.5 pt-0.5 sm:px-3.5 sm:pb-3.5 sm:pt-1 overflow-hidden'
-                    : 'px-2.5 pb-20 pt-0.5 sm:px-4 sm:pb-4 sm:pt-1 overflow-y-auto'
-                }`}
+          {/* Right Outer Frame Padding + Flush-Bottom Top-Rounded Content Container */}
+          <div className="flex-1 min-h-0 min-w-0 flex flex-col px-2 pt-2 pb-0 sm:px-3 sm:pt-3 sm:pb-0 lg:pl-0 overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col rounded-t-2xl sm:rounded-t-[22px] rounded-b-none bg-zinc-50 border-t border-x border-b-0 border-zinc-200/60 overflow-hidden relative">
+              <div
+                ref={mainScrollRef}
+                className={
+                  !isLoadingData &&
+                  !loadError &&
+                  (activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS')
+                    ? 'flex-1 min-h-0 flex flex-col relative overflow-hidden'
+                    : 'flex-1 min-h-0 overflow-y-auto overflow-x-hidden'
+                }
               >
+                <div
+                  className={
+                    !isLoadingData &&
+                    !loadError &&
+                    (activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS')
+                      ? 'flex-1 min-h-0 flex flex-col relative'
+                      : 'min-h-full flex flex-col relative'
+                  }
+                >
+                  {/* Top Soft Aqua-to-Lavender Gradient Backdrop (scrolls with page) */}
+                  <div
+                    aria-hidden="true"
+                    className="main-container-top-gradient pointer-events-none absolute inset-x-0 top-0 h-52 sm:h-64 z-0"
+                  />
+
+                  {/* Compact Top Header inside Inset Container */}
+                  <Header
+                    activeMenu={activeMenu}
+                    onSelectMenu={handleGuardedSelectMenu}
+                    isSidebarCollapsed={isSidebarCollapsed}
+                    onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    hasNotification={hasNotification}
+                    onToggleNotification={() => setHasNotification(!hasNotification)}
+                    isAdminMenuOpen={isAdminMenuOpen}
+                    onToggleAdminMenu={() => setIsAdminMenuOpen(prev => !prev)}
+                    onCloseAdminMenu={() => setIsAdminMenuOpen(false)}
+                    currentUser={currentUser}
+                    activeTenant={activeTenant}
+                    onLogout={handleLogout}
+                  />
+
+                  {/* Main Content Area */}
+                  <main
+                    className={`relative z-10 flex-1 flex flex-col ${
+                      !isLoadingData &&
+                      !loadError &&
+                      (activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS')
+                        ? 'min-h-0 px-2.5 pb-2.5 pt-0.5 sm:px-3.5 sm:pb-3.5 sm:pt-1 overflow-hidden'
+                        : 'px-2.5 pb-20 pt-0.5 sm:px-4 sm:pb-4 sm:pt-1'
+                    }`}
+                  >
                 {isLoadingData ? (
                   <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-xl border border-zinc-200 p-8 text-zinc-500">
-                    <Loader2 size={28} className="animate-spin text-zinc-900 mb-3" />
+                    <GoogleIcon name="progress_activity" size={28} className="animate-spin text-zinc-900 mb-3" />
                     <p className="text-sm font-semibold text-zinc-700">Memuat data dari database SQLite...</p>
                   </div>
                 ) : loadError ? (
                   <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-xl border border-red-200 p-8 text-center">
-                    <AlertCircle size={32} className="text-red-500 mb-2" />
+                    <GoogleIcon name="error" size={32} className="text-red-500 mb-2" />
                     <p className="text-sm font-bold text-zinc-900">Gagal terhubung ke database SQLite</p>
                     <p className="text-xs text-zinc-500 mt-1 mb-4">{loadError}</p>
                     <button
@@ -946,7 +980,9 @@ const App: React.FC = () => {
                     )}
                   </Suspense>
                 )}
-              </main>
+                  </main>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -958,21 +994,23 @@ const App: React.FC = () => {
             onClick={() => setActiveMenu('Kasir POS (Penjualan)')}
             className={`flex flex-col items-center justify-center py-0.5 px-1.5 rounded-lg transition-colors min-w-[48px] min-h-[40px] cursor-pointer active:scale-95 ${
               activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS'
-                ? 'text-zinc-950 font-semibold bg-zinc-100'
+                ? 'text-primary font-semibold bg-primary/12'
                 : 'text-zinc-500 hover:text-zinc-900'
             }`}
           >
             <div className="relative">
-              <ShoppingCart
+              <GoogleIcon
+                name="shopping_cart"
                 size={18}
+                filled={activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS'}
                 className={
                   activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS'
-                    ? 'text-zinc-950'
+                    ? 'text-primary'
                     : 'text-zinc-500'
                 }
               />
               {cart.reduce((a, b) => a + b.qty, 0) > 0 && (
-                <span className="absolute -top-1 -right-2.5 w-4 h-4 rounded-full bg-zinc-900 text-white text-xs font-bold flex items-center justify-center font-mono">
+                <span className="absolute -top-1 -right-2.5 w-4 h-4 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center font-mono">
                   {cart.reduce((a, b) => a + b.qty, 0)}
                 </span>
               )}
@@ -985,15 +1023,17 @@ const App: React.FC = () => {
             onClick={() => setActiveMenu('Transaksi')}
             className={`flex flex-col items-center justify-center py-0.5 px-1.5 rounded-lg transition-all min-w-[48px] min-h-[40px] cursor-pointer active:scale-95 ${
               activeMenu === 'Transaksi' || activeMenu === 'Transaksi Harian'
-                ? 'text-zinc-950 font-semibold bg-zinc-100'
+                ? 'text-primary font-semibold bg-primary/12'
                 : 'text-zinc-500 hover:text-zinc-900'
             }`}
           >
-            <ReceiptText
+            <GoogleIcon
+              name="receipt_long"
               size={18}
+              filled={activeMenu === 'Transaksi' || activeMenu === 'Transaksi Harian'}
               className={
                 activeMenu === 'Transaksi' || activeMenu === 'Transaksi Harian'
-                  ? 'text-zinc-950'
+                  ? 'text-primary'
                   : 'text-zinc-500'
               }
             />
@@ -1005,11 +1045,16 @@ const App: React.FC = () => {
             onClick={() => setActiveMenu('Daftar Barang')}
             className={`flex flex-col items-center justify-center py-0.5 px-1.5 rounded-lg transition-all min-w-[48px] min-h-[40px] cursor-pointer active:scale-95 ${
               activeMenu === 'Daftar Barang'
-                ? 'text-zinc-950 font-semibold bg-zinc-100'
+                ? 'text-primary font-semibold bg-primary/12'
                 : 'text-zinc-500 hover:text-zinc-900'
             }`}
           >
-            <Package size={18} className={activeMenu === 'Daftar Barang' ? 'text-zinc-950' : 'text-zinc-500'} />
+            <GoogleIcon
+              name="shopping_bag"
+              size={18}
+              filled={activeMenu === 'Daftar Barang'}
+              className={activeMenu === 'Daftar Barang' ? 'text-primary' : 'text-zinc-500'}
+            />
             <span className="text-xs font-semibold mt-0.5 leading-none">Barang</span>
           </button>
 
@@ -1018,7 +1063,7 @@ const App: React.FC = () => {
             onClick={() => setIsSidebarCollapsed(false)}
             className="flex flex-col items-center justify-center py-0.5 px-1.5 rounded-lg transition-all text-zinc-500 hover:text-zinc-900 min-w-[48px] min-h-[40px] cursor-pointer active:scale-95"
           >
-            <Menu size={18} />
+            <GoogleIcon name="menu" size={18} />
             <span className="text-xs font-semibold mt-0.5 leading-none">Menu</span>
           </button>
         </nav>

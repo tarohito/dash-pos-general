@@ -20,7 +20,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToC
       className={`border rounded-xl transition-colors duration-150 group flex flex-col justify-between relative overflow-hidden active:scale-[0.98] select-none ${
         isOutOfStock
           ? 'border-zinc-200 opacity-60 cursor-not-allowed bg-zinc-50'
-          : 'bg-white border-zinc-200 cursor-pointer hover:border-zinc-400'
+          : 'bg-white border-zinc-200 cursor-pointer hover:border-primary/60'
       }`}
     >
       <div className="flex flex-col flex-1">
@@ -41,7 +41,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToC
               {product.category}
             </span>
             {product.isPromo && (
-              <span className="text-xs font-bold px-1.5 py-0.5 bg-zinc-900 text-white rounded-md">
+              <span className="text-xs font-bold px-1.5 py-0.5 bg-accent text-white rounded-md">
                 {product.promoLabel || 'PROMO'}
               </span>
             )}
@@ -76,8 +76,8 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToC
           <div className="mt-1.5 sm:mt-2 flex flex-col gap-0.5">
             {/* Harga Langsung */}
             <div
-              className={`text-sm sm:text-base font-bold font-mono tabular-nums tracking-tight leading-tight ${
-                isOutOfStock ? 'text-zinc-400' : 'text-zinc-950'
+              className={`text-sm sm:text-base font-bold font-mono tabular-nums tracking-tight leading-tight transition-colors ${
+                isOutOfStock ? 'text-zinc-400' : 'text-zinc-950 group-hover:text-primary'
               }`}
             >
               {formatIDR(product.harga)}

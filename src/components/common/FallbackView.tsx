@@ -1,5 +1,5 @@
 import React from'react';
-import { Settings2 } from'lucide-react';
+import { GoogleIcon } from './GoogleIcon';
 
 interface FallbackViewProps {
   title: string;
@@ -11,7 +11,7 @@ export const FallbackView: React.FC<FallbackViewProps> = ({ title, onBackToPos }
     <div className="flex flex-col items-center justify-center h-full min-h-[60vh]">
       <div className="bg-white p-12 rounded-2xl border border-zinc-200 flex flex-col items-center text-center max-w-md">
         <div className="w-20 h-20 bg-zinc-100 border border-zinc-200/80 rounded-full flex items-center justify-center mb-6">
-          <Settings2 size={32} className="text-zinc-800" />
+          <GoogleIcon name="tune" size={32} className="text-zinc-800" />
         </div>
         <h2 className="text-base sm:text-lg font-bold text-zinc-950 leading-tight mb-2">{title}</h2>
         <p className="text-zinc-500 text-sm">

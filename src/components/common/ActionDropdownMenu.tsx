@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { MoreVertical } from 'lucide-react';
+import { GoogleIcon } from './GoogleIcon';
 
 export interface ActionMenuItem {
   id: string;
@@ -247,7 +247,7 @@ export const ActionDropdownMenu: React.FC<ActionDropdownMenuProps> = ({
             isOpen ? 'bg-zinc-200/80 text-zinc-950 border-zinc-300' : ''
           } ${buttonClassName}`}
         >
-          <MoreVertical size={16} />
+          <GoogleIcon name="more_vert" size={16} />
         </button>
       </div>
 

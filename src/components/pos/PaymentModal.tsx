@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  User,
-  Banknote,
-  CreditCard,
-  Building2,
-  QrCode,
-  AlertCircle,
-  ShieldCheck,
-  Store,
-  Copy,
-  Check,
-} from 'lucide-react';
+import { GoogleIcon, GoogleIconName } from '../common/GoogleIcon';
 import { CartItem } from '../../types';
 import { formatIDR, formatNumber } from '../../utils/formatters';
 import { BANK_ACCOUNTS, BankKey } from '../../constants/bankAccounts';
@@ -180,7 +169,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             type="button"
             onClick={() => void handleConfirm()}
             disabled={isSubmitting}
-            className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center whitespace-nowrap cursor-pointer shadow-xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-9 px-4 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center whitespace-nowrap cursor-pointer shadow-xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Memproses Pembayaran...' : `Konfirmasi Bayar (${formatIDR(grandTotal)})`}
           </button>
@@ -190,14 +179,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       <div className="space-y-4">
           {errorMsg && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700 flex items-center gap-2">
-              <AlertCircle size={15} className="shrink-0" />
+              <GoogleIcon name="error" size={15} className="shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
           {/* Total Tagihan Banner */}
-          <div className="bg-zinc-900 p-4 sm:p-5 rounded-2xl text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-xs">
+          <div className="bg-primary p-4 sm:p-5 rounded-2xl text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-xs">
             <div className="min-w-0 flex-1">
-              <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wider block">
+              <span className="text-xs text-white/80 font-semibold uppercase tracking-wider block">
                 Total Pembayaran
               </span>
               <div className="mt-1">
@@ -208,13 +197,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   className="font-bold text-white tracking-tight font-mono tabular-nums"
                 />
               </div>
-              <div className="text-xs text-zinc-300 mt-1 font-medium font-mono">
+              <div className="text-xs text-white/85 mt-1 font-medium font-mono">
                 {cart.reduce((a, b) => a + b.qty, 0)} Item &bull; Total Netto: {cart.reduce((a, b) => a + b.berat * b.qty, 0).toFixed(0)} g
               </div>
             </div>
-            <div className="text-left sm:text-right text-zinc-200 text-xs sm:text-sm shrink-0 font-medium space-y-1 border-t sm:border-t-0 pt-2.5 sm:pt-0 border-zinc-800">
-              <div>Subtotal: <span className="font-mono text-white">{formatIDR(subtotal)}</span></div>
-              <div className="text-xs text-zinc-400">{taxLabel}: <span className="font-mono text-zinc-200">{formatIDR(tax)}</span></div>
+            <div className="text-left sm:text-right text-white/90 text-xs sm:text-sm shrink-0 font-medium space-y-1 border-t sm:border-t-0 pt-2.5 sm:pt-0 border-white/20">
+              <div>Subtotal: <span className="font-mono text-white font-semibold">{formatIDR(subtotal)}</span></div>
+              <div className="text-xs text-white/80">{taxLabel}: <span className="font-mono text-white">{formatIDR(tax)}</span></div>
             </div>
           </div>
 
@@ -224,14 +213,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               Nama Pembeli (Opsional)
             </label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
+              <GoogleIcon name="person" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
                 id="buyer-name-input"
                 type="text"
                 value={customerName === 'Pelanggan Umum' ? '' : customerName}
                 onChange={e => onCustomerChange({ id: undefined, name: e.target.value || 'Pelanggan Umum' })}
                 placeholder="Pelanggan Umum"
-                className="w-full h-9 pl-9 pr-3.5 text-xs sm:text-sm bg-white border border-zinc-300 rounded-lg outline-none focus:border-zinc-900 font-medium"
+                className="w-full h-9 pl-9 pr-3.5 text-xs sm:text-sm bg-white border border-zinc-300 rounded-lg outline-none focus:border-primary font-medium"
               />
             </div>
           </div>
@@ -245,37 +234,37 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   id: 'cash',
                   title: 'Tunai (Cash)',
                   subtitle: 'Uang Pas / Tunai',
-                  icon: Banknote,
-                  activeCard: 'border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900',
-                  iconColor: 'text-zinc-950',
-                  indicator: 'bg-zinc-900',
+                  icon: 'payments' as GoogleIconName,
+                  activeCard: 'border-primary bg-primary-soft/60 ring-1 ring-primary',
+                  iconColor: 'text-primary-text',
+                  indicator: 'bg-primary',
                 },
                 {
                   id: 'debit',
                   title: 'Debit EDC',
                   subtitle: 'Kartu Chip / PIN',
-                  icon: CreditCard,
-                  activeCard: 'border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900',
-                  iconColor: 'text-zinc-950',
-                  indicator: 'bg-zinc-900',
+                  icon: 'credit_card' as GoogleIconName,
+                  activeCard: 'border-primary bg-primary-soft/60 ring-1 ring-primary',
+                  iconColor: 'text-primary-text',
+                  indicator: 'bg-primary',
                 },
                 {
                   id: 'transfer',
                   title: 'Transfer Bank',
                   subtitle: 'BCA / Mandiri / BRI',
-                  icon: Building2,
-                  activeCard: 'border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900',
-                  iconColor: 'text-zinc-950',
-                  indicator: 'bg-zinc-900',
+                  icon: 'account_balance' as GoogleIconName,
+                  activeCard: 'border-primary bg-primary-soft/60 ring-1 ring-primary',
+                  iconColor: 'text-primary-text',
+                  indicator: 'bg-primary',
                 },
                 {
                   id: 'qris',
                   title: 'QRIS Instant',
                   subtitle: 'GPN & E-Wallet',
-                  icon: QrCode,
-                  activeCard: 'border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900',
-                  iconColor: 'text-zinc-950',
-                  indicator: 'bg-zinc-900',
+                  icon: 'qr_code_2' as GoogleIconName,
+                  activeCard: 'border-primary bg-primary-soft/60 ring-1 ring-primary',
+                  iconColor: 'text-primary-text',
+                  indicator: 'bg-primary',
                 },
               ].map(tab => {
                 const Icon = tab.icon;
@@ -299,10 +288,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     <div className="flex items-center justify-between w-full">
                       <div
                         className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-                          isSelected ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-500'
+                          isSelected ? 'bg-primary text-white' : 'bg-zinc-100 text-zinc-500'
                         }`}
                       >
-                        <Icon size={16} />
+                        <GoogleIcon name={Icon} size={16} filled={isSelected} />
                       </div>
                       <div
                         className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all ${
@@ -315,7 +304,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     <div>
                       <div
                         className={`text-xs sm:text-sm leading-tight ${
-                          isSelected ? 'font-bold text-gray-900' : 'font-semibold text-gray-700'
+                          isSelected ? 'font-bold text-primary-text' : 'font-semibold text-gray-700'
                         }`}
                       >
                         {tab.title}
@@ -426,7 +415,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                       onClick={() => setDebitBank(bank)}
                       className={`py-2 px-2.5 text-xs sm:text-sm font-semibold rounded-lg border transition-all cursor-pointer text-center ${
                         debitBank === bank
-                          ? 'bg-zinc-900 text-white border-zinc-900'
+                          ? 'bg-secondary text-white border-secondary'
                           : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-100'
                       }`}
                     >
@@ -445,7 +434,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     value={debitCardLast4}
                     onChange={e => setDebitCardLast4(e.target.value.replace(/[^0-9]/g, ''))}
                     placeholder="8821"
-                    className="w-full px-3 py-2 text-sm font-mono font-bold bg-white border border-zinc-200 rounded-lg outline-none focus:border-zinc-900 tracking-wider"
+                    className="w-full px-3 py-2 text-sm font-mono font-bold bg-white border border-zinc-200 rounded-lg outline-none focus:border-primary tracking-wider"
                   />
                 </div>
                 <div>
@@ -455,13 +444,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     value={debitApprovalCode}
                     onChange={e => setDebitApprovalCode(e.target.value)}
                     placeholder="AUTH-938210"
-                    className="w-full px-3 py-2 text-sm font-mono font-bold bg-white border border-zinc-200 rounded-lg outline-none focus:border-zinc-900"
+                    className="w-full px-3 py-2 text-sm font-mono font-bold bg-white border border-zinc-200 rounded-lg outline-none focus:border-primary"
                   />
                 </div>
               </div>
 
-              <div className="p-3 bg-zinc-100/80 border border-zinc-200 rounded-lg text-xs text-zinc-700 leading-normal flex items-center gap-2">
-                <ShieldCheck size={18} className="text-zinc-700 shrink-0" />
+              <div className="p-3 bg-secondary-soft/70 border border-secondary-border rounded-lg text-xs text-secondary-text leading-normal flex items-center gap-2">
+                <GoogleIcon name="verified_user" size={18} className="text-secondary shrink-0" />
                 <span>
                   <strong>Verifikasi Kasir:</strong> Gesek kartu di terminal EDC fisik toko, pastikan struk fisik EDC telah keluar, lalu masukkan nomor approval di atas.
                 </span>
@@ -482,7 +471,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                       onClick={() => setTransferBank(bank)}
                       className={`py-2 px-2.5 text-xs sm:text-sm font-semibold rounded-lg border transition-all cursor-pointer text-center ${
                         transferBank === bank
-                          ? 'bg-zinc-900 text-white border-zinc-900'
+                          ? 'bg-secondary text-white border-secondary'
                           : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-100'
                       }`}
                     >
@@ -506,9 +495,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 hover:text-zinc-950 border border-zinc-200 text-xs sm:text-sm font-semibold rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1.5 shrink-0"
                 >
                   {copyFeedback === 'rekening' ? (
-                    <Check size={13} className="text-emerald-600 shrink-0" />
+                    <GoogleIcon name="check" size={13} className="text-emerald-600 shrink-0" />
                   ) : (
-                    <Copy size={13} className="shrink-0" />
+                    <GoogleIcon name="content_copy" size={13} className="shrink-0" />
                   )}
                   <span>{copyFeedback === 'rekening' ? 'Tersalin' : 'Salin'}</span>
                 </button>
@@ -528,7 +517,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
 
               <div className="p-3 bg-zinc-100/80 border border-zinc-200 rounded-lg text-xs text-zinc-700 leading-normal flex items-center gap-2">
-                <ShieldCheck size={18} className="text-zinc-700 shrink-0" />
+                <GoogleIcon name="verified_user" size={18} className="text-zinc-700 shrink-0" />
                 <span>
                   <strong>Verifikasi Kasir:</strong> Cek mutasi rekening toko/m-Banking terlebih dahulu untuk memastikan dana dari pelanggan sudah masuk.
                 </span>
@@ -583,7 +572,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     <rect x="80" y="78" width="12" height="14" fill="#18181b" />
                   </svg>
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-md bg-white flex items-center justify-center border border-zinc-200">
-                    <Store size={14} className="text-zinc-900" />
+                    <GoogleIcon name="storefront" size={14} className="text-zinc-900" />
                   </div>
                 </div>
 
@@ -593,7 +582,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 </div>
 
                 <div className="p-2.5 bg-zinc-100/80 border border-zinc-200 rounded-lg text-xs text-zinc-700 leading-normal text-left flex items-center gap-1.5 w-full">
-                  <ShieldCheck size={16} className="text-zinc-700 shrink-0" />
+                  <GoogleIcon name="verified_user" size={16} className="text-zinc-700 shrink-0" />
                   <span>Minta pelanggan scan QRIS & periksa notifikasi masuk di aplikasi merchant.</span>
                 </div>
               </div>

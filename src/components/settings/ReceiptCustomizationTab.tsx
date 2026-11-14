@@ -1,13 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Palette,
-  SlidersHorizontal,
-  FileSignature,
-  Upload,
-  Trash2,
-  RotateCcw,
-  Eye,
-} from 'lucide-react';
+import { GoogleIcon, GoogleIconName } from '../common/GoogleIcon';
 import {
   ReceiptLogoPreset,
   ReceiptPaperSize,
@@ -300,7 +292,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
             onClick={onResetReceiptDefaults}
             className="h-8 px-2.5 text-xs font-semibold text-zinc-600 hover:text-zinc-900 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-xl transition-colors inline-flex items-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap"
           >
-            <RotateCcw size={13} />
+            <GoogleIcon name="undo" size={13} />
             <span>Standar</span>
           </button>
         </div>
@@ -309,9 +301,9 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
         <div className="grid grid-cols-3 gap-1 p-1 bg-zinc-100/90 rounded-xl border border-zinc-200/80">
           {(
             [
-              { key: 'theme_header', label: 'Tema & Header', icon: Palette },
-              { key: 'elements', label: 'Elemen Nota', icon: SlidersHorizontal },
-              { key: 'terms_sign', label: 'Ketentuan & TTD', icon: FileSignature },
+              { key: 'theme_header', label: 'Tema & Header', icon: 'palette' as GoogleIconName },
+              { key: 'elements', label: 'Elemen Nota', icon: 'tune' as GoogleIconName },
+              { key: 'terms_sign', label: 'Ketentuan & TTD', icon: 'edit_document' as GoogleIconName },
             ] as const
           ).map(tab => {
             const Icon = tab.icon;
@@ -327,7 +319,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                     : 'text-zinc-600 hover:text-zinc-900'
                 }`}
               >
-                <Icon size={14} className="shrink-0" />
+                <GoogleIcon name={Icon} size={14} filled={active} className="shrink-0" />
                 <span className="truncate">{tab.label}</span>
               </button>
             );
@@ -357,7 +349,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                       }`}
                     >
                       <span className="text-xs font-bold block leading-tight">{opt.label}</span>
-                      <span className="text-[11px] text-gray-500 block mt-0.5 tabular-nums">
+                      <span className="text-xs text-gray-500 block mt-0.5 tabular-nums">
                         {opt.sublabel}
                       </span>
                     </button>
@@ -393,7 +385,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                         <span className="text-xs font-bold text-gray-900 block leading-tight">
                           {theme.label}
                         </span>
-                        <span className="text-[11px] text-gray-500 block truncate mt-0.5">
+                        <span className="text-xs text-gray-500 block truncate mt-0.5">
                           {theme.desc}
                         </span>
                       </div>
@@ -450,14 +442,14 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                           className="w-full h-full object-contain p-1"
                         />
                       ) : (
-                        <Upload size={16} className="text-gray-400" />
+                        <GoogleIcon name="upload" size={16} className="text-gray-400" />
                       )}
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-gray-800 truncate">
                         {settings.receiptCustomLogoUrl ? 'Logo Custom Aktif' : 'Belum Ada Logo Custom'}
                       </p>
-                      <p className="text-[11px] text-gray-500">
+                      <p className="text-xs text-gray-500">
                         PNG/JPG/WebP transparan disarankan (otomatis dioptimasi).
                       </p>
                     </div>
@@ -476,7 +468,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                       onClick={() => logoInputRef.current?.click()}
                       className="h-8 px-2.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-xs font-semibold rounded-lg transition-colors inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                     >
-                      <Upload size={13} />
+                      <GoogleIcon name="upload" size={13} />
                       <span>{settings.receiptCustomLogoUrl ? 'Ganti' : 'Upload'}</span>
                     </button>
                     {settings.receiptCustomLogoUrl && (
@@ -486,7 +478,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                         className="h-8 w-8 bg-white hover:bg-red-50 text-gray-500 hover:text-red-600 border border-gray-300 rounded-lg transition-colors inline-flex items-center justify-center cursor-pointer"
                         aria-label="Hapus logo custom"
                       >
-                        <Trash2 size={13} />
+                        <GoogleIcon name="delete" size={13} />
                       </button>
                     )}
                   </div>
@@ -498,7 +490,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                   <span className="text-xs font-semibold text-gray-900 block">
                     Tampilkan Watermark Nama Toko di Latar
                   </span>
-                  <span className="text-[11px] text-gray-500">
+                  <span className="text-xs text-gray-500">
                     Opsional: tampilkan teks nama toko tipis di belakang struk.
                   </span>
                 </div>
@@ -563,7 +555,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
               >
                 <div className="min-w-0">
                   <span className="text-xs font-semibold text-gray-900 block">{item.label}</span>
-                  <span className="text-[11px] text-gray-500 block mt-0.5 leading-snug">
+                  <span className="text-xs text-gray-500 block mt-0.5 leading-snug">
                     {item.desc}
                   </span>
                 </div>
@@ -601,7 +593,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                 <button
                   type="button"
                   onClick={() => onUpdateField('receiptTermsText', DEFAULT_RECEIPT_TERMS_TEMPLATE)}
-                  className="text-[11px] font-semibold text-zinc-900 hover:text-zinc-600 underline underline-offset-2 cursor-pointer whitespace-nowrap"
+                  className="text-xs font-semibold text-zinc-900 hover:text-zinc-600 underline underline-offset-2 cursor-pointer whitespace-nowrap"
                 >
                   Isi Template Standar
                 </button>
@@ -613,7 +605,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                 className="w-full p-3 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 leading-relaxed"
                 placeholder="Harap simpan struk ini sebagai bukti transaksi resmi..."
               />
-              <p className="text-[11px] text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Gunakan variabel <span className="font-mono font-semibold text-gray-600">{'{TOKO}'}</span> untuk otomatis menampilkan nama outlet Anda.
               </p>
             </div>
@@ -635,7 +627,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
               <p className="text-xs font-bold text-gray-800">Label Blok Tanda Tangan</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
                     Salam Penutup
                   </label>
                   <input
@@ -647,7 +639,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
                     Label Pelanggan
                   </label>
                   <input
@@ -659,7 +651,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
                     Label Petugas Toko
                   </label>
                   <input
@@ -680,12 +672,12 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
       <div className="lg:col-span-6 lg:sticky lg:top-4 bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2 min-w-0">
-            <Eye size={16} className="text-zinc-700 shrink-0" />
+            <GoogleIcon name="visibility" size={16} className="text-zinc-700 shrink-0" />
             <div className="min-w-0">
               <h4 className="text-sm font-bold text-gray-900 leading-tight">
                 Pratinjau Nota Langsung
               </h4>
-              <p className="text-[11px] text-gray-500">
+              <p className="text-xs text-gray-500">
                 Simulasi tampilan cetak aktual sebelum disimpan
               </p>
             </div>
@@ -698,7 +690,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                   key={size}
                   type="button"
                   onClick={() => setPreviewPaperSize(size)}
-                  className={`px-2 py-1 text-[11px] font-bold uppercase rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                  className={`px-2 py-1 text-xs font-bold uppercase rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                     previewPaperSize === size
                       ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                       : 'text-zinc-500 hover:text-zinc-900'

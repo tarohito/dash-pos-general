@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { GoogleIcon, GoogleIconName } from '../components/common/GoogleIcon';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -135,27 +135,27 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     wrap: 'bg-white shadow-lg border-emerald-200 text-gray-900',
                     iconWrap: 'bg-emerald-50 text-emerald-600 border-emerald-200',
                     titleColor: 'text-emerald-800',
-                    Icon: CheckCircle2,
+                    Icon: 'check_circle' as GoogleIconName,
                   }
                 : toast.type === 'error'
                 ? {
                     wrap: 'bg-white shadow-lg border-red-200 text-gray-900',
                     iconWrap: 'bg-red-50 text-red-600 border-red-200',
                     titleColor: 'text-red-800',
-                    Icon: AlertCircle,
+                    Icon: 'error' as GoogleIconName,
                   }
                 : toast.type === 'warning'
                 ? {
                     wrap: 'bg-white shadow-lg border-amber-200 text-gray-900',
                     iconWrap: 'bg-amber-50 text-amber-600 border-amber-200',
                     titleColor: 'text-amber-800',
-                    Icon: AlertTriangle,
+                    Icon: 'warning' as GoogleIconName,
                   }
                 : {
                     wrap: 'bg-white shadow-lg border-zinc-200 text-gray-900',
                     iconWrap: 'bg-zinc-100 text-zinc-700 border-zinc-200',
                     titleColor: 'text-zinc-900',
-                    Icon: Info,
+                    Icon: 'info' as GoogleIconName,
                   };
 
             const IconComponent = styles.Icon;
@@ -169,7 +169,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 <span
                   className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${styles.iconWrap}`}
                 >
-                  <IconComponent size={17} />
+                  <GoogleIcon name={IconComponent} size={17} filled />
                 </span>
                 <div className="flex-1 min-w-0 pt-0.5">
                   <p className={`text-xs font-bold leading-tight ${styles.titleColor}`}>
@@ -185,7 +185,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                   className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer shrink-0"
                   aria-label="Tutup notifikasi"
                 >
-                  <X size={14} />
+                  <GoogleIcon name="close" size={14} />
                 </button>
               </div>
             );

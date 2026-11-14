@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Check } from 'lucide-react';
+import { GoogleIcon } from './GoogleIcon';
 
 export interface CustomSelectOption {
   value: string;
@@ -198,8 +198,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
           )}
         </div>
 
-        <ChevronDown
-          size={size === 'sm' ? 14 : 16}
+        <GoogleIcon name="keyboard_arrow_down" size={size === 'sm' ? 14 : 16}
+         
           className={`text-zinc-400 transition-transform duration-200 shrink-0 ml-2 ${
             isOpen ? 'rotate-180 text-zinc-900' : ''
           }`}
@@ -257,7 +257,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                         {opt.badge}
                       </span>
                     )}
-                    {isSelected && <Check size={14} className="text-zinc-900 shrink-0" />}
+                    {isSelected && <GoogleIcon name="check" size={14} className="text-zinc-900 shrink-0" />}
                   </div>
                 </button>
               );

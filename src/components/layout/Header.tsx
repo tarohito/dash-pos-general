@@ -1,11 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import {
-  Bell,
-  ChevronDown,
-  Settings,
-  LogOut,
-  UserCog,
-} from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import Tooltip from '../Tooltip';
 import { BrandLogo } from '../common/BrandLogo';
 import { Tenant, UserAccount, UserRole } from '../../types';
@@ -123,12 +117,9 @@ export const Header: React.FC<HeaderProps> = ({
             {activeMenu || 'Kasir POS (Penjualan)'}
           </h1>
           {activeTenant?.name && (
-            <>
-              <span className="text-zinc-300 select-none" aria-hidden="true">/</span>
-              <span className="text-xs font-medium text-zinc-500 truncate max-w-[260px]">
-                {activeTenant.name}
-              </span>
-            </>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-secondary-soft text-secondary-text border border-secondary-border truncate max-w-[260px]">
+              {activeTenant.name}
+            </span>
           )}
         </div>
       </div>
@@ -142,9 +133,9 @@ export const Header: React.FC<HeaderProps> = ({
             className="relative w-9 h-9 text-zinc-600 hover:text-zinc-950 hover:bg-white/80 rounded-lg transition-colors flex items-center justify-center cursor-pointer outline-none focus:outline-none"
             aria-label="Notifikasi"
           >
-            <Bell size={18} strokeWidth={1.8} />
+            <GoogleIcon name="notifications" size={18} />
             {hasNotification && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-zinc-900 ring-2 ring-zinc-100" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent ring-2 ring-white/90" />
             )}
           </button>
         </Tooltip>
@@ -163,15 +154,15 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
             aria-expanded={isAdminMenuOpen}
           >
-            <div className="w-7 h-7 rounded-full bg-zinc-900 text-white flex items-center justify-center font-semibold text-xs shrink-0">
+            <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center font-semibold text-xs shrink-0">
               {initials}
             </div>
             <div className="hidden sm:flex flex-col items-start text-left leading-tight">
               <span className="font-semibold text-xs sm:text-sm text-zinc-900 max-w-[130px] truncate">{firstName}</span>
-              <span className="text-[11px] font-medium text-zinc-500 leading-none mt-0.5">{ROLE_LABELS[currentUser.role]}</span>
+              <span className="text-xs font-medium text-zinc-500 leading-none mt-0.5">{ROLE_LABELS[currentUser.role]}</span>
             </div>
-            <ChevronDown
-              size={14}
+            <GoogleIcon name="keyboard_arrow_down" size={14}
+             
               className={`text-zinc-400 transition-transform duration-200 hidden sm:inline shrink-0 ${
                 isAdminMenuOpen ? 'rotate-180 text-zinc-800' : ''
               }`}
@@ -183,13 +174,13 @@ export const Header: React.FC<HeaderProps> = ({
               {/* User Profile Header */}
               <div className="px-4 py-3 border-b border-zinc-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-zinc-900 text-white flex items-center justify-center font-semibold text-sm shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-semibold text-sm shrink-0">
                     {initials}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-1.5">
                       <p className="text-sm font-bold text-zinc-950 truncate">{currentUser.fullName}</p>
-                      <span className="text-xs font-medium text-zinc-500 shrink-0">
+                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-primary-soft text-primary-text shrink-0">
                         {ROLE_LABELS[currentUser.role]}
                       </span>
                     </div>
@@ -218,7 +209,7 @@ export const Header: React.FC<HeaderProps> = ({
                     }}
                     className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 rounded-lg transition-colors text-left cursor-pointer"
                   >
-                    <UserCog size={15} className="text-zinc-400 shrink-0" />
+                    <GoogleIcon name="manage_accounts" size={15} className="text-zinc-400 shrink-0" />
                     <span>Manajemen User &amp; Akses</span>
                   </button>
                 )}
@@ -232,7 +223,7 @@ export const Header: React.FC<HeaderProps> = ({
                     }}
                     className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 rounded-lg transition-colors text-left cursor-pointer"
                   >
-                    <Settings size={15} className="text-zinc-400 shrink-0" />
+                    <GoogleIcon name="settings" size={15} className="text-zinc-400 shrink-0" />
                     <span>Pengaturan Toko</span>
                   </button>
                 )}
@@ -247,7 +238,7 @@ export const Header: React.FC<HeaderProps> = ({
                   }}
                   className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors text-left cursor-pointer"
                 >
-                  <LogOut size={15} className="text-red-500 shrink-0" />
+                  <GoogleIcon name="logout" size={15} className="text-red-500 shrink-0" />
                   <span>Keluar (Logout)</span>
                 </button>
               </div>

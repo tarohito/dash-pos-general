@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Coins,
-  Scale,
-  ReceiptText,
-  Building2,
-  Plus,
-  Printer,
-  Eye,
-  RotateCcw,
-  Loader2,
-} from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { Transaction, TransactionStatsSummary } from '../../types';
 import { formatIDR } from '../../utils/formatters';
 import { PaginationControls } from '../common/PaginationControls';
@@ -227,9 +217,9 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
           <button
             type="button"
             onClick={onNavigateToPos}
-            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-[0.98]"
+            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-[0.98]"
           >
-            <Plus size={16} />
+            <GoogleIcon name="add" size={16} />
             <span>Transaksi Penjualan Baru</span>
           </button>
         </div>
@@ -239,13 +229,14 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <KpiCard
           title="Total Omzet Penjualan"
-          icon={<Coins size={16} strokeWidth={2} />}
+          accent="primary"
+          icon={<GoogleIcon name="payments" size={16} />}
           value={
             <MoneyAmount
               value={stats?.totalOmzetPenjualan ?? 0}
               maxFontPx={24}
               minFontPx={13}
-              className="font-bold font-mono text-zinc-950 tracking-tight tabular-nums"
+              className="font-bold font-mono text-primary tracking-tight tabular-nums"
             />
           }
           footer={
@@ -257,7 +248,8 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
 
         <KpiCard
           title="Total Netto Produk"
-          icon={<Scale size={16} strokeWidth={2} />}
+          accent="secondary"
+          icon={<GoogleIcon name="balance" size={16} />}
           value={
             <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
               {Number((stats?.totalBeratTerjual ?? 0).toFixed(2))} gr
@@ -272,7 +264,8 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
 
         <KpiCard
           title="Total Transaksi"
-          icon={<ReceiptText size={16} strokeWidth={2} />}
+          accent="accent"
+          icon={<GoogleIcon name="receipt_long" size={16} />}
           value={
             <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
               {stats?.totalTransaksi ?? 0} Nota
@@ -287,7 +280,8 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
 
         <KpiCard
           title="Rata-rata / Nota"
-          icon={<Building2 size={16} strokeWidth={2} />}
+          accent="emerald"
+          icon={<GoogleIcon name="apartment" size={16} />}
           value={
             <MoneyAmount
               value={stats?.avgPerTransaksi ?? 0}
@@ -328,7 +322,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                   onClick={() => setTxFilterMethod(tab.id)}
                   className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                     txFilterMethod === tab.id
-                      ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                      ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                       : 'text-zinc-500 hover:text-zinc-900'
                   }`}
                 >
@@ -350,12 +344,12 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
         <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
           {isLoading && items.length === 0 ? (
             <div className="py-12 px-4 flex items-center justify-center gap-2 text-xs sm:text-sm text-zinc-400">
-              <Loader2 size={18} className="animate-spin text-zinc-900" />
+              <GoogleIcon name="progress_activity" size={18} className="animate-spin text-zinc-900" />
               <span>Memuat transaksi penjualan...</span>
             </div>
           ) : items.length === 0 ? (
             <div className="py-12 px-4 text-center text-zinc-400">
-              <ReceiptText size={36} className="mx-auto mb-2 text-zinc-300" />
+              <GoogleIcon name="receipt_long" size={36} className="mx-auto mb-2 text-zinc-300" />
               <p className="text-sm font-semibold text-zinc-700">Tidak ada transaksi penjualan</p>
               <p className="text-xs text-zinc-400 mt-0.5">
                 {txSearchQuery
@@ -368,7 +362,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                   onClick={onNavigateToPos}
                   className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-zinc-900 bg-zinc-100 hover:bg-zinc-200 rounded-xl transition-colors cursor-pointer border border-zinc-200"
                 >
-                  <Plus size={14} />
+                  <GoogleIcon name="add" size={14} />
                   <span>Buat Transaksi Penjualan Baru</span>
                 </button>
               )}
@@ -440,13 +434,13 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                             {
                               id: 'detail',
                               label: loadingActionId === tx.id ? 'Memuat Detail...' : 'Lihat Detail',
-                              icon: <Eye size={14} />,
+                              icon: <GoogleIcon name="visibility" size={14} />,
                               onClick: () => void handleOpenDetail(tx),
                             },
                             {
                               id: 'print',
                               label: loadingActionId === tx.id ? 'Menyiapkan Nota...' : 'Cetak Nota',
-                              icon: <Printer size={14} />,
+                              icon: <GoogleIcon name="print" size={14} />,
                               tone: 'primary',
                               onClick: () => void handleOpenPrint(tx),
                             },
@@ -455,7 +449,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                                   {
                                     id: 'void',
                                     label: 'Void Transaksi',
-                                    icon: <RotateCcw size={14} />,
+                                    icon: <GoogleIcon name="undo" size={14} />,
                                     tone: 'warning' as const,
                                     dividerBefore: true,
                                     disabled: isVoid,
@@ -621,13 +615,13 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                                 {
                                   id: 'detail',
                                   label: loadingActionId === tx.id ? 'Memuat Detail...' : 'Lihat Detail',
-                                  icon: <Eye size={14} />,
+                                  icon: <GoogleIcon name="visibility" size={14} />,
                                   onClick: () => void handleOpenDetail(tx),
                                 },
                                 {
                                   id: 'print',
                                   label: loadingActionId === tx.id ? 'Menyiapkan Nota...' : 'Cetak Nota',
-                                  icon: <Printer size={14} />,
+                                  icon: <GoogleIcon name="print" size={14} />,
                                   tone: 'primary',
                                   onClick: () => void handleOpenPrint(tx),
                                 },
@@ -636,7 +630,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                                       {
                                         id: 'void',
                                         label: 'Void Transaksi',
-                                        icon: <RotateCcw size={14} />,
+                                        icon: <GoogleIcon name="undo" size={14} />,
                                         tone: 'warning' as const,
                                         dividerBefore: true,
                                         disabled: isVoid,

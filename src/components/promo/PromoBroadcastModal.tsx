@@ -1,22 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Check,
-  CheckCircle2,
-  Clock,
-  Copy,
-  Download,
-  ExternalLink,
-  History,
-  Loader2,
-  MessageCircle,
-  Search,
-  Send,
-  ShieldCheck,
-  StopCircle,
-  Tag,
-  Users,
-  XCircle,
-} from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import {
   BroadcastAudienceMode,
   BroadcastCustomerAudienceItem,
@@ -503,17 +486,17 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
             >
               {isSending ? (
                 <>
-                  <Loader2 size={15} className="animate-spin" />
+                  <GoogleIcon name="progress_activity" size={15} className="animate-spin" />
                   <span>Memproses...</span>
                 </>
               ) : deliveryMode === 'gateway' ? (
                 <>
-                  <Send size={15} />
+                  <GoogleIcon name="send" size={15} />
                   <span>Kirim Bertahap ({targetRecipients.length})</span>
                 </>
               ) : (
                 <>
-                  <MessageCircle size={15} />
+                  <GoogleIcon name="chat" size={15} />
                   <span>Siapkan Antrean WA ({targetRecipients.length})</span>
                 </>
               )}
@@ -535,7 +518,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                   : 'text-zinc-500 hover:text-zinc-900'
               }`}
             >
-              <MessageCircle size={14} />
+              <GoogleIcon name="chat" size={14} />
               <span>Buat Broadcast</span>
             </button>
 
@@ -551,7 +534,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                   : 'text-zinc-400 cursor-not-allowed'
               }`}
             >
-              <MessageCircle size={14} />
+              <GoogleIcon name="chat" size={14} />
               <span>Antrean Kirim</span>
               {activeBatch && (
                 <span
@@ -573,19 +556,19 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                   : 'text-zinc-500 hover:text-zinc-900'
               }`}
             >
-              <History size={14} />
+              <GoogleIcon name="schedule" size={14} />
               <span>Riwayat ({broadcastHistory.length})</span>
             </button>
           </div>
 
           {isLoadingInitial ? (
             <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
-              <Loader2 size={13} className="animate-spin text-zinc-900" />
+              <GoogleIcon name="progress_activity" size={13} className="animate-spin text-zinc-900" />
               <span>Memuat...</span>
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
-              <ShieldCheck size={13} className="shrink-0" />
+              <GoogleIcon name="verified_user" size={13} className="shrink-0" />
               <span>
                 Kuota Aman: <strong className="font-mono">{gatewayConfig.dailySentCount}/{gatewayConfig.dailySafeLimit}</strong>
               </span>
@@ -611,7 +594,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                     value={selectedPromoId}
                     onChange={setSelectedPromoId}
                     placeholder="Pilih kampanye promo..."
-                    icon={<Tag size={15} />}
+                    icon={<GoogleIcon name="label" size={15} />}
                     options={promos.map(p => ({
                       value: p.id,
                       label: p.name,
@@ -630,7 +613,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                   <CustomSelect
                     value={deliveryMode}
                     onChange={val => setDeliveryMode(val as BroadcastDeliveryMode)}
-                    icon={<Send size={15} />}
+                    icon={<GoogleIcon name="send" size={15} />}
                     options={[
                       {
                         value: 'gateway',
@@ -649,7 +632,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                 ) : (
                   <div className="h-10 sm:h-11 px-3.5 flex items-center justify-between gap-2 text-xs sm:text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg">
                     <span className="inline-flex items-center gap-2 truncate">
-                      <MessageCircle size={15} className="text-emerald-600 shrink-0" />
+                      <GoogleIcon name="chat" size={15} className="text-emerald-600 shrink-0" />
                       <span className="truncate">Antrean WA Web (wa.me)</span>
                     </span>
                     <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded shrink-0">
@@ -668,7 +651,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                 <CustomSelect
                   value={delayPreset}
                   onChange={val => setDelayPreset(val as 'recommended' | 'extra_safe')}
-                  icon={<ShieldCheck size={15} />}
+                  icon={<GoogleIcon name="verified_user" size={15} />}
                   options={[
                     {
                       value: 'recommended',
@@ -716,7 +699,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs sm:text-sm font-semibold text-zinc-900">Semua Pelanggan</span>
-                    <Users size={14} className={audienceMode === 'all' ? 'text-zinc-900' : 'text-zinc-400'} />
+                    <GoogleIcon name="group" size={14} className={audienceMode === 'all' ? 'text-zinc-900' : 'text-zinc-400'} />
                   </div>
                   <p className="text-xs text-zinc-500 mt-0.5 font-mono">{segmentCounts.total} nomor WA</p>
                 </button>
@@ -732,7 +715,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs sm:text-sm font-semibold text-zinc-900">Per Segmen</span>
-                    <Users size={14} className={audienceMode === 'segment' ? 'text-zinc-900' : 'text-zinc-400'} />
+                    <GoogleIcon name="group" size={14} className={audienceMode === 'segment' ? 'text-zinc-900' : 'text-zinc-400'} />
                   </div>
                   <p className="text-xs text-zinc-500 mt-0.5">VIP, Reguler, Mitra</p>
                 </button>
@@ -748,8 +731,8 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs sm:text-sm font-semibold text-zinc-900">Pilih Beberapa</span>
-                    <CheckCircle2
-                      size={14}
+                    <GoogleIcon name="check_circle" size={14}
+                     
                       className={audienceMode === 'selected' ? 'text-zinc-900' : 'text-zinc-400'}
                     />
                   </div>
@@ -764,7 +747,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                   <CustomSelect
                     value={audienceSegment}
                     onChange={val => setAudienceSegment(val as 'VIP' | 'Reguler' | 'Mitra / Toko')}
-                    icon={<Users size={15} />}
+                    icon={<GoogleIcon name="group" size={15} />}
                     options={[
                       { value: 'VIP', label: 'Member VIP', badge: `${segmentCounts.vip} nomor` },
                       { value: 'Reguler', label: 'Member Reguler', badge: `${segmentCounts.reguler} nomor` },
@@ -778,8 +761,8 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                 <div className="border border-gray-200 rounded-xl bg-white p-3 space-y-2.5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="relative flex-1">
-                      <Search
-                        size={14}
+                      <GoogleIcon name="search" size={14}
+                       
                         className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
                       />
                       <input
@@ -902,7 +885,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                       }
                       className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-gray-900 cursor-pointer"
                     >
-                      <Copy size={12} />
+                      <GoogleIcon name="content_copy" size={12} />
                       <span>Salin Nomor ({targetRecipients.length})</span>
                     </button>
                   )}
@@ -911,7 +894,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                     onClick={() => void handleCopyText(previewText, 'Contoh pesan disalin ke clipboard.')}
                     className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-900 hover:text-zinc-600 cursor-pointer"
                   >
-                    <Copy size={12} />
+                    <GoogleIcon name="content_copy" size={12} />
                     <span>Salin Pesan</span>
                   </button>
                 </div>
@@ -980,9 +963,9 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                       className="h-8 px-3 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                     >
                       {isCancellingJob ? (
-                        <Loader2 size={13} className="animate-spin" />
+                        <GoogleIcon name="progress_activity" size={13} className="animate-spin" />
                       ) : (
-                        <StopCircle size={13} />
+                        <GoogleIcon name="stop_circle" size={13} />
                       )}
                       <span>Hentikan</span>
                     </button>
@@ -1004,7 +987,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                     }}
                     className="h-8 px-3 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <Copy size={12} />
+                    <GoogleIcon name="content_copy" size={12} />
                     <span>Salin Sisa</span>
                   </button>
                   <button
@@ -1012,7 +995,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                     onClick={handleExportQueueCsv}
                     className="h-8 px-3 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <Download size={12} />
+                    <GoogleIcon name="download" size={12} />
                     <span>Unduh CSV</span>
                   </button>
                 </div>
@@ -1020,7 +1003,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
 
               {activeBatch.isJobRunning && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
-                  <Loader2 size={13} className="animate-spin text-emerald-600 shrink-0" />
+                  <GoogleIcon name="progress_activity" size={13} className="animate-spin text-emerald-600 shrink-0" />
                   <span>
                     Mode Aman sedang mengirim bertahap dengan jeda acak antar pesan...
                   </span>
@@ -1061,8 +1044,8 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
             {/* Cooldown + Search & Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div className="relative flex-1">
-                <Search
-                  size={14}
+                <GoogleIcon name="search" size={14}
+                 
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
                 />
                 <input
@@ -1157,7 +1140,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                           <span className="font-mono text-gray-600">+{rec.waPhone}</span>
                           {rec.status === 'sent' ? (
                             <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
-                              <CheckCircle2 size={12} />
+                              <GoogleIcon name="check_circle" size={12} />
                               <span>Terkirim</span>
                             </span>
                           ) : rec.status === 'failed' ? (
@@ -1165,12 +1148,12 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                               className="inline-flex items-center gap-1 text-rose-600 font-semibold"
                               title={rec.errorMessage}
                             >
-                              <XCircle size={12} />
+                              <GoogleIcon name="cancel" size={12} />
                               <span>Gagal{rec.errorMessage ? `: ${rec.errorMessage}` : ''}</span>
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-amber-700 font-semibold">
-                              <Clock size={12} />
+                              <GoogleIcon name="schedule" size={12} />
                               <span>Menunggu dikirim</span>
                             </span>
                           )}
@@ -1198,7 +1181,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                               : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
                           }`}
                         >
-                          <Check size={13} />
+                          <GoogleIcon name="check" size={13} />
                           <span>{rec.status === 'sent' ? 'Selesai' : 'Tandai'}</span>
                         </button>
 
@@ -1230,7 +1213,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                               : 'bg-[#25D366] hover:bg-[#1EBE5D] text-white cursor-pointer'
                           }`}
                         >
-                          <MessageCircle size={13} />
+                          <GoogleIcon name="chat" size={13} />
                           <span>
                             {safeWaCooldownEnabled && cooldownRemaining > 0 && rec.status !== 'sent'
                               ? `Tunggu ${cooldownRemaining}d`
@@ -1238,7 +1221,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                               ? 'Kirim Ulang'
                               : 'Kirim WA'}
                           </span>
-                          <ExternalLink size={11} />
+                          <GoogleIcon name="open_in_new" size={11} />
                         </a>
                       </div>
                     </div>
@@ -1254,7 +1237,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
           <div className="border border-gray-200 rounded-xl divide-y divide-gray-100 max-h-[420px] overflow-y-auto bg-white">
             {broadcastHistory.length === 0 ? (
               <div className="py-12 px-4 text-center text-gray-400">
-                <MessageCircle size={32} className="mx-auto mb-2 text-gray-300" />
+                <GoogleIcon name="chat" size={32} className="mx-auto mb-2 text-gray-300" />
                 <p className="text-sm font-semibold text-gray-600">Belum ada riwayat broadcast</p>
                 <p className="text-xs text-gray-400 mt-0.5">
                   Buat broadcast pertama untuk mengirim promo ke pelanggan via WhatsApp.
@@ -1293,9 +1276,9 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                     className="h-8 px-3 text-xs font-semibold text-zinc-900 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
                   >
                     {loadingBatchId === item.id ? (
-                      <Loader2 size={13} className="animate-spin" />
+                      <GoogleIcon name="progress_activity" size={13} className="animate-spin" />
                     ) : (
-                      <MessageCircle size={13} />
+                      <GoogleIcon name="chat" size={13} />
                     )}
                     <span>Buka Antrean</span>
                   </button>

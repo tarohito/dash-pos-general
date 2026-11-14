@@ -1,5 +1,5 @@
 import React from 'react';
-import { Printer } from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { Transaction } from '../../types';
 import { formatIDR } from '../../utils/formatters';
 import {
@@ -58,7 +58,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
             }}
             className={`${MODAL_BTN_PRIMARY_CLASS} gap-1.5`}
           >
-            <Printer size={15} className="shrink-0" />
+            <GoogleIcon name="print" size={15} className="shrink-0" />
             <span>Cetak Nota Penjualan</span>
           </button>
         </div>
@@ -73,9 +73,9 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
           )}
 
           {/* Highlight Banner */}
-          <div className="bg-zinc-900 p-4 rounded-2xl text-white shadow-xs flex items-center justify-between gap-4">
+          <div className="bg-primary p-4 rounded-2xl text-white shadow-xs flex items-center justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 block">
+              <span className="text-xs font-semibold uppercase tracking-wider text-white/80 block">
                 {transaction.tax > 0
                   ? 'Total Nilai Transaksi (Termasuk PPN)'
                   : 'Total Nilai Transaksi (Non-PKP / Bebas PPN)'}
@@ -88,16 +88,16 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   className="font-bold font-mono tracking-tight text-white tabular-nums"
                 />
               </div>
-              <p className="text-xs text-zinc-300 mt-1">
+              <p className="text-xs text-white/85 mt-1">
                 Metode: <strong className="text-white">{methodLabel}</strong>
               </p>
             </div>
             <div className="hidden sm:flex flex-col items-end text-right shrink-0">
-              <span className="text-xs text-zinc-400">Total Netto</span>
+              <span className="text-xs text-white/80">Total Netto</span>
               <span className="text-xl font-bold font-mono text-white">
                 {transaction.totalBerat.toFixed(0)} gr
               </span>
-              <span className="text-xs text-zinc-300 mt-0.5 font-medium">
+              <span className="text-xs text-white/85 mt-0.5 font-medium">
                 Jumlah Item: {transaction.totalQty} pcs
               </span>
             </div>

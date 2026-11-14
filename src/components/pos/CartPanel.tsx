@@ -1,5 +1,5 @@
 import React from'react';
-import { Boxes, Package, Trash2, Minus, Plus, CreditCard } from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { CartItem } from'../../types';
 import { formatIDR } from'../../utils/formatters';
 import Tooltip from'../Tooltip';
@@ -44,9 +44,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
               className="lg:hidden p-1.5 -ml-1 text-zinc-500 hover:text-zinc-950 rounded-lg min-w-[36px] min-h-[36px] flex items-center justify-center cursor-pointer"
               title="Kembali ke Katalog"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
+              <GoogleIcon name="chevron_left" size={20} />
             </button>
           )}
           <h2 className="font-bold text-zinc-950 text-sm sm:text-base">
@@ -62,11 +60,11 @@ export const CartPanel: React.FC<CartPanelProps> = ({
                 className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                 aria-label="Kosongkan Keranjang"
               >
-                <Trash2 size={15} />
+                <GoogleIcon name="delete" size={15} />
               </button>
             </Tooltip>
           )}
-          <span className="px-2.5 py-0.5 bg-zinc-100 text-zinc-800 border border-zinc-200/80 text-xs font-bold rounded-md">
+          <span className="px-2.5 py-0.5 bg-secondary-soft text-secondary-text border border-secondary-border text-xs font-bold rounded-md">
             {totalQty} Item
           </span>
         </div>
@@ -76,7 +74,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
       <div className="flex-1 min-h-0 overflow-y-auto p-2.5 sm:p-3">
         {cart.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-zinc-400">
-            <Boxes size={48} className="mb-3 opacity-20" />
+            <GoogleIcon name="inventory_2" size={48} className="mb-3 opacity-20" />
             <p className="text-sm font-medium">Belum ada produk di keranjang</p>
           </div>
         ) : (
@@ -87,7 +85,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
                 className="p-3 bg-zinc-50 hover:bg-zinc-100/80 border border-zinc-200 rounded-xl flex gap-3 group relative transition-colors"
               >
                 <div className="w-12 h-12 bg-white rounded-lg border border-zinc-200 flex items-center justify-center shrink-0">
-                  <Package size={20} className="text-zinc-400" />
+                  <GoogleIcon name="deployed_code" size={20} className="text-zinc-400" />
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <div className="text-xs font-mono font-medium text-zinc-500 truncate mb-0.5">
@@ -107,7 +105,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
                       className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center cursor-pointer"
                       aria-label="Hapus item"
                     >
-                      <Trash2 size={16} />
+                      <GoogleIcon name="delete" size={16} />
                     </button>
                   </Tooltip>
                   <div className="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-md p-1 mt-1.5">
@@ -125,7 +123,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
                         className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-white rounded transition-all cursor-pointer active:scale-95"
                         aria-label="Kurang satu"
                       >
-                        <Minus size={13} />
+                        <GoogleIcon name="remove" size={13} />
                       </button>
                     </Tooltip>
                     <span className="text-sm font-bold font-mono w-6 text-center tabular-nums">{item.qty}</span>
@@ -139,7 +137,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
                         className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-white rounded transition-all cursor-pointer active:scale-95"
                         aria-label="Tambah satu"
                       >
-                        <Plus size={13} />
+                        <GoogleIcon name="add" size={13} />
                       </button>
                     </Tooltip>
                   </div>
@@ -182,7 +180,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
                 value={grandTotal}
                 maxFontPx={20}
                 minFontPx={13}
-                className="font-bold font-mono text-zinc-950 tabular-nums"
+                className="font-bold font-mono text-primary tabular-nums"
               />
             </div>
           </div>
@@ -191,9 +189,9 @@ export const CartPanel: React.FC<CartPanelProps> = ({
           type="button"
           onClick={onOpenPaymentModal}
           disabled={cart.length === 0}
-          className="w-full h-11 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 text-white font-semibold rounded-xl transition-all inline-flex justify-center items-center cursor-pointer disabled:cursor-not-allowed text-sm active:scale-[0.99] shadow-xs"
+          className="w-full h-11 bg-primary hover:bg-primary-hover disabled:bg-zinc-200 disabled:text-zinc-400 text-white font-semibold rounded-xl transition-all inline-flex justify-center items-center cursor-pointer disabled:cursor-not-allowed text-sm active:scale-[0.99] shadow-xs"
         >
-          <CreditCard size={17} className="mr-2 shrink-0" />
+          <GoogleIcon name="credit_card" size={17} className="mr-2 shrink-0" />
           <span>Proses Pembayaran ({totalQty} Item)</span>
         </button>
       </div>

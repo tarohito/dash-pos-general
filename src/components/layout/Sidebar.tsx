@@ -1,20 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  ShoppingCart,
-  ReceiptText,
-  Package,
-  FolderTree,
-  ShoppingBag,
-  LayoutDashboard,
-  Store,
-  BadgePercent,
-  ChevronDown,
-  ChevronLeft,
-  Check,
-  Plus,
-  UserCog,
-  Settings,
-} from 'lucide-react';
+import { GoogleIcon, GoogleIconName } from '../common/GoogleIcon';
 import Tooltip from '../Tooltip';
 import { BrandLogo } from '../common/BrandLogo';
 import { Tenant, UserRole } from '../../types';
@@ -72,23 +57,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [isSidebarCollapsed]);
 
   const allMenuItems = [
-    { name: 'Dashboard', group: 'overview', icon: LayoutDashboard, roles: ['owner', 'branch_manager'] as UserRole[] },
-    { name: 'Kasir POS (Penjualan)', group: 'operations', icon: ShoppingCart, roles: ['owner', 'branch_manager', 'cashier'] as UserRole[] },
-    { name: 'Transaksi', group: 'operations', icon: ReceiptText, roles: ['owner', 'branch_manager', 'cashier'] as UserRole[] },
+    { name: 'Dashboard', group: 'overview', icon: 'dashboard' as GoogleIconName, roles: ['owner', 'branch_manager'] as UserRole[] },
+    { name: 'Kasir POS (Penjualan)', group: 'operations', icon: 'shopping_cart' as GoogleIconName, roles: ['owner', 'branch_manager', 'cashier'] as UserRole[] },
+    { name: 'Transaksi', group: 'operations', icon: 'receipt_long' as GoogleIconName, roles: ['owner', 'branch_manager', 'cashier'] as UserRole[] },
     {
       name: 'Produk',
       group: 'catalog',
-      icon: Package,
+      icon: 'inventory_2' as GoogleIconName,
       roles: ['owner', 'branch_manager', 'cashier'] as UserRole[],
       submenus: [
-        { name: 'Daftar Barang', icon: ShoppingBag, roles: ['owner', 'branch_manager', 'cashier'] as UserRole[] },
-        { name: 'Daftar Kategori', icon: FolderTree, roles: ['owner', 'branch_manager'] as UserRole[] },
+        { name: 'Daftar Barang', icon: 'shopping_bag' as GoogleIconName, roles: ['owner', 'branch_manager', 'cashier'] as UserRole[] },
+        { name: 'Daftar Kategori', icon: 'category' as GoogleIconName, roles: ['owner', 'branch_manager'] as UserRole[] },
       ],
     },
-    { name: 'Promo', group: 'catalog', icon: BadgePercent, roles: ['owner', 'branch_manager'] as UserRole[] },
-    { name: 'Multi-Outlet', group: 'admin', icon: Store, roles: ['owner', 'branch_manager'] as UserRole[] },
-    { name: 'Manajemen User', group: 'admin', icon: UserCog, roles: ['owner'] as UserRole[] },
-    { name: 'Pengaturan', group: 'admin', icon: Settings, roles: ['owner', 'branch_manager'] as UserRole[] },
+    { name: 'Promo', group: 'catalog', icon: 'sell' as GoogleIconName, roles: ['owner', 'branch_manager'] as UserRole[] },
+    { name: 'Multi-Outlet', group: 'admin', icon: 'storefront' as GoogleIconName, roles: ['owner', 'branch_manager'] as UserRole[] },
+    { name: 'Manajemen User', group: 'admin', icon: 'manage_accounts' as GoogleIconName, roles: ['owner'] as UserRole[] },
+    { name: 'Pengaturan', group: 'admin', icon: 'settings' as GoogleIconName, roles: ['owner', 'branch_manager'] as UserRole[] },
   ];
 
   const menuItems = allMenuItems
@@ -150,30 +135,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={onToggleSidebar}
-              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer outline-none focus:outline-none shrink-0 ${
+              className={`flex items-center justify-center transition-colors cursor-pointer outline-none focus:outline-none shrink-0 ${
+                isSidebarCollapsed ? 'w-10 h-10 rounded-xl' : 'w-8 h-8 rounded-lg'
+              } ${
                 isDarkSidebar
                   ? 'text-indigo-200 hover:text-white hover:bg-indigo-900/70'
                   : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
               }`}
               aria-label={isSidebarCollapsed ? 'Buka Menu' : 'Ciutkan Menu'}
             >
-              <svg
-                className="w-[18px] h-[18px]"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="4" />
-                <line x1="9" y1="3" x2="9" y2="21" />
-                {isSidebarCollapsed ? (
-                  <polyline points="13 10 15.5 12 13 14" />
-                ) : (
-                  <polyline points="15.5 10 13 12 15.5 14" />
-                )}
-              </svg>
+              {isSidebarCollapsed ? (
+                <GoogleIcon name="keyboard_double_arrow_right" size={18} />
+              ) : (
+                <GoogleIcon name="keyboard_double_arrow_left" size={18} />
+              )}
             </button>
           </Tooltip>
         </div>
@@ -197,12 +172,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }`}
             aria-label="Tutup Menu"
           >
-            <ChevronLeft size={18} />
+            <GoogleIcon name="chevron_left" size={18} />
           </button>
         </div>
 
         {/* SIDEBAR MENUS */}
-        <div className="flex-1 px-2.5 pt-1 pb-3 flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div
+          className={`flex-1 px-2.5 pt-1 pb-3 flex flex-col overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${
+            isSidebarCollapsed ? 'gap-1' : 'gap-0.5'
+          }`}
+        >
           {menuItems.map((menu, i) => {
             const Icon = menu.icon;
             const hasSubmenus = !!menu.submenus && menu.submenus.length > 0;
@@ -231,55 +210,58 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         handleItemSelect(menu.name);
                       }
                     }}
-                    className={`relative flex items-center px-3 py-2 text-left text-sm rounded-lg group w-full cursor-pointer min-h-[38px] transition-colors duration-150 ${
+                    className={`relative flex items-center text-left text-sm group cursor-pointer transition-colors duration-150 ${
+                      isSidebarCollapsed
+                        ? 'w-10 h-10 mx-auto justify-center p-0 rounded-xl shrink-0'
+                        : 'px-3 py-2 rounded-lg w-full min-h-[38px]'
+                    } ${
                       isDarkSidebar
                         ? isParentActive
-                          ? 'bg-[#4F46E5] text-white font-semibold z-20'
+                          ? 'bg-primary/25 text-white font-semibold z-20'
                           : isAnySubActive
                           ? 'bg-indigo-900/60 text-white font-semibold z-10'
                           : 'text-indigo-100/85 hover:bg-indigo-900/55 hover:text-white font-medium z-10'
                         : isParentActive
-                        ? 'bg-zinc-900 text-white font-semibold z-20'
+                        ? 'bg-primary/12 text-primary font-semibold z-20'
                         : isAnySubActive
-                        ? 'bg-zinc-100 text-zinc-950 font-semibold z-10'
+                        ? 'bg-primary/[0.06] text-primary font-semibold z-10'
                         : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 font-medium z-10'
                     }`}
                   >
-                    <Icon
-                      size={17}
-                      strokeWidth={isParentActive ? 2.1 : 1.8}
+                    <GoogleIcon
+                      name={menu.icon}
+                      size={isSidebarCollapsed ? 20 : 18}
+                      filled={isParentActive}
                       className={`relative z-10 shrink-0 transition-colors duration-150 ${
                         isDarkSidebar
                           ? isParentActive || isAnySubActive
                             ? 'text-white'
                             : 'text-indigo-300 group-hover:text-white'
-                          : isParentActive
-                          ? 'text-white'
-                          : isAnySubActive
-                          ? 'text-zinc-900'
+                          : isParentActive || isAnySubActive
+                          ? 'text-primary'
                           : 'text-zinc-500 group-hover:text-zinc-900'
                       }`}
                     />
                     <span
-                      className={`relative z-10 whitespace-nowrap text-[13px] transition-all duration-200 overflow-hidden flex-1 ${
+                      className={`relative z-10 whitespace-nowrap text-[14px] transition-all duration-200 overflow-hidden ${
                         isSidebarCollapsed
-                          ? 'max-w-0 opacity-0 translate-x-2 ml-0'
-                          : 'max-w-[220px] opacity-100 translate-x-0 ml-2.5'
+                          ? 'w-0 max-w-0 opacity-0 translate-x-2 ml-0'
+                          : 'flex-1 max-w-[220px] opacity-100 translate-x-0 ml-2.5'
                       }`}
                     >
                       {menu.name}
                     </span>
 
                     {hasSubmenus && !isSidebarCollapsed && (
-                      <ChevronDown
-                        size={14}
+                      <GoogleIcon name="keyboard_arrow_down" size={14}
+                       
                         className={`relative z-10 transition-transform duration-200 ${
                           isDarkSidebar
                             ? isProdukExpanded
                               ? 'rotate-180 text-white'
                               : 'text-indigo-300'
                             : isProdukExpanded
-                            ? 'rotate-180 text-zinc-700'
+                            ? 'rotate-180 text-primary'
                             : 'text-zinc-400'
                         }`}
                       />
@@ -289,7 +271,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* Submenu List */}
                 {hasSubmenus && isProdukExpanded && (
-                  <div className="flex flex-col gap-0.5 my-0.5">
+                  <div className={`flex flex-col my-0.5 ${isSidebarCollapsed ? 'gap-1' : 'gap-0.5'}`}>
                     {menu.submenus.map((sub, j) => {
                       const SubIcon = sub.icon;
                       const isSubActive = activeMenu === sub.name;
@@ -299,35 +281,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           <button
                             type="button"
                             onClick={() => handleItemSelect(sub.name)}
-                            className={`relative flex items-center text-left text-[13px] rounded-lg group w-full cursor-pointer transition-colors duration-150 min-h-[34px] ${
-                              isSidebarCollapsed ? 'px-3 py-1.5' : 'pl-8 pr-3 py-1.5'
+                            className={`relative flex items-center text-left text-[14px] group cursor-pointer transition-colors duration-150 ${
+                              isSidebarCollapsed
+                                ? 'w-10 h-10 mx-auto justify-center p-0 rounded-xl shrink-0'
+                                : 'pl-8 pr-3 py-1.5 rounded-lg w-full min-h-[36px]'
                             } ${
                               isDarkSidebar
                                 ? isSubActive
-                                  ? 'bg-[#4F46E5] text-white font-semibold'
+                                  ? 'bg-primary/25 text-white font-semibold'
                                   : 'text-indigo-200/85 hover:bg-indigo-900/55 hover:text-white font-medium'
                                 : isSubActive
-                                ? 'bg-zinc-900 text-white font-semibold'
+                                ? 'bg-primary/12 text-primary font-semibold'
                                 : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 font-medium'
                             }`}
                           >
-                            <SubIcon
-                              size={16}
-                              strokeWidth={isSubActive ? 2.1 : 1.8}
+                            <GoogleIcon
+                              name={SubIcon}
+                              size={isSidebarCollapsed ? 18 : 16}
+                              filled={isSubActive}
                               className={`relative z-10 shrink-0 transition-colors duration-150 ${
                                 isDarkSidebar
                                   ? isSubActive
                                     ? 'text-white'
                                     : 'text-indigo-300 group-hover:text-white'
                                   : isSubActive
-                                  ? 'text-white'
+                                  ? 'text-primary'
                                   : 'text-zinc-500 group-hover:text-zinc-900'
                               }`}
                             />
                             <span
-                              className={`relative z-10 whitespace-nowrap text-[13px] transition-all duration-200 overflow-hidden ${
+                              className={`relative z-10 whitespace-nowrap text-[14px] transition-all duration-200 overflow-hidden ${
                                 isSidebarCollapsed
-                                  ? 'max-w-0 opacity-0 translate-x-2 ml-0'
+                                  ? 'w-0 max-w-0 opacity-0 translate-x-2 ml-0'
                                   : 'max-w-[220px] opacity-100 translate-x-0 ml-2.5'
                               }`}
                             >
@@ -347,7 +332,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* BOTTOM SECTION: MENGATUR TOKO / MULTI-OUTLET */}
         <div
           className={`p-2.5 border-t shrink-0 relative ${
-            isDarkSidebar ? 'border-indigo-900/80' : 'border-zinc-200'
+            isDarkSidebar ? 'border-indigo-900/80' : 'border-zinc-200/80'
           }`}
           ref={storeMenuRef}
         >
@@ -361,19 +346,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={() => setIsStoreMenuOpen(!isStoreMenuOpen)}
-                className={`w-9 h-9 mx-auto rounded-lg border flex items-center justify-center font-bold text-xs sm:text-sm cursor-pointer transition-colors ${
+                className={`w-10 h-10 mx-auto rounded-xl border flex items-center justify-center font-bold text-xs sm:text-sm cursor-pointer transition-colors ${
                   isDarkSidebar
                     ? `bg-indigo-950/80 hover:bg-indigo-900/80 border-indigo-800/80 text-white ${
                         isStoreMenuOpen ? 'ring-2 ring-indigo-400/40 border-indigo-400' : ''
                       }`
-                    : `bg-zinc-50 hover:bg-zinc-100 border-zinc-200 text-zinc-900 ${
-                        isStoreMenuOpen ? 'ring-2 ring-zinc-900/15 border-zinc-400' : ''
+                    : `bg-primary-soft hover:bg-primary-soft/80 border-primary-border text-primary ${
+                        isStoreMenuOpen ? 'ring-2 ring-primary/20 border-primary' : ''
                       }`
                 }`}
                 aria-label="Atur Toko"
                 aria-expanded={isStoreMenuOpen}
               >
-                <Store size={17} className={isDarkSidebar ? 'text-indigo-200' : 'text-zinc-800'} />
+                <GoogleIcon name="storefront" size={18} className={isDarkSidebar ? 'text-indigo-200' : 'text-primary'} />
               </button>
             </Tooltip>
           ) : (
@@ -385,8 +370,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   ? `bg-indigo-950/75 hover:bg-indigo-900/75 border-indigo-800/80 ${
                       isStoreMenuOpen ? 'ring-2 ring-indigo-400/30 border-indigo-400' : ''
                     }`
-                  : `bg-zinc-50 hover:bg-zinc-100 border-zinc-200 ${
-                      isStoreMenuOpen ? 'ring-2 ring-zinc-900/10 border-zinc-300' : ''
+                  : `bg-zinc-50 hover:bg-primary-soft/40 border-zinc-200 hover:border-primary-border ${
+                      isStoreMenuOpen ? 'ring-2 ring-primary/15 border-primary' : ''
                     }`
               }`}
               aria-label="Pengaturan Toko"
@@ -396,10 +381,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${
                   isDarkSidebar
                     ? 'bg-indigo-900/70 border-indigo-700/70'
-                    : 'bg-zinc-100 border-zinc-200/70'
+                    : 'bg-primary-soft border-primary-border'
                 }`}
               >
-                <Store size={16} className={isDarkSidebar ? 'text-indigo-200' : 'text-zinc-800'} />
+                <GoogleIcon name="storefront" size={16} className={isDarkSidebar ? 'text-indigo-200' : 'text-primary'} />
               </div>
               <div className="min-w-0 flex-1">
                 <p
@@ -410,22 +395,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {activeTenant?.name || 'Toko Utama'}
                 </p>
                 <p
-                  className={`text-[11px] truncate mt-0.5 font-medium ${
+                  className={`text-xs truncate mt-0.5 font-medium ${
                     isDarkSidebar ? 'text-indigo-200/80' : 'text-zinc-500'
                   }`}
                 >
                   {activeTenant?.branchName || 'Cabang Utama'}
                 </p>
               </div>
-              <ChevronDown
-                size={14}
+              <GoogleIcon name="keyboard_arrow_down" size={14}
+               
                 className={`transition-transform shrink-0 ${
                   isDarkSidebar
                     ? isStoreMenuOpen
                       ? 'rotate-180 text-white'
                       : 'text-indigo-300'
                     : isStoreMenuOpen
-                    ? 'rotate-180 text-zinc-700'
+                    ? 'rotate-180 text-primary'
                     : 'text-zinc-400'
                 }`}
               />
@@ -443,7 +428,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="px-2.5 py-1.5 border-b border-zinc-100 flex items-center justify-between">
                 <p className="text-xs font-bold text-zinc-900">Pilih Toko / Outlet</p>
-                <span className="text-xs text-zinc-400 font-medium">
+                <span className="text-xs text-secondary-text bg-secondary-soft px-1.5 py-0.5 rounded font-semibold">
                   {tenants.length} Toko
                 </span>
               </div>
@@ -461,7 +446,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       }}
                       className={`w-full text-left p-2 rounded-lg flex items-center justify-between text-xs sm:text-sm transition-colors cursor-pointer ${
                         isSelected
-                          ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                          ? 'bg-primary-soft text-primary-text font-semibold'
                           : 'hover:bg-zinc-50 text-zinc-700 font-medium'
                       }`}
                     >
@@ -469,7 +454,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <p className="truncate font-semibold leading-tight text-xs sm:text-sm">{t.name}</p>
                         <p className="text-xs text-zinc-400 truncate mt-0.5">{t.branchName}</p>
                       </div>
-                      {isSelected && <Check size={14} className="text-zinc-900 shrink-0" />}
+                      {isSelected && <GoogleIcon name="check" size={14} className="text-primary shrink-0" />}
                     </button>
                   );
                 })}
@@ -484,9 +469,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         setIsStoreMenuOpen(false);
                         onOpenRegisterModal?.();
                       }}
-                      className="w-full py-2 px-2.5 bg-zinc-900 hover:bg-zinc-800 text-white font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full py-2 px-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <Plus size={14} className="shrink-0" />
+                      <GoogleIcon name="add" size={14} className="shrink-0" />
                       <span>Tambah Toko / Outlet Baru</span>
                     </button>
                   )}

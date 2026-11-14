@@ -1,13 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import {
-  Barcode,
-  Volume2,
-  VolumeX,
-  Camera,
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
-} from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
 import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { Product } from '../../types';
@@ -234,7 +226,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           title={isSoundEnabled ? 'Suara beep aktif' : 'Suara beep nonaktif'}
           aria-label={isSoundEnabled ? 'Suara beep aktif' : 'Suara beep nonaktif'}
         >
-          {isSoundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+          {isSoundEnabled ? <GoogleIcon name="volume_up" size={16} /> : <GoogleIcon name="volume_off" size={16} />}
         </button>
       }
       footer={
@@ -264,8 +256,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Barcode
-                  size={17}
+                <GoogleIcon name="barcode_scanner" size={17}
+                 
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
                 />
                 <input
@@ -307,14 +299,14 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                 }`}
                 title={isCameraActive ? 'Matikan Kamera' : 'Nyalakan Kamera Scanner'}
               >
-                <Camera size={16} />
+                <GoogleIcon name="photo_camera" size={16} />
               </button>
             </div>
           </div>
 
           {cameraError && (
             <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-xs text-amber-800">
-              <AlertCircle size={15} className="shrink-0 text-amber-600" />
+              <GoogleIcon name="error" size={15} className="shrink-0 text-amber-600" />
               <span>{cameraError}</span>
             </div>
           )}
@@ -337,7 +329,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-md flex items-center justify-between gap-3 animate-in fade-in duration-150">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                  <CheckCircle2 size={16} />
+                  <GoogleIcon name="check_circle" size={16} />
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs sm:text-sm font-semibold text-emerald-900 truncate">
@@ -356,7 +348,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
           {scanStatus === 'not-found' && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2.5 text-red-800 text-xs sm:text-sm animate-in fade-in duration-150">
-              <AlertCircle size={16} className="text-red-600 shrink-0" />
+              <GoogleIcon name="error" size={16} className="text-red-600 shrink-0" />
               <span>SKU barcode tidak ditemukan dalam katalog produk.</span>
             </div>
           )}
@@ -395,7 +387,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
             {isLoadingSamples ? (
               <div className="py-6 flex items-center justify-center text-xs text-zinc-400 gap-2">
-                <Loader2 size={14} className="animate-spin text-zinc-900" />
+                <GoogleIcon name="progress_activity" size={14} className="animate-spin text-zinc-900" />
                 <span>Memuat daftar SKU...</span>
               </div>
             ) : (

@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useRef } from 'react';
-import { X } from 'lucide-react';
+import { GoogleIcon } from './GoogleIcon';
 import Tooltip from '../Tooltip';
 
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
@@ -11,7 +11,7 @@ export const MODAL_BTN_SECONDARY_CLASS =
   'h-9 px-4 text-xs sm:text-sm font-semibold text-zinc-700 bg-white border border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.03)] disabled:opacity-50 disabled:cursor-not-allowed';
 
 export const MODAL_BTN_PRIMARY_CLASS =
-  'h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.08)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed';
+  'h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.08)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed';
 
 const SIZE_CLASSES: Record<ModalSize, string> = {
   sm: 'max-w-md',
@@ -117,7 +117,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
                 aria-label="Tutup modal"
                 className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-800 hover:bg-zinc-200/70 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <X size={18} />
+                <GoogleIcon name="close" size={18} />
               </button>
             </Tooltip>
           </div>

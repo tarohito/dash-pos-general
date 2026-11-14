@@ -1,17 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  BadgePercent,
-  CheckCircle2,
-  Copy,
-  Eye,
-  Loader2,
-  MessageCircle,
-  Package,
-  Pencil,
-  Percent,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { PromoCampaign, Product, PromoStatsSummary } from '../../types';
 import { AddEditPromoModal } from './AddEditPromoModal';
 import { PromoBroadcastModal } from './PromoBroadcastModal';
@@ -262,15 +250,15 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
             }}
             className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1EBE5D] rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
           >
-            <MessageCircle size={15} />
+            <GoogleIcon name="chat" size={15} />
             <span>Broadcast WA</span>
           </button>
           <button
             type="button"
             onClick={handleOpenAddModal}
-            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
+            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
           >
-            <Plus size={16} />
+            <GoogleIcon name="add" size={16} />
             <span>Buat Promo Baru</span>
           </button>
         </div>
@@ -280,7 +268,8 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <KpiCard
           title="Total Kampanye Promo"
-          icon={<BadgePercent size={16} strokeWidth={2} />}
+          accent="primary"
+          icon={<GoogleIcon name="sell" size={16} />}
           value={
             <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
               {stats?.totalPromos ?? 0} Promo
@@ -295,9 +284,10 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
 
         <KpiCard
           title="Promo Aktif"
-          icon={<CheckCircle2 size={16} strokeWidth={2} />}
+          accent="emerald"
+          icon={<GoogleIcon name="check_circle" size={16} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-700 tracking-tight truncate tabular-nums">
               {stats?.activeCount ?? 0} Aktif
             </div>
           }
@@ -310,7 +300,8 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
 
         <KpiCard
           title="Produk Terdampak"
-          icon={<Package size={16} strokeWidth={2} />}
+          accent="secondary"
+          icon={<GoogleIcon name="deployed_code" size={16} />}
           value={
             <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
               {stats?.totalPromoProducts ?? 0} SKU
@@ -325,9 +316,10 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
 
         <KpiCard
           title="Rata-Rata Diskon"
-          icon={<Percent size={16} strokeWidth={2} />}
+          accent="accent"
+          icon={<GoogleIcon name="percent" size={16} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-accent tracking-tight truncate tabular-nums">
               {stats?.avgDiscount ?? 0}%
             </div>
           }
@@ -355,7 +347,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                 onClick={() => setStatusFilter('all')}
                 className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   statusFilter === 'all'
-                    ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                    ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                     : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >
@@ -366,7 +358,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                 onClick={() => setStatusFilter('active')}
                 className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   statusFilter === 'active'
-                    ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                    ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                     : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >
@@ -377,7 +369,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                 onClick={() => setStatusFilter('inactive')}
                 className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   statusFilter === 'inactive'
-                    ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                    ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                     : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >
@@ -398,12 +390,12 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
         <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
           {isLoading && items.length === 0 ? (
             <div className="py-12 px-4 flex items-center justify-center gap-2 text-xs sm:text-sm text-zinc-400">
-              <Loader2 size={18} className="animate-spin text-zinc-900" />
+              <GoogleIcon name="progress_activity" size={18} className="animate-spin text-zinc-900" />
               <span>Memuat daftar promo...</span>
             </div>
           ) : items.length === 0 ? (
             <div className="py-12 px-4 text-center text-zinc-400">
-              <BadgePercent size={36} className="mx-auto mb-2 text-zinc-300" />
+              <GoogleIcon name="sell" size={36} className="mx-auto mb-2 text-zinc-300" />
               <p className="text-sm font-semibold text-zinc-700">Tidak ada promo ditemukan</p>
               <p className="text-xs text-zinc-400 mt-0.5">
                 {searchQuery || statusFilter !== 'all'
@@ -416,7 +408,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                   onClick={handleOpenAddModal}
                   className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-zinc-900 bg-zinc-100 hover:bg-zinc-200 rounded-xl transition-colors cursor-pointer border border-zinc-200"
                 >
-                  <Plus size={14} />
+                  <GoogleIcon name="add" size={14} />
                   <span>Buat Promo Baru</span>
                 </button>
               )}
@@ -435,7 +427,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                          <span className="px-2 py-0.5 text-xs font-bold font-mono rounded-md bg-zinc-900 text-white">
+                          <span className="px-2 py-0.5 text-xs font-bold font-mono rounded-md bg-accent text-white">
                             -{promo.discountPercent}%
                           </span>
                           <button
@@ -444,7 +436,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                             className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-mono font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded border border-gray-200 cursor-pointer"
                           >
                             <span>{promo.code}</span>
-                            <Copy size={11} className="text-gray-400" />
+                            <GoogleIcon name="content_copy" size={11} className="text-gray-400" />
                           </button>
                         </div>
                         <h4 className="text-sm font-bold text-gray-900">{promo.name}</h4>
@@ -499,13 +491,13 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                           {
                             id: 'detail',
                             label: 'Lihat Detail',
-                            icon: <Eye size={14} />,
+                            icon: <GoogleIcon name="visibility" size={14} />,
                             onClick: () => setDetailPromo(promo),
                           },
                           {
                             id: 'broadcast',
                             label: 'Broadcast WA',
-                            icon: <MessageCircle size={14} />,
+                            icon: <GoogleIcon name="chat" size={14} />,
                             tone: 'whatsapp',
                             onClick: () => {
                               setBroadcastPromo(promo);
@@ -515,13 +507,13 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                           {
                             id: 'edit',
                             label: 'Edit Promo',
-                            icon: <Pencil size={14} />,
+                            icon: <GoogleIcon name="edit" size={14} />,
                             onClick: () => handleOpenEditModal(promo),
                           },
                           {
                             id: 'delete',
                             label: 'Hapus Promo',
-                            icon: <Trash2 size={14} />,
+                            icon: <GoogleIcon name="delete" size={14} />,
                             tone: 'danger',
                             dividerBefore: true,
                             onClick: () => setDeletingPromo(promo),
@@ -596,7 +588,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                                 className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-mono font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded border border-gray-200 transition-colors cursor-pointer"
                               >
                                 <span>{promo.code}</span>
-                                <Copy size={11} className="text-gray-400" />
+                                <GoogleIcon name="content_copy" size={11} className="text-gray-400" />
                               </button>
                             </Tooltip>
                             {copiedCode === promo.code && (
@@ -606,7 +598,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                         </td>
 
                         <td className="py-3.5 px-4 text-center whitespace-nowrap align-middle">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-zinc-900 text-white font-mono font-bold text-xs">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-accent text-white font-mono font-bold text-xs">
                             -{promo.discountPercent}%
                           </span>
                           {promo.label && (
@@ -670,13 +662,13 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                               {
                                 id: 'detail',
                                 label: 'Lihat Detail',
-                                icon: <Eye size={14} />,
+                                icon: <GoogleIcon name="visibility" size={14} />,
                                 onClick: () => setDetailPromo(promo),
                               },
                               {
                                 id: 'broadcast',
                                 label: 'Broadcast WA',
-                                icon: <MessageCircle size={14} />,
+                                icon: <GoogleIcon name="chat" size={14} />,
                                 tone: 'whatsapp',
                                 onClick: () => {
                                   setBroadcastPromo(promo);
@@ -686,13 +678,13 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                               {
                                 id: 'edit',
                                 label: 'Edit Promo',
-                                icon: <Pencil size={14} />,
+                                icon: <GoogleIcon name="edit" size={14} />,
                                 onClick: () => handleOpenEditModal(promo),
                               },
                               {
                                 id: 'delete',
                                 label: 'Hapus Promo',
-                                icon: <Trash2 size={14} />,
+                                icon: <GoogleIcon name="delete" size={14} />,
                                 tone: 'danger',
                                 dividerBefore: true,
                                 onClick: () => setDeletingPromo(promo),
@@ -747,7 +739,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                 }}
                 className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1EBE5D] rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs active:scale-[0.98]"
               >
-                <MessageCircle size={15} className="shrink-0" />
+                <GoogleIcon name="chat" size={15} className="shrink-0" />
                 <span>Broadcast WA</span>
               </button>
               <button
@@ -759,7 +751,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                 }}
                 className={MODAL_BTN_PRIMARY_CLASS}
               >
-                <Pencil size={15} className="shrink-0" />
+                <GoogleIcon name="edit" size={15} className="shrink-0" />
                 <span>Edit Promo</span>
               </button>
             </div>
@@ -769,16 +761,16 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
         {detailPromo && (
           <div className="space-y-4">
             {/* Promo Coupon Banner */}
-            <div className="relative rounded-2xl overflow-hidden bg-zinc-900 text-white shadow-xs flex flex-col sm:flex-row items-stretch">
+            <div className="relative rounded-2xl overflow-hidden bg-primary text-white shadow-xs flex flex-col sm:flex-row items-stretch">
               {/* Left Body: Discount Value */}
               <div className="flex-1 px-4 py-4 sm:px-5 sm:py-5 flex flex-col justify-center min-w-0">
-                <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 block">
+                <span className="text-xs font-semibold uppercase tracking-wider text-white/75 block">
                   Besaran Potongan Harga
                 </span>
                 <p className="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-white mt-0.5">
                   Diskon {detailPromo.discountPercent}%
                 </p>
-                <p className="text-xs text-zinc-300 mt-1 truncate">
+                <p className="text-xs text-white/85 mt-1 truncate">
                   Label: <strong className="text-white">{detailPromo.label || '-'}</strong>
                 </p>
               </div>
@@ -809,8 +801,8 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
               </div>
 
               {/* Right Coupon Stub: Promo Code */}
-              <div className="bg-white/5 px-4 py-3.5 sm:px-6 sm:py-5 flex sm:flex-col items-center sm:justify-center justify-between gap-2 shrink-0 sm:min-w-[178px]">
-                <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              <div className="bg-black/15 px-4 py-3.5 sm:px-6 sm:py-5 flex sm:flex-col items-center sm:justify-center justify-between gap-2 shrink-0 sm:min-w-[178px]">
+                <span className="text-xs font-semibold uppercase tracking-wider text-white/75">
                   Kode Promo
                 </span>
                 <button
@@ -820,7 +812,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                   className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-mono font-bold text-xs sm:text-sm border border-dashed border-white/40 transition-colors cursor-pointer active:scale-[0.98]"
                 >
                   <span>{detailPromo.code}</span>
-                  <Copy size={13} />
+                  <GoogleIcon name="content_copy" size={13} />
                 </button>
               </div>
             </div>

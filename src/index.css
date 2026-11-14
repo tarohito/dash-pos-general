@@ -1,8 +1,33 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-sans: 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Comfortable readable type scale for Open Sans */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.45;
+
+  /* Semantic Palette Defaults (Netral Klasik: Violet #8E42FF Primary + Deep Teal Secondary + Amber Accent) */
+  --color-primary: #8e42ff;
+  --color-primary-hover: #7a2ce8;
+  --color-primary-soft: #f5eeff;
+  --color-primary-border: #dec6ff;
+  --color-primary-text: #6520cc;
+
+  --color-secondary: #0f766e;
+  --color-secondary-hover: #0d9488;
+  --color-secondary-soft: #f0fdfa;
+  --color-secondary-border: #99f6e4;
+  --color-secondary-text: #115e59;
+
+  --color-accent: #d97706;
+  --color-accent-hover: #b45309;
+  --color-accent-soft: #fffbeb;
+  --color-accent-border: #fde68a;
+  --color-accent-text: #92400e;
 }
 
 @layer base {
@@ -25,6 +50,24 @@
     --color-zinc-800: #075985;
     --color-zinc-900: #0369a1;
     --color-zinc-950: #0c4a6e;
+
+    --color-primary: #0284c7;
+    --color-primary-hover: #0369a1;
+    --color-primary-soft: #e0f2fe;
+    --color-primary-border: #bae6fd;
+    --color-primary-text: #075985;
+
+    --color-secondary: #0d9488;
+    --color-secondary-hover: #0f766e;
+    --color-secondary-soft: #ccfbf1;
+    --color-secondary-border: #99f6e4;
+    --color-secondary-text: #115e59;
+
+    --color-accent: #ea580c;
+    --color-accent-hover: #c2410c;
+    --color-accent-soft: #fff7ed;
+    --color-accent-border: #fed7aa;
+    --color-accent-text: #9a3412;
   }
 
   :root[data-app-theme='emerald_mint'] {
@@ -39,6 +82,24 @@
     --color-zinc-800: #065f46;
     --color-zinc-900: #047857;
     --color-zinc-950: #064e3b;
+
+    --color-primary: #059669;
+    --color-primary-hover: #047857;
+    --color-primary-soft: #d1fae5;
+    --color-primary-border: #a7f3d0;
+    --color-primary-text: #065f46;
+
+    --color-secondary: #0284c7;
+    --color-secondary-hover: #0369a1;
+    --color-secondary-soft: #e0f2fe;
+    --color-secondary-border: #bae6fd;
+    --color-secondary-text: #075985;
+
+    --color-accent: #d97706;
+    --color-accent-hover: #b45309;
+    --color-accent-soft: #fef3c7;
+    --color-accent-border: #fde68a;
+    --color-accent-text: #92400e;
   }
 
   :root[data-app-theme='rose_blossom'] {
@@ -53,6 +114,24 @@
     --color-zinc-800: #9f1239;
     --color-zinc-900: #be123c;
     --color-zinc-950: #4c0519;
+
+    --color-primary: #e11d48;
+    --color-primary-hover: #be123c;
+    --color-primary-soft: #ffe4e6;
+    --color-primary-border: #fecdd3;
+    --color-primary-text: #9f1239;
+
+    --color-secondary: #7c3aed;
+    --color-secondary-hover: #6d28d9;
+    --color-secondary-soft: #ede9fe;
+    --color-secondary-border: #ddd6fe;
+    --color-secondary-text: #5b21b6;
+
+    --color-accent: #d97706;
+    --color-accent-hover: #b45309;
+    --color-accent-soft: #fef3c7;
+    --color-accent-border: #fde68a;
+    --color-accent-text: #92400e;
   }
 
   :root[data-app-theme='indigo_night'] {
@@ -67,6 +146,24 @@
     --color-zinc-800: #3730a3;
     --color-zinc-900: #4338ca;
     --color-zinc-950: #1e1b4b;
+
+    --color-primary: #4f46e5;
+    --color-primary-hover: #4338ca;
+    --color-primary-soft: #e0e7ff;
+    --color-primary-border: #c7d2fe;
+    --color-primary-text: #3730a3;
+
+    --color-secondary: #0891b2;
+    --color-secondary-hover: #0e7490;
+    --color-secondary-soft: #cffafe;
+    --color-secondary-border: #a5f3fc;
+    --color-secondary-text: #155e75;
+
+    --color-accent: #f59e0b;
+    --color-accent-hover: #d97706;
+    --color-accent-soft: #fef3c7;
+    --color-accent-border: #fde68a;
+    --color-accent-text: #92400e;
   }
 
   :root[data-app-theme='espresso_cream'] {
@@ -81,6 +178,24 @@
     --color-zinc-800: #6d3b1a;
     --color-zinc-900: #7c3f18;
     --color-zinc-950: #3b1d0a;
+
+    --color-primary: #9a3412;
+    --color-primary-hover: #7c2d12;
+    --color-primary-soft: #ffedd5;
+    --color-primary-border: #fed7aa;
+    --color-primary-text: #7c2d12;
+
+    --color-secondary: #0f766e;
+    --color-secondary-hover: #115e59;
+    --color-secondary-soft: #ccfbf1;
+    --color-secondary-border: #99f6e4;
+    --color-secondary-text: #115e59;
+
+    --color-accent: #d97706;
+    --color-accent-hover: #b45309;
+    --color-accent-soft: #fef3c7;
+    --color-accent-border: #fde68a;
+    --color-accent-text: #92400e;
   }
 
   html, body, #root {
@@ -93,7 +208,7 @@
 
   body {
     font-family: var(--font-sans);
-    font-size: 0.875rem; /* 14px enterprise default */
+    font-size: 0.9375rem; /* 15px readable base */
     line-height: 1.5;
     color: var(--color-zinc-900);
     background-color: var(--color-zinc-100);
@@ -124,6 +239,15 @@
     background-color: var(--color-zinc-50);
   }
 
+  .main-container-top-gradient {
+    background-image:
+      radial-gradient(52% 110% at 0% 0%, rgba(99, 236, 228, 0.52) 0%, rgba(165, 243, 252, 0.24) 48%, transparent 78%),
+      radial-gradient(52% 110% at 100% 0%, rgba(168, 108, 255, 0.48) 0%, rgba(216, 180, 254, 0.22) 48%, transparent 78%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.65) 55%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000000 0%, #000000 45%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000000 0%, #000000 45%, transparent 100%);
+  }
+
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-sans);
   }
@@ -147,6 +271,19 @@
     -moz-appearance: textfield !important;
     appearance: textfield !important;
   }
+
+  .material-symbols-rounded {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    transition: font-variation-settings 150ms ease;
+  }
+
+  .material-symbols-rounded.icon-filled {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+
+  .material-symbols-rounded.icon-bold {
+    font-variation-settings: 'FILL' 0, 'wght' 600, 'GRAD' 0, 'opsz' 24;
+  }
 }
 
 /* Hide scrollbars globally where needed */
@@ -159,7 +296,7 @@
 }
 
 .tippy-box {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
   font-weight: 500;
   border-radius: 8px;

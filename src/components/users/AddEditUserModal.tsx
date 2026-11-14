@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { Tenant, UserAccount, UserCreatePayload, UserRole, UserUpdatePayload } from '../../types';
 import {
   ModalShell,
@@ -207,7 +207,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
             disabled={isSubmitting}
             className={MODAL_BTN_PRIMARY_CLASS}
           >
-            {isSubmitting && <Loader2 size={15} className="animate-spin" />}
+            {isSubmitting && <GoogleIcon name="progress_activity" size={15} className="animate-spin" />}
             <span>{isEdit ? 'Simpan Perubahan' : 'Buat Akun Pengguna'}</span>
           </button>
         </div>
@@ -216,7 +216,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
       <form id="add-edit-user-form" onSubmit={handleSubmit} className="space-y-4.5">
         {formError && (
           <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-2">
-            <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-600" />
+            <GoogleIcon name="error" size={16} className="shrink-0 mt-0.5 text-red-600" />
             <span>{formError}</span>
           </div>
         )}
@@ -291,7 +291,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 cursor-pointer"
                   aria-label="Toggle kata sandi"
                 >
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  {showPassword ? <GoogleIcon name="visibility_off" size={15} /> : <GoogleIcon name="visibility" size={15} />}
                 </button>
               </div>
             </div>
@@ -349,7 +349,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
 
           {role === 'owner' ? (
             <div className="flex items-center gap-2 p-2.5 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-800 text-xs font-medium">
-              <ShieldCheck size={16} className="text-zinc-700 shrink-0" />
+              <GoogleIcon name="verified_user" size={16} className="text-zinc-700 shrink-0" />
               <span>Akses Global Aktif (Semua {tenants.length} outlet &amp; seluruh fitur manajemen)</span>
             </div>
           ) : (

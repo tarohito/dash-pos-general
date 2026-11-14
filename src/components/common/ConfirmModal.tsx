@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { GoogleIcon } from './GoogleIcon';
 import { useToast } from '../../contexts/ToastContext';
 import {
   ModalShell,
@@ -107,7 +107,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       <div className="space-y-4">
         {localError && (
           <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700 flex items-center gap-2">
-            <AlertCircle size={14} className="shrink-0" />
+            <GoogleIcon name="error" size={14} className="shrink-0" />
             <span>{localError}</span>
           </div>
         )}

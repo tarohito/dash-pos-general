@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { Product } from '../../types';
 import { CustomSelect } from '../common/CustomSelect';
 import { NumericInput } from '../common/NumericInput';
@@ -192,7 +192,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       <form id="product-form" noValidate onSubmit={handleSubmit} className="space-y-4">
           {errorMsg && (
             <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700 flex items-center gap-2">
-              <AlertCircle size={15} className="shrink-0" />
+              <GoogleIcon name="error" size={15} className="shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
@@ -209,7 +209,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                   className="text-xs font-semibold text-zinc-700 hover:text-zinc-950 cursor-pointer inline-flex items-center gap-1"
                   title="Generate kode SKU otomatis"
                 >
-                  <RefreshCw size={12} className="shrink-0" />
+                  <GoogleIcon name="sync" size={12} className="shrink-0" />
                   <span>Auto SKU</span>
                 </button>
               </div>

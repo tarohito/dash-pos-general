@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  MoreHorizontal,
-} from 'lucide-react';
+import { GoogleIcon } from './GoogleIcon';
 import { CustomSelect } from './CustomSelect';
 
 interface PaginationControlsProps {
@@ -109,7 +103,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
           title="Halaman Pertama"
           aria-label="Halaman Pertama"
         >
-          <ChevronsLeft size={15} />
+          <GoogleIcon name="keyboard_double_arrow_left" size={15} />
         </button>
 
         <button
@@ -120,7 +114,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
           title="Halaman Sebelumnya"
           aria-label="Halaman Sebelumnya"
         >
-          <ChevronLeft size={15} />
+          <GoogleIcon name="chevron_left" size={15} />
         </button>
 
         {/* Mobile Compact Page Indicator */}
@@ -138,7 +132,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
                   aria-hidden="true"
                   className="w-7 h-8 inline-flex items-center justify-center text-gray-400 select-none"
                 >
-                  <MoreHorizontal size={14} />
+                  <GoogleIcon name="more_horiz" size={14} />
                 </span>
               );
             }
@@ -174,7 +168,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
           title="Halaman Selanjutnya"
           aria-label="Halaman Selanjutnya"
         >
-          <ChevronRight size={15} />
+          <GoogleIcon name="chevron_right" size={15} />
         </button>
 
         <button
@@ -185,7 +179,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
           title="Halaman Terakhir"
           aria-label="Halaman Terakhir"
         >
-          <ChevronsRight size={15} />
+          <GoogleIcon name="keyboard_double_arrow_right" size={15} />
         </button>
       </nav>
     </div>

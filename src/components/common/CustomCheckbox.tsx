@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check } from 'lucide-react';
+import { GoogleIcon } from './GoogleIcon';
 
 export interface CustomCheckboxProps {
   checked: boolean;
@@ -44,7 +44,7 @@ export const CustomCheckbox: React.FC<CustomCheckboxProps> = ({
             : 'bg-white border-zinc-300 hover:border-zinc-500 text-transparent cursor-pointer'
         }`}
       >
-        <Check size={12} strokeWidth={3} className={checked ? 'opacity-100' : 'opacity-0'} />
+        <GoogleIcon name="check" size={12} bold className={checked ? 'opacity-100' : 'opacity-0'} />
       </span>
     </span>
   );

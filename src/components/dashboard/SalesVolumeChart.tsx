@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Chart,
   LineController,
@@ -11,7 +11,7 @@ import {
   ChartConfiguration,
   Plugin,
 } from 'chart.js';
-import { Info } from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { formatCompactIDR, formatIDR } from '../../utils/formatters';
 import Tooltip from '../Tooltip';
 
@@ -57,6 +57,18 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstanceRef = useRef<Chart<'line'> | null>(null);
+  const [themeVersion, setThemeVersion] = useState(0);
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setThemeVersion(v => v + 1);
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-app-theme'],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -69,9 +81,22 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
       typeof window !== 'undefined' &&
       window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+    const rootStyles = window.getComputedStyle(document.documentElement);
+    const primaryColor = rootStyles.getPropertyValue('--color-primary').trim() || '#8e42ff';
+    const accentColor = rootStyles.getPropertyValue('--color-accent').trim() || '#d97706';
+
+    const hexToRgba = (hex: string, alpha: number) => {
+      const clean = hex.replace('#', '');
+      if (clean.length !== 6) return `rgba(142, 66, 255, ${alpha})`;
+      const r = parseInt(clean.slice(0, 2), 16);
+      const g = parseInt(clean.slice(2, 4), 16);
+      const b = parseInt(clean.slice(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+
     const areaGradient = ctx.createLinearGradient(0, 0, 0, 260);
-    areaGradient.addColorStop(0, 'rgba(24, 24, 27, 0.09)');
-    areaGradient.addColorStop(1, 'rgba(24, 24, 27, 0.0)');
+    areaGradient.addColorStop(0, hexToRgba(primaryColor, 0.14));
+    areaGradient.addColorStop(1, hexToRgba(primaryColor, 0.0));
 
     const maxSales = Math.max(...salesData, 0);
     const maxTrx = Math.max(...trxData, 0);
@@ -119,7 +144,7 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
         c.save();
         c.beginPath();
         c.arc(x, y, radius, 0, Math.PI * 2);
-        c.strokeStyle = `rgba(24, 24, 27, ${alpha.toFixed(3)})`;
+        c.strokeStyle = hexToRgba(primaryColor, Number(alpha.toFixed(3)));
         c.lineWidth = 2;
         c.stroke();
         c.restore();
@@ -135,7 +160,7 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
             label: period === 'HARI' ? 'Total penjualan per jam' : 'Total penjualan per hari',
             data: prefersReducedMotion ? [...salesData] : salesData.map(() => 0),
             yAxisID: 'ySales',
-            borderColor: '#18181b',
+            borderColor: primaryColor,
             backgroundColor: areaGradient,
             borderWidth: 2.25,
             fill: true,
@@ -143,28 +168,28 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
             pointRadius: 3.5,
             pointHoverRadius: 6,
             pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#18181b',
+            pointBorderColor: primaryColor,
             pointBorderWidth: 2,
             pointHoverBackgroundColor: '#ffffff',
-            pointHoverBorderColor: '#18181b',
+            pointHoverBorderColor: primaryColor,
             pointHoverBorderWidth: 2.5,
           },
           {
             label: period === 'HARI' ? 'Total transaksi per jam' : 'Total transaksi per hari',
             data: prefersReducedMotion ? [...trxData] : trxData.map(() => 0),
             yAxisID: 'yTrx',
-            borderColor: '#71717a',
-            backgroundColor: 'rgba(113, 113, 122, 0.08)',
+            borderColor: accentColor,
+            backgroundColor: hexToRgba(accentColor, 0.08),
             borderWidth: 2,
             fill: false,
             tension: 0.34,
             pointRadius: 3,
             pointHoverRadius: 5.5,
             pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#71717a',
+            pointBorderColor: accentColor,
             pointBorderWidth: 2,
             pointHoverBackgroundColor: '#ffffff',
-            pointHoverBorderColor: '#71717a',
+            pointHoverBorderColor: accentColor,
             pointHoverBorderWidth: 2.5,
           },
         ],
@@ -211,14 +236,14 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
             usePointStyle: true,
             titleColor: '#fafafa',
             titleFont: {
-              family: "'Plus Jakarta Sans', sans-serif",
-              size: 12,
+              family: "'Open Sans', system-ui, sans-serif",
+              size: 13,
               weight: 'bold',
             },
             bodyColor: '#e4e4e7',
             bodyFont: {
-              family: "'JetBrains Mono', monospace",
-              size: 12,
+              family: "'Open Sans', system-ui, sans-serif",
+              size: 13,
               weight: 500,
             },
             callbacks: {
@@ -253,8 +278,8 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
             ticks: {
               color: '#94a3b8',
               font: {
-                family: "'JetBrains Mono', monospace",
-                size: 11,
+                family: "'Open Sans', system-ui, sans-serif",
+                size: 12,
               },
               maxRotation: 0,
               autoSkip: true,
@@ -276,8 +301,8 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
             ticks: {
               color: '#94a3b8',
               font: {
-                family: "'JetBrains Mono', monospace",
-                size: 11,
+                family: "'Open Sans', system-ui, sans-serif",
+                size: 12,
               },
               maxTicksLimit: 5,
               callback: value => {
@@ -300,8 +325,8 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
             ticks: {
               color: '#71717a',
               font: {
-                family: "'JetBrains Mono', monospace",
-                size: 11,
+                family: "'Open Sans', system-ui, sans-serif",
+                size: 12,
               },
               precision: 0,
               maxTicksLimit: 5,
@@ -472,7 +497,7 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
         chartInstanceRef.current = null;
       }
     };
-  }, [period, labels, salesData, trxData]);
+  }, [period, labels, salesData, trxData, themeVersion]);
 
   return (
     <div ref={containerRef}>
@@ -483,9 +508,9 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
       <div className="flex flex-wrap items-center justify-center gap-6 mt-3 pt-2 text-xs sm:text-sm font-semibold">
         <div className="flex items-center gap-2">
           <div className="flex items-center w-6 justify-center">
-            <span className="w-2 h-[2px] bg-zinc-900 rounded-full" />
-            <span className="w-2.5 h-2.5 rounded-full border-2 border-zinc-900 bg-white -ml-0.5 -mr-0.5 z-10 shrink-0" />
-            <span className="w-2 h-[2px] bg-zinc-900 rounded-full" />
+            <span className="w-2 h-[2px] bg-primary rounded-full" />
+            <span className="w-2.5 h-2.5 rounded-full border-2 border-primary bg-white -ml-0.5 -mr-0.5 z-10 shrink-0" />
+            <span className="w-2 h-[2px] bg-primary rounded-full" />
           </div>
           <span className="text-zinc-700">
             {period === 'HARI' ? 'Total penjualan per jam' : 'Total penjualan per hari'}
@@ -499,16 +524,16 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
               className="text-zinc-400 hover:text-zinc-700 cursor-help inline-flex items-center p-0.5 rounded transition-colors"
               aria-label="Info Total penjualan"
             >
-              <Info size={12} />
+              <GoogleIcon name="info" size={12} />
             </button>
           </Tooltip>
         </div>
 
         <div className="flex items-center gap-2">
           <div className="flex items-center w-6 justify-center">
-            <span className="w-2 h-[2px] bg-zinc-500 rounded-full" />
-            <span className="w-2.5 h-2.5 rounded-full border-2 border-zinc-500 bg-white -ml-0.5 -mr-0.5 z-10 shrink-0" />
-            <span className="w-2 h-[2px] bg-zinc-500 rounded-full" />
+            <span className="w-2 h-[2px] bg-accent rounded-full" />
+            <span className="w-2.5 h-2.5 rounded-full border-2 border-accent bg-white -ml-0.5 -mr-0.5 z-10 shrink-0" />
+            <span className="w-2 h-[2px] bg-accent rounded-full" />
           </div>
           <span className="text-zinc-700">
             {period === 'HARI' ? 'Total transaksi per jam' : 'Total transaksi per hari'}
@@ -522,7 +547,7 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
               className="text-gray-400 hover:text-gray-600 cursor-help inline-flex items-center p-0.5 rounded transition-colors"
               aria-label="Info Total transaksi"
             >
-              <Info size={12} />
+              <GoogleIcon name="info" size={12} />
             </button>
           </Tooltip>
         </div>

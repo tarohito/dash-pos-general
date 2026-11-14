@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { Product } from '../../types';
 
 interface ScanFeedbackToastProps {
@@ -15,7 +15,7 @@ export const ScanFeedbackToast: React.FC<ScanFeedbackToastProps> = ({ feedback }
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-zinc-900 text-white px-5 py-3.5 rounded-xl shadow-lg flex items-center gap-3.5 border border-zinc-700 animate-in fade-in slide-in-from-bottom-4 duration-150">
       <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-        <CheckCircle2 size={20} />
+        <GoogleIcon name="check_circle" size={20} />
       </div>
       <div>
         <div className="flex items-center gap-2">

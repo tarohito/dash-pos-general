@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { Tenant } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
 import {
@@ -161,7 +161,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
       {isSuccess && createdTenant ? (
         <div className="py-2 text-center space-y-4">
           <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
-            <CheckCircle2 size={36} />
+            <GoogleIcon name="check_circle" size={36} />
           </div>
           <div>
             <h3 className="text-lg sm:text-xl font-bold text-gray-900">Selamat! Tenant Berhasil Terdaftar</h3>
@@ -197,12 +197,12 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
         <form id="register-tenant-form" noValidate onSubmit={handleSubmit} className="space-y-3.5 text-xs sm:text-sm">
             {errorMsg && (
               <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700 flex items-center gap-2">
-                <AlertCircle size={15} className="shrink-0" />
+                <GoogleIcon name="error" size={15} className="shrink-0" />
                 <span>{errorMsg}</span>
               </div>
             )}
             <div className="bg-amber-50 border border-amber-200/80 rounded-md p-3 flex items-start gap-2.5 text-amber-900">
-              <ShieldCheck size={18} className="text-amber-600 shrink-0 mt-0.5" />
+              <GoogleIcon name="verified_user" size={18} className="text-amber-600 shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold text-xs sm:text-sm">Multi-Tenant Cloud Isolation</p>
                 <p className="text-xs text-amber-800/90 mt-0.5 leading-relaxed">

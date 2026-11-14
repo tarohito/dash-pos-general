@@ -1,16 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  Loader2,
-  Barcode,
-  Layers,
-  Package,
-  Scale,
-  Coins,
-  Filter,
-} from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 import { Product } from '../../types';
 import { formatIDR } from '../../utils/formatters';
 import { PaginationControls } from '../common/PaginationControls';
@@ -169,9 +158,9 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
             <button
               type="button"
               onClick={onOpenAddModal}
-              className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
+              className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
             >
-              <Plus size={16} />
+              <GoogleIcon name="add" size={16} />
               <span>Tambah Barang</span>
             </button>
           </div>
@@ -182,7 +171,8 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <KpiCard
           title="Total Koleksi"
-          icon={<Layers size={16} strokeWidth={2} />}
+          accent="primary"
+          icon={<GoogleIcon name="layers" size={16} />}
           value={
             <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
               {totalAllProducts ?? 0} SKU
@@ -197,7 +187,8 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
 
         <KpiCard
           title="Total Stok Fisik"
-          icon={<Package size={16} strokeWidth={2} />}
+          accent="secondary"
+          icon={<GoogleIcon name="deployed_code" size={16} />}
           value={
             <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
               {totalStockQty ?? 0} Pcs
@@ -212,7 +203,8 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
 
         <KpiCard
           title="Total Netto / Berat"
-          icon={<Scale size={16} strokeWidth={2} />}
+          accent="accent"
+          icon={<GoogleIcon name="balance" size={16} />}
           value={
             <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
               {Number((totalWeightGrams ?? 0).toFixed(2))} gr
@@ -227,13 +219,14 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
 
         <KpiCard
           title="Nilai Aset Etalase"
-          icon={<Coins size={16} strokeWidth={2} />}
+          accent="emerald"
+          icon={<GoogleIcon name="payments" size={16} />}
           value={
             <MoneyAmount
               value={totalInventoryValue ?? 0}
               maxFontPx={24}
               minFontPx={13}
-              className="font-bold font-mono text-zinc-950 tracking-tight tabular-nums"
+              className="font-bold font-mono text-primary tracking-tight tabular-nums"
             />
           }
           footer={
@@ -260,7 +253,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
               options={categoryOptions}
               placeholder="Pilih Kategori"
               ariaLabel="Filter kategori barang"
-              icon={<Filter size={14} />}
+              icon={<GoogleIcon name="filter_list" size={14} />}
               className="!h-9 sm:!h-9 !rounded-xl !text-xs sm:!text-sm !border-zinc-200 hover:!border-zinc-300"
             />
           </div>
@@ -278,12 +271,12 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
         <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
           {isLoading && items.length === 0 ? (
             <div className="py-12 px-4 flex items-center justify-center gap-2 text-xs sm:text-sm text-zinc-400">
-              <Loader2 size={18} className="animate-spin text-zinc-900" />
+              <GoogleIcon name="progress_activity" size={18} className="animate-spin text-zinc-900" />
               <span>Memuat data inventaris...</span>
             </div>
           ) : items.length === 0 ? (
             <div className="py-12 px-4 text-center text-zinc-400">
-              <Package size={36} className="mx-auto mb-2 text-zinc-300" />
+              <GoogleIcon name="deployed_code" size={36} className="mx-auto mb-2 text-zinc-300" />
               <p className="text-sm font-semibold text-zinc-600">Tidak ada data produk</p>
               <p className="text-xs text-gray-400 mt-0.5">
                 {search || selectedCategory !== 'Semua'
@@ -296,7 +289,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                   onClick={onOpenAddModal}
                   className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-800 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors cursor-pointer border border-zinc-200"
                 >
-                  <Plus size={14} />
+                  <GoogleIcon name="add" size={14} />
                   <span>Tambah Barang Baru</span>
                 </button>
               )}
@@ -358,7 +351,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                           {
                             id: 'barcode',
                             label: 'Cetak Barcode',
-                            icon: <Barcode size={14} />,
+                            icon: <GoogleIcon name="barcode_scanner" size={14} />,
                             tone: 'primary',
                             onClick: () => setPrintingBarcodeProduct(p),
                           },
@@ -367,13 +360,13 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                                 {
                                   id: 'edit',
                                   label: 'Edit Barang',
-                                  icon: <Pencil size={14} />,
+                                  icon: <GoogleIcon name="edit" size={14} />,
                                   onClick: () => onEditProduct(p),
                                 },
                                 {
                                   id: 'delete',
                                   label: 'Hapus Barang',
-                                  icon: <Trash2 size={14} />,
+                                  icon: <GoogleIcon name="delete" size={14} />,
                                   tone: 'danger' as const,
                                   dividerBefore: true,
                                   disabled: (p.salesCount ?? 0) > 0,
@@ -498,7 +491,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                               {
                                 id: 'barcode',
                                 label: 'Cetak Barcode',
-                                icon: <Barcode size={14} />,
+                                icon: <GoogleIcon name="barcode_scanner" size={14} />,
                                 tone: 'primary',
                                 onClick: () => setPrintingBarcodeProduct(p),
                               },
@@ -507,13 +500,13 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                                     {
                                       id: 'edit',
                                       label: 'Edit Barang',
-                                      icon: <Pencil size={14} />,
+                                      icon: <GoogleIcon name="edit" size={14} />,
                                       onClick: () => onEditProduct(p),
                                     },
                                     {
                                       id: 'delete',
                                       label: 'Hapus Barang',
-                                      icon: <Trash2 size={14} />,
+                                      icon: <GoogleIcon name="delete" size={14} />,
                                       tone: 'danger' as const,
                                       dividerBefore: true,
                                       disabled: (p.salesCount ?? 0) > 0,
