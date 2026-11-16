@@ -20,6 +20,7 @@ export interface CustomSelectProps {
   id?: string;
   name?: string;
   size?: 'sm' | 'md';
+  columns?: 1 | 2;
   ariaLabel?: string;
 }
 
@@ -42,6 +43,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   id,
   name,
   size = 'md',
+  columns = 1,
   ariaLabel,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -78,8 +80,11 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    const width = Math.max(triggerRect.width, size === 'sm' ? 116 : 160);
-    const naturalHeight = Math.min(menuEl.scrollHeight || 200, 240);
+    const width =
+      columns === 2
+        ? Math.max(triggerRect.width, Math.min(400, vw - VIEWPORT_MARGIN * 2))
+        : Math.max(triggerRect.width, size === 'sm' ? 116 : 160);
+    const naturalHeight = Math.min(menuEl.scrollHeight || 200, columns === 2 ? 280 : 240);
 
     const spaceBelow = vh - triggerRect.bottom - VIEWPORT_MARGIN - GAP;
     const spaceAbove = triggerRect.top - VIEWPORT_MARGIN - GAP;
@@ -109,7 +114,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       maxHeight: Math.floor(maxHeight),
       ready: true,
     });
-  }, [size]);
+  }, [size, columns]);
 
   useLayoutEffect(() => {
     if (!isOpen) return;
@@ -164,8 +169,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
 
   const triggerSizeClass =
     size === 'sm'
-      ? 'h-8 px-2.5 text-xs border-gray-200 hover:border-gray-300'
-      : 'h-10 sm:h-11 px-3.5 text-sm border-gray-300 hover:border-gray-400';
+      ? 'h-8 px-2.5 text-xs border-zinc-200 hover:border-zinc-300 rounded-lg'
+      : 'h-10 px-3.5 text-sm border-zinc-200 hover:border-zinc-300 rounded-xl';
 
   return (
     <div ref={containerRef} className="relative w-full text-left" id={id}>
@@ -181,7 +186,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         onClick={() => {
           if (!disabled) setIsOpen(prev => !prev);
         }}
-        className={`w-full bg-white border rounded-lg flex items-center justify-between transition-colors cursor-pointer focus:outline-none focus-visible:border-primary ${triggerSizeClass} ${
+        className={`w-full bg-white border flex items-center justify-between transition-colors cursor-pointer focus:outline-none focus-visible:border-primary ${triggerSizeClass} ${
           disabled ? 'opacity-50 cursor-not-allowed bg-zinc-100' : ''
         } ${isOpen ? '!border-primary bg-primary-soft/30 ring-1 ring-primary/20' : ''} ${className}`}
         aria-haspopup="listbox"
@@ -222,7 +227,9 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
               zIndex: 2147483647,
               opacity: pos.ready ? 1 : 0,
             }}
-            className="bg-white shadow-lg border border-zinc-200 rounded-xl p-1.5 overflow-y-auto space-y-0.5 transition-opacity duration-75"
+            className={`bg-white shadow-lg border border-zinc-200 rounded-xl p-1.5 overflow-y-auto transition-opacity duration-75 ${
+              columns === 2 ? 'grid grid-cols-2 gap-1' : 'space-y-0.5'
+            }`}
           >
             {normalizedOptions.map(opt => {
               const isSelected = opt.value === value;
@@ -234,8 +241,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                   role="option"
                   aria-selected={isSelected}
                   onClick={() => handleSelect(opt.value)}
-                  className={`w-full rounded-lg text-left flex items-center justify-between gap-2 transition-colors cursor-pointer ${
-                    size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-xs sm:text-sm'
+                  className={`w-full rounded-lg text-left flex items-center justify-between gap-2 transition-colors cursor-pointer text-sm ${
+                    size === 'sm' ? 'px-2.5 py-1.5' : 'px-3 py-2'
                   } ${
                     isSelected
                       ? 'bg-primary-soft text-primary-text font-semibold'

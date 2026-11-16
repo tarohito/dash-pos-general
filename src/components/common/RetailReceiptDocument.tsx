@@ -99,53 +99,25 @@ function getWatermarkOpacityClass(percent: number): string {
 }
 
 function getSalePaymentMethodLabel(tx: Transaction): string {
-  switch (tx.paymentMethod) {
-    case 'cash':
-      return 'Tunai';
-    case 'debit':
-      return tx.paymentDetails.debitBank
-        ? `Debit (${tx.paymentDetails.debitBank})`
-        : 'Kartu Debit';
-    case 'transfer':
-      return tx.paymentDetails.transferBank
-        ? `Transfer (${tx.paymentDetails.transferBank})`
-        : 'Transfer Bank';
-    case 'qris':
-      return 'QRIS';
-    default:
-      return tx.paymentMethod;
+  if (tx.paymentMethod === 'cash') {
+    return 'Tunai';
   }
+  return tx.paymentDetails.transferBank
+    ? `Transfer (${tx.paymentDetails.transferBank})`
+    : 'Transfer Bank';
 }
 
 function getSalePaymentReferenceLine(tx: Transaction): string {
   const d = tx.paymentDetails || {};
-  switch (tx.paymentMethod) {
-    case 'cash': {
-      const received = d.cashReceived ?? tx.grandTotal;
-      const change = d.cashChange ?? Math.max(0, received - tx.grandTotal);
-      return `Dibayar ${formatIDR(received)} · Kembali ${formatIDR(change)}`;
-    }
-    case 'debit': {
-      const parts: string[] = [];
-      if (d.debitCardLast4) parts.push(`•••• ${d.debitCardLast4}`);
-      if (d.debitApprovalCode) parts.push(`Appr: ${d.debitApprovalCode}`);
-      return parts.join(' · ') || 'Lunas';
-    }
-    case 'transfer': {
-      const parts: string[] = [];
-      if (d.transferAccountNo) parts.push(`Rek: ${d.transferAccountNo}`);
-      if (d.transferRef) parts.push(`Ref: ${d.transferRef}`);
-      return parts.join(' · ') || 'Lunas';
-    }
-    case 'qris': {
-      const parts: string[] = [];
-      if (d.qrisRrn) parts.push(`RRN: ${d.qrisRrn}`);
-      if (d.qrisNmid) parts.push(`NMID: ${d.qrisNmid}`);
-      return parts.join(' · ') || 'Lunas';
-    }
-    default:
-      return '';
+  if (tx.paymentMethod === 'cash') {
+    const received = d.cashReceived ?? tx.grandTotal;
+    const change = d.cashChange ?? Math.max(0, received - tx.grandTotal);
+    return `Dibayar ${formatIDR(received)} · Kembali ${formatIDR(change)}`;
   }
+  const parts: string[] = [];
+  if (d.transferAccountNo) parts.push(`Rek: ${d.transferAccountNo}`);
+  if (d.transferRef) parts.push(`Ref: ${d.transferRef}`);
+  return parts.join(' · ') || 'Lunas';
 }
 
 const StoreBagGlyph: React.FC<{ className?: string }> = ({ className }) => (

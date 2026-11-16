@@ -26,6 +26,10 @@ import type {
   StoreSettingsUpdatePayload,
   Tenant,
   Transaction,
+  TransactionExportFormat,
+  TransactionExportPeriod,
+  TransactionExportPreview,
+  TransactionExportStatus,
   TransactionsPageResponse,
   UserAccount,
   UserCreatePayload,
@@ -176,6 +180,7 @@ export const posApi = {
       search?: string;
       category?: string;
       promoOnly?: boolean;
+      filterTab?: 'all' | 'active' | 'promo' | 'low_stock';
       sortBy?: string;
       sortDir?: 'asc' | 'desc';
     } = {},
@@ -188,6 +193,7 @@ export const posApi = {
         search: params.search,
         category: params.category,
         promoOnly: params.promoOnly ? 'true' : undefined,
+        filterTab: params.filterTab,
         sortBy: params.sortBy,
         sortDir: params.sortDir,
       })}`,
@@ -195,6 +201,26 @@ export const posApi = {
     ),
   lookupProductByCode: (code: string) =>
     requestJson<Product>(`/api/products/lookup${toQueryString({ code })}`),
+  checkProductSku: (sku: string, excludeId?: number, signal?: AbortSignal) =>
+    requestJson<{
+      available: boolean;
+      sku: string;
+      conflictProduct?: { id: number; name: string; sku: string };
+    }>(
+      `/api/products/check-sku${toQueryString({
+        sku,
+        excludeId: excludeId !== undefined ? excludeId : undefined,
+      })}`,
+      { signal }
+    ),
+  getNextUniqueSku: (category: string, currentSku?: string, signal?: AbortSignal) =>
+    requestJson<{ sku: string }>(
+      `/api/products/next-sku${toQueryString({
+        category,
+        currentSku: currentSku || undefined,
+      })}`,
+      { signal }
+    ),
   createProduct: (product: Omit<Product, 'id'>) =>
     requestJson<Product>('/api/products', {
       method: 'POST',
@@ -276,6 +302,84 @@ export const posApi = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  getTransactionsExportPreview: (
+    params: {
+      period: TransactionExportPeriod;
+      month?: number;
+      year?: number;
+      date?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      method?: string;
+      statusFilter?: TransactionExportStatus;
+      search?: string;
+      format?: TransactionExportFormat;
+    },
+    signal?: AbortSignal
+  ) =>
+    requestJson<TransactionExportPreview>(
+      `/api/transactions/export-preview${toQueryString({
+        period: params.period,
+        month: params.month,
+        year: params.year,
+        date: params.date,
+        dateFrom: params.dateFrom,
+        dateTo: params.dateTo,
+        method: params.method,
+        statusFilter: params.statusFilter,
+        search: params.search,
+        format: params.format,
+      })}`,
+      { signal }
+    ),
+  downloadTransactionsExport: async (params: {
+    period: TransactionExportPeriod;
+    month?: number;
+    year?: number;
+    date?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    method?: string;
+    statusFilter?: TransactionExportStatus;
+    search?: string;
+    format?: TransactionExportFormat;
+  }): Promise<{ blob: Blob; filename: string }> => {
+    const token = getAuthToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    const url = `/api/transactions/export${toQueryString({
+      period: params.period,
+      month: params.month,
+      year: params.year,
+      date: params.date,
+      dateFrom: params.dateFrom,
+      dateTo: params.dateTo,
+      method: params.method,
+      statusFilter: params.statusFilter,
+      search: params.search,
+      format: params.format,
+    })}`;
+    const res = await fetch(url, {
+      credentials: 'same-origin',
+      headers,
+    });
+    if (!res.ok) {
+      if (res.status === 401) {
+        clearAuthToken();
+        unauthorizedHandler?.();
+      }
+      const errData = await res.json().catch(() => ({}));
+      throw new Error((errData as { error?: string }).error || `Ekspor gagal (${res.status})`);
+    }
+    const headerName = res.headers.get('X-Export-Filename');
+    const disp = res.headers.get('Content-Disposition') || '';
+    const dispMatch = /filename="?([^"]+)"?/i.exec(disp);
+    const filename = headerName || dispMatch?.[1] || `Laporan_Transaksi.${params.format ?? 'xlsx'}`;
+    const blob = await res.blob();
+    return { blob, filename };
+  },
 
   // Buybacks (Paginated lightweight list + On-demand detail)
   getBuybacks: (

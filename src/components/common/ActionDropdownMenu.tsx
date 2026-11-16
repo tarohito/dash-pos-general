@@ -286,7 +286,7 @@ export const ActionDropdownMenu: React.FC<ActionDropdownMenuProps> = ({
                     closeImmediately();
                     item.onClick();
                   }}
-                  className={`w-full px-2.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2.5 text-left transition-colors ${getToneClass(
+                  className={`w-full px-3 py-2 text-sm font-medium rounded-lg flex items-center gap-2.5 text-left transition-colors ${getToneClass(
                     item.tone,
                     item.disabled
                   )}`}

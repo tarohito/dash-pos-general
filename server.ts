@@ -14,6 +14,9 @@ import type {
   StoreSettingsUpdatePayload,
   Tenant,
   Transaction,
+  TransactionExportFormat,
+  TransactionExportPeriod,
+  TransactionExportStatus,
   TransactionItem,
   UserAccount,
   UserCreatePayload,
@@ -23,6 +26,7 @@ import type {
 import {
   authenticateUser,
   cancelPendingPromoBroadcastRecipients,
+  checkProductSkuAvailability,
   createPromoBroadcastBatch,
   createSession,
   createShiftClosing,
@@ -31,6 +35,7 @@ import {
   deleteSession,
   deleteUserAccount,
   generateNextMemberCode,
+  generateUniqueProductSku,
   getAccessibleTenantsForUser,
   getActivePromos,
   getAllCategories,
@@ -53,6 +58,7 @@ import {
   queryPromos,
   queryShiftClosings,
   queryTransactions,
+  queryTransactionsForExport,
   queryUsers,
   seedInitialDataIfEmpty,
   updatePromoBroadcastRecipientStatus,
@@ -60,6 +66,12 @@ import {
   updateStoreSettings,
   updateUserAccount,
 } from './server/db.ts';
+import {
+  buildExportFilename,
+  buildExportPeriodLabel,
+  generateTransactionsCsvString,
+  generateTransactionsExcelBuffer,
+} from './server/excelExport.ts';
 
 // Seed SQLite on startup if empty
 seedInitialDataIfEmpty();
@@ -282,6 +294,38 @@ app.get('/api/dashboard/summary', requireRoles('owner', 'branch_manager'), (req,
 // ============================================================
 // PRODUCTS CRUD & PAGINATION & BARCODE LOOKUP
 // ============================================================
+app.get('/api/products/check-sku', (req, res) => {
+  try {
+    const { activeTenantId } = getAuth(req);
+    const sku = String(req.query.sku ?? '');
+    const rawExcludeId = req.query.excludeId;
+    const excludeId =
+      rawExcludeId !== undefined && String(rawExcludeId).trim() !== ''
+        ? Number(rawExcludeId)
+        : undefined;
+    res.json(
+      checkProductSkuAvailability(
+        sku,
+        activeTenantId,
+        excludeId !== undefined && Number.isInteger(excludeId) ? excludeId : undefined
+      )
+    );
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal memeriksa ketersediaan SKU.' });
+  }
+});
+
+app.get('/api/products/next-sku', (req, res) => {
+  try {
+    const { activeTenantId } = getAuth(req);
+    const category = String(req.query.category ?? 'Parfum');
+    const currentSku = req.query.currentSku ? String(req.query.currentSku) : undefined;
+    res.json({ sku: generateUniqueProductSku(category, activeTenantId, currentSku) });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal membuat SKU unik.' });
+  }
+});
+
 app.get('/api/products/lookup', (req, res) => {
   try {
     const { activeTenantId } = getAuth(req);
@@ -305,9 +349,15 @@ app.get('/api/products', (req, res) => {
     const search = String(req.query.search ?? '');
     const category = String(req.query.category ?? 'Semua');
     const promoOnly = req.query.promoOnly === 'true' || req.query.promoOnly === '1';
+    const rawFilterTab = String(req.query.filterTab ?? '');
+    const filterTab = (['all', 'active', 'promo', 'low_stock'].includes(rawFilterTab)
+      ? rawFilterTab
+      : promoOnly
+      ? 'promo'
+      : 'all') as 'all' | 'active' | 'promo' | 'low_stock';
     const sortBy = String(req.query.sortBy ?? 'newest');
     const sortDir = req.query.sortDir === 'asc' ? 'asc' : 'desc';
-    res.json(queryProducts({ page, pageSize, search, category, promoOnly, sortBy, sortDir, tenantId: activeTenantId }));
+    res.json(queryProducts({ page, pageSize, search, category, promoOnly, filterTab, sortBy, sortDir, tenantId: activeTenantId }));
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal memuat produk.' });
   }
@@ -349,25 +399,28 @@ app.post('/api/products', requireRoles('owner', 'branch_manager'), (req, res) =>
     }
 
     const existingSku = db
-      .prepare('SELECT id FROM products WHERE tenantId = ? AND LOWER(sku) = LOWER(?)')
-      .get(tenantId, sku);
+      .prepare('SELECT id, name FROM products WHERE tenantId = ? AND LOWER(sku) = LOWER(?)')
+      .get(tenantId, sku) as { id: number; name: string } | undefined;
     if (existingSku) {
-      res.status(409).json({ error: `SKU "${sku}" sudah digunakan produk lain di outlet ini.` });
+      res.status(409).json({
+        error: `SKU "${sku}" sudah digunakan oleh produk "${existingSku.name}" di outlet ini. Silakan gunakan SKU lain.`,
+      });
       return;
     }
 
+    const createdAt = new Date().toISOString();
     const createTx = db.transaction(() => {
       db.prepare('INSERT OR IGNORE INTO categories (name, sortOrder) VALUES (?, 99)').run(category);
       const info = db
         .prepare(`
           INSERT INTO products (
             tenantId, sku, name, berat, harga, hpp, stok, category, image,
-            brand, kondisi, deskripsi, panjang, lebar, tinggi, status
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            brand, kondisi, deskripsi, panjang, lebar, tinggi, status, createdAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
         .run(
           tenantId, sku, name, berat, harga, hpp, stok, category, image,
-          brand, kondisi, deskripsi, panjang, lebar, tinggi, status
+          brand, kondisi, deskripsi, panjang, lebar, tinggi, status, createdAt
         );
       return db
         .prepare(`
@@ -378,7 +431,8 @@ app.post('/api/products', requireRoles('owner', 'branch_manager'), (req, res) =>
                  COALESCE(panjang, 0) AS panjang,
                  COALESCE(lebar, 0) AS lebar,
                  COALESCE(tinggi, 0) AS tinggi,
-                 COALESCE(status, 'Aktif') AS status
+                 COALESCE(status, 'Aktif') AS status,
+                 createdAt
           FROM products WHERE id = ?
         `)
         .get(info.lastInsertRowid) as Product;
@@ -387,7 +441,12 @@ app.post('/api/products', requireRoles('owner', 'branch_manager'), (req, res) =>
     const created = createTx();
     res.status(201).json(created);
   } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal menyimpan produk.' });
+    const msg = err instanceof Error ? err.message : 'Gagal menyimpan produk.';
+    if (msg.includes('UNIQUE') || msg.includes('idx_products_tenant_sku_lower')) {
+      res.status(409).json({ error: 'SKU / Kode Barcode sudah terdaftar pada produk lain di outlet ini.' });
+      return;
+    }
+    res.status(500).json({ error: msg });
   }
 });
 
@@ -430,10 +489,12 @@ app.put('/api/products/:id', requireRoles('owner', 'branch_manager'), (req, res)
     }
 
     const duplicateSku = db
-      .prepare('SELECT id FROM products WHERE tenantId = ? AND LOWER(sku) = LOWER(?) AND id != ?')
-      .get(tenantId, sku, id);
+      .prepare('SELECT id, name FROM products WHERE tenantId = ? AND LOWER(sku) = LOWER(?) AND id != ?')
+      .get(tenantId, sku, id) as { id: number; name: string } | undefined;
     if (duplicateSku) {
-      res.status(409).json({ error: `SKU "${sku}" sudah digunakan produk lain di outlet ini.` });
+      res.status(409).json({
+        error: `SKU "${sku}" sudah digunakan oleh produk "${duplicateSku.name}" di outlet ini. Silakan gunakan SKU lain.`,
+      });
       return;
     }
 
@@ -458,7 +519,8 @@ app.put('/api/products/:id', requireRoles('owner', 'branch_manager'), (req, res)
                  COALESCE(panjang, 0) AS panjang,
                  COALESCE(lebar, 0) AS lebar,
                  COALESCE(tinggi, 0) AS tinggi,
-                 COALESCE(status, 'Aktif') AS status
+                 COALESCE(status, 'Aktif') AS status,
+                 createdAt
           FROM products WHERE id = ?
         `)
         .get(id) as Product;
@@ -467,7 +529,12 @@ app.put('/api/products/:id', requireRoles('owner', 'branch_manager'), (req, res)
     const updated = updateTx();
     res.json(updated);
   } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal memperbarui produk.' });
+    const msg = err instanceof Error ? err.message : 'Gagal memperbarui produk.';
+    if (msg.includes('UNIQUE') || msg.includes('idx_products_tenant_sku_lower')) {
+      res.status(409).json({ error: 'SKU / Kode Barcode sudah terdaftar pada produk lain di outlet ini.' });
+      return;
+    }
+    res.status(500).json({ error: msg });
   }
 });
 
@@ -528,8 +595,9 @@ app.post('/api/categories', requireRoles('owner', 'branch_manager'), (req, res) 
       return;
     }
     const maxOrder = (db.prepare('SELECT COALESCE(MAX(sortOrder), 0) as m FROM categories').get() as { m: number }).m;
-    db.prepare('INSERT INTO categories (name, sortOrder) VALUES (?, ?)').run(name, maxOrder + 1);
-    res.status(201).json({ name, categories: getAllCategories() });
+    const createdAt = new Date().toISOString();
+    db.prepare('INSERT INTO categories (name, sortOrder, createdAt) VALUES (?, ?, ?)').run(name, maxOrder + 1, createdAt);
+    res.status(201).json({ name, categories: getAllCategories(), createdAt });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal menambah kategori.' });
   }
@@ -615,6 +683,109 @@ app.get('/api/transactions', (req, res) => {
   }
 });
 
+function parseTransactionExportParams(query: Record<string, unknown>, exportedBy: string) {
+  const rawPeriod = String(query.period ?? 'monthly');
+  const period = (['monthly', 'daily', 'custom', 'yearly', 'all'].includes(rawPeriod)
+    ? rawPeriod
+    : 'monthly') as TransactionExportPeriod;
+  const now = new Date();
+  const month = Number(query.month) || now.getMonth() + 1;
+  const year = Number(query.year) || now.getFullYear();
+  const date = String(query.date ?? '').trim();
+  const dateFrom = String(query.dateFrom ?? '').trim();
+  const dateTo = String(query.dateTo ?? '').trim();
+  const method = String(query.method ?? 'semua').trim();
+  const rawStatus = String(query.statusFilter ?? 'completed');
+  const statusFilter = (['completed', 'all', 'void'].includes(rawStatus)
+    ? rawStatus
+    : 'completed') as TransactionExportStatus;
+  const search = String(query.search ?? '').trim();
+  const rawFormat = String(query.format ?? 'xlsx');
+  const format = (rawFormat === 'csv' ? 'csv' : 'xlsx') as TransactionExportFormat;
+
+  return {
+    period,
+    month,
+    year,
+    date,
+    dateFrom,
+    dateTo,
+    method,
+    statusFilter,
+    search,
+    format,
+    exportedBy,
+  };
+}
+
+app.get('/api/transactions/export-preview', (req, res) => {
+  try {
+    const auth = getAuth(req);
+    const opts = parseTransactionExportParams(req.query as Record<string, unknown>, auth.user.fullName);
+    const { transactions, tenant } = queryTransactionsForExport({
+      ...opts,
+      tenantId: auth.activeTenantId,
+    });
+
+    const activeTxs = transactions.filter(t => t.status !== 'void');
+    const voidTxs = transactions.filter(t => t.status === 'void');
+    const totalQty = activeTxs.reduce((s, t) => s + (t.totalQty || 0), 0);
+    const totalBerat = Number(activeTxs.reduce((s, t) => s + (t.totalBerat || 0), 0).toFixed(2));
+    const totalOmzet = activeTxs.reduce((s, t) => s + (t.grandTotal || 0), 0);
+
+    res.json({
+      count: transactions.length,
+      completedCount: activeTxs.length,
+      voidCount: voidTxs.length,
+      totalQty,
+      totalBerat,
+      totalOmzet,
+      periodLabel: buildExportPeriodLabel(opts),
+      filename: buildExportFilename(tenant, opts, opts.format),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal menyiapkan pratinjau ekspor.' });
+  }
+});
+
+app.get('/api/transactions/export', async (req, res) => {
+  try {
+    const auth = getAuth(req);
+    const opts = parseTransactionExportParams(req.query as Record<string, unknown>, auth.user.fullName);
+    const { transactions, tenant } = queryTransactionsForExport({
+      ...opts,
+      tenantId: auth.activeTenantId,
+    });
+
+    if (transactions.length === 0) {
+      res.status(404).json({ error: 'Tidak ada data transaksi yang sesuai dengan periode & filter pilihan Anda.' });
+      return;
+    }
+
+    const filename = buildExportFilename(tenant, opts, opts.format);
+
+    if (opts.format === 'csv') {
+      const csv = generateTransactionsCsvString(transactions);
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('X-Export-Filename', filename);
+      res.send(csv);
+      return;
+    }
+
+    const buffer = await generateTransactionsExcelBuffer(transactions, tenant, opts);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('X-Export-Filename', filename);
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal mengekspor laporan transaksi.' });
+  }
+});
+
 app.get('/api/transactions/:id', (req, res) => {
   try {
     const { activeTenantId } = getAuth(req);
@@ -647,7 +818,7 @@ app.post('/api/transactions', (req, res) => {
       return;
     }
 
-    const paymentMethod = body.paymentMethod ?? 'cash';
+    const paymentMethod: 'cash' | 'transfer' = body.paymentMethod === 'transfer' ? 'transfer' : 'cash';
     const cashier = auth.user.fullName || (body.cashier ?? '').trim() || 'Kasir';
     let resolvedCustomerId = (body.customerId ?? '').trim() || undefined;
     let customerName = (body.customerName ?? '').trim() || 'Pelanggan Umum';
@@ -674,7 +845,9 @@ app.post('/api/transactions', (req, res) => {
 
       for (const reqItem of body.items!) {
         const prod = db
-          .prepare('SELECT id, sku, name, berat, harga, stok, category, image FROM products WHERE id = ? AND tenantId = ?')
+          .prepare(
+            "SELECT id, sku, name, berat, harga, COALESCE(hpp, 0) AS hpp, stok, category, COALESCE(brand, 'No Brand') AS brand, COALESCE(kondisi, 'Baru') AS kondisi, COALESCE(panjang, 0) AS panjang, COALESCE(lebar, 0) AS lebar, COALESCE(tinggi, 0) AS tinggi, image FROM products WHERE id = ? AND tenantId = ?"
+          )
           .get(reqItem.id, tenantId) as Product | undefined;
 
         if (!prod) {
@@ -697,6 +870,13 @@ app.post('/api/transactions', (req, res) => {
           id: prod.id,
           sku: prod.sku,
           name: prod.name,
+          category: prod.category,
+          brand: prod.brand ?? 'No Brand',
+          kondisi: prod.kondisi === 'Bekas' ? 'Bekas' : 'Baru',
+          hpp: prod.hpp ?? 0,
+          panjang: prod.panjang ?? 0,
+          lebar: prod.lebar ?? 0,
+          tinggi: prod.tinggi ?? 0,
           berat: prod.berat,
           harga: prod.harga,
           qty,
@@ -737,9 +917,6 @@ app.post('/api/transactions', (req, res) => {
           paymentMethod === 'cash' && rawDetails.cashReceived !== undefined
             ? Math.max(0, rawDetails.cashReceived - grandTotal)
             : rawDetails.cashChange,
-        qrisNmid: paymentMethod === 'qris' ? rawDetails.qrisNmid || 'ID102003928192' : rawDetails.qrisNmid,
-        qrisRrn:
-          paymentMethod === 'qris' ? rawDetails.qrisRrn || `RRN${Date.now().toString().slice(-8)}` : rawDetails.qrisRrn,
       };
 
       const newTx: Transaction = {
@@ -1533,9 +1710,10 @@ app.post('/api/promos', requireRoles('owner', 'branch_manager'), (req, res) => {
       return;
     }
     const id = p.id || `PRM-${Date.now()}`;
+    const createdAt = new Date().toISOString();
     db.prepare(
-      `INSERT INTO promos (id, tenantId, name, code, discountPercent, label, startDate, endDate, productIdsJson, isActive, minPurchase, description)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO promos (id, tenantId, name, code, discountPercent, label, startDate, endDate, productIdsJson, isActive, minPurchase, description, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       id,
       tenantId,
@@ -1548,7 +1726,8 @@ app.post('/api/promos', requireRoles('owner', 'branch_manager'), (req, res) => {
       JSON.stringify(p.productIds ?? []),
       p.isActive ? 1 : 0,
       p.minPurchase ?? null,
-      p.description ?? null
+      p.description ?? null,
+      createdAt
     );
     const createdRow = db.prepare('SELECT * FROM promos WHERE id = ?').get(id) as {
       id: string;
@@ -1562,6 +1741,7 @@ app.post('/api/promos', requireRoles('owner', 'branch_manager'), (req, res) => {
       isActive: number;
       minPurchase: number | null;
       description: string | null;
+      createdAt?: string | null;
     };
     res.status(201).json({
       id: createdRow.id,
@@ -1575,6 +1755,7 @@ app.post('/api/promos', requireRoles('owner', 'branch_manager'), (req, res) => {
       isActive: Boolean(createdRow.isActive),
       minPurchase: createdRow.minPurchase ?? undefined,
       description: createdRow.description ?? undefined,
+      createdAt: createdRow.createdAt ?? undefined,
     });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal membuat promo.' });
@@ -1598,6 +1779,7 @@ app.put('/api/promos/:id', requireRoles('owner', 'branch_manager'), (req, res) =
           isActive: number;
           minPurchase: number | null;
           description: string | null;
+          createdAt?: string | null;
         }
       | undefined;
     if (!existingRow) {
@@ -1643,6 +1825,7 @@ app.put('/api/promos/:id', requireRoles('owner', 'branch_manager'), (req, res) =
       isActive: Boolean(updatedRow.isActive),
       minPurchase: updatedRow.minPurchase ?? undefined,
       description: updatedRow.description ?? undefined,
+      createdAt: updatedRow.createdAt ?? undefined,
     });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal memperbarui promo.' });
@@ -1674,6 +1857,7 @@ app.patch('/api/promos/:id/toggle', requireRoles('owner', 'branch_manager'), (re
       isActive: number;
       minPurchase: number | null;
       description: string | null;
+      createdAt?: string | null;
     };
     res.json({
       id: updatedRow.id,
@@ -1687,6 +1871,7 @@ app.patch('/api/promos/:id/toggle', requireRoles('owner', 'branch_manager'), (re
       isActive: Boolean(updatedRow.isActive),
       minPurchase: updatedRow.minPurchase ?? undefined,
       description: updatedRow.description ?? undefined,
+      createdAt: updatedRow.createdAt ?? undefined,
     });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal mengubah status promo.' });
@@ -1732,17 +1917,20 @@ app.post('/api/tenants', requireRoles('owner'), (req, res) => {
       return;
     }
 
+    const createdAt = new Date().toISOString();
     const newTenant: Tenant = {
       ...t,
       name: t.name.trim(),
       code: cleanCode,
       branchName: t.branchName.trim(),
+      logoUrl: (t.logoUrl ?? '').trim(),
       productCount: 0,
+      createdAt,
     };
     const insertTx = db.transaction(() => {
       db.prepare(
-        `INSERT INTO tenants (id, name, code, branchName, address, city, plan, cashierCount, productCount, phone, email, slug, logoInitial, databaseSchema, status)
-         VALUES (@id, @name, @code, @branchName, @address, @city, @plan, @cashierCount, @productCount, @phone, @email, @slug, @logoInitial, @databaseSchema, @status)`
+        `INSERT INTO tenants (id, name, code, branchName, address, city, plan, cashierCount, productCount, phone, email, slug, logoInitial, logoUrl, databaseSchema, status, createdAt)
+         VALUES (@id, @name, @code, @branchName, @address, @city, @plan, @cashierCount, @productCount, @phone, @email, @slug, @logoInitial, @logoUrl, @databaseSchema, @status, @createdAt)`
       ).run(newTenant);
       updateSessionTenant(auth.token, newTenant.id);
     });

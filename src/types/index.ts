@@ -22,6 +22,7 @@ export interface Product {
   promoDiscountPercent?: number;
   promoLabel?: string;
   salesCount?: number;
+  createdAt?: string;
 }
 
 export interface PromoCampaign {
@@ -36,6 +37,7 @@ export interface PromoCampaign {
   isActive: boolean;
   minPurchase?: number;
   description?: string;
+  createdAt?: string;
 }
 
 export interface CartItem extends Product {
@@ -47,6 +49,12 @@ export interface TransactionItem {
   sku: string;
   name: string;
   category?: string;
+  brand?: string;
+  kondisi?: ProductCondition;
+  hpp?: number;
+  panjang?: number;
+  lebar?: number;
+  tinggi?: number;
   berat: number;
   harga: number;
   qty: number;
@@ -166,8 +174,10 @@ export interface Tenant {
   email: string;
   slug: string;
   logoInitial: string;
+  logoUrl?: string;
   databaseSchema: string;
   status: 'Aktif' | 'Trial' | 'Nonaktif';
+  createdAt?: string;
 }
 
 export interface Customer {
@@ -224,6 +234,21 @@ export interface TransactionsPageResponse extends PaginatedResponse<Transaction>
   stats: TransactionStatsSummary;
 }
 
+export type TransactionExportPeriod = 'monthly' | 'daily' | 'custom' | 'yearly' | 'all';
+export type TransactionExportStatus = 'completed' | 'all' | 'void';
+export type TransactionExportFormat = 'xlsx' | 'csv';
+
+export interface TransactionExportPreview {
+  count: number;
+  completedCount: number;
+  voidCount: number;
+  totalQty: number;
+  totalBerat: number;
+  totalOmzet: number;
+  periodLabel: string;
+  filename: string;
+}
+
 export interface BuybackStatsSummary {
   totalDanaDicairkan: number;
   totalBeratDiterima: number;
@@ -265,6 +290,7 @@ export interface CategoryStatsItem {
 export interface CategoriesWithStatsResponse {
   categories: string[];
   stats: Record<string, CategoryStatsItem>;
+  categoryCreatedAt?: Record<string, string>;
 }
 
 export interface DashboardSummaryResponse {

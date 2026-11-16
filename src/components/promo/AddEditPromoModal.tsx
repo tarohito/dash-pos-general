@@ -4,6 +4,7 @@ import { PromoCampaign, Product } from '../../types';
 import { formatIDR } from '../../utils/formatters';
 import { NumericInput } from '../common/NumericInput';
 import { CustomCheckbox } from '../common/CustomCheckbox';
+import { StatusToggle } from '../common/StatusToggle';
 import { posApi } from '../../services/api';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useToast } from '../../contexts/ToastContext';
@@ -202,8 +203,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size="xl"
-      title={editingPromo ? 'Edit Promo' : 'Buat Promo Baru'}
-      subtitle="Atur diskon, kupon, dan produk promosi"
+      title={editingPromo ? 'Edit Promo' : 'Buat Promo'}
       disableEscapeClose={isSaving}
       footer={
         <div className={MODAL_FOOTER_END_CLASS}>
@@ -228,7 +228,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
     >
       <form id="add-edit-promo-form" noValidate onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-xs sm:text-sm flex items-center gap-2">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm flex items-center gap-2">
               <GoogleIcon name="error" size={16} className="shrink-0" />
               <span>{error}</span>
             </div>
@@ -237,7 +237,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
           {/* Grid 1: Basic Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
                 Nama Promo <span className="text-red-500">*</span>
               </label>
               <input
@@ -246,12 +246,12 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 placeholder="Contoh: Promo Akhir Pekan 10%"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                className="w-full h-10 px-3.5 text-sm font-medium rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
                 Kode Promo <span className="text-red-500">*</span>
               </label>
               <input
@@ -260,7 +260,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 placeholder="Contoh: WEEKEND10"
                 value={code}
                 onChange={e => setCode(e.target.value.toUpperCase())}
-                className="w-full px-3 py-2 text-sm font-mono font-bold rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none uppercase"
+                className="w-full h-10 px-3.5 text-sm font-mono font-bold rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none uppercase"
               />
             </div>
           </div>
@@ -268,7 +268,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
           {/* Grid 2: Discount & Label */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
                 Diskon (%) <span className="text-red-500">*</span>
               </label>
               <NumericInput
@@ -282,12 +282,12 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 suffix="%"
                 placeholder="10"
                 required
-                className="w-full px-3 py-2 text-sm font-bold font-mono rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                className="w-full h-10 px-3.5 text-sm font-bold font-mono rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
                 Label Badge Promo
               </label>
               <input
@@ -295,52 +295,59 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 placeholder="Diskon 10%"
                 value={label}
                 onChange={e => setLabel(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                className="w-full h-10 px-3.5 text-sm font-medium rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
                 Status Promo
               </label>
-              <button
-                type="button"
-                onClick={() => setIsActive(!isActive)}
-                className={`w-full py-2 px-3 text-xs sm:text-sm font-semibold rounded-md border flex items-center justify-center gap-2 cursor-pointer transition-colors min-h-[38px] ${
-                  isActive
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                    : 'bg-gray-100 text-gray-600 border-gray-300'
-                }`}
-              >
-                <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                {isActive ? 'Aktif (Berlaku)' : 'Nonaktif (Diarsipkan)'}
-              </button>
+              <div className="flex items-center justify-between h-10 px-3.5 bg-white border border-zinc-200 rounded-xl">
+                <span
+                  onClick={() => setIsActive(prev => !prev)}
+                  className={`text-sm font-semibold cursor-pointer select-none ${
+                    isActive ? 'text-emerald-700' : 'text-zinc-500'
+                  }`}
+                >
+                  {isActive ? 'Aktif (Berlaku)' : 'Nonaktif'}
+                </span>
+                <StatusToggle
+                  checked={isActive}
+                  onChange={setIsActive}
+                  tooltip={
+                    isActive
+                      ? 'Aktif — klik untuk nonaktifkan promo'
+                      : 'Nonaktif — klik untuk aktifkan promo'
+                  }
+                />
+              </div>
             </div>
           </div>
 
           {/* Grid 3: Dates */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
                 Tanggal Mulai
               </label>
               <input
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none font-mono"
+                className="w-full h-10 px-3.5 text-sm font-medium rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none font-mono"
               />
             </div>
 
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
                 Tanggal Berakhir
               </label>
               <input
                 type="date"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none font-mono"
+                className="w-full h-10 px-3.5 text-sm font-medium rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none font-mono"
               />
             </div>
           </div>
@@ -348,13 +355,13 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
           {/* Section: Product Selection */}
           <div>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <label className="text-xs sm:text-sm font-semibold text-gray-800">
+              <label className="text-xs font-semibold text-zinc-700">
                 Pilih Produk ({selectedProductIds.length} terpilih dari {totalProducts} katalog)
               </label>
               <button
                 type="button"
                 onClick={handleSelectAllVisibleProducts}
-                className="text-xs sm:text-sm font-semibold text-primary hover:text-primary-hover cursor-pointer underline underline-offset-2"
+                className="text-xs font-semibold text-primary hover:text-primary-hover cursor-pointer underline underline-offset-2"
               >
                 {allVisibleSelected ? 'Batalkan Daftar Ini' : 'Pilih Semua di Daftar'}
               </button>
@@ -368,7 +375,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 value={productSearch}
                 onChange={e => setProductSearch(e.target.value)}
                 placeholder="Cari produk berdasarkan nama atau SKU..."
-                className="w-full pl-8 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none bg-white"
+                className="w-full h-9 pl-9 pr-3.5 text-sm rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none bg-white"
               />
             </div>
 
@@ -410,7 +417,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                           className="w-8 h-8 rounded object-cover border border-gray-200 shrink-0"
                         />
                         <div className="min-w-0">
-                          <p className="text-xs sm:text-sm font-semibold text-gray-800 truncate leading-tight">
+                          <p className="text-sm font-semibold text-gray-800 truncate leading-tight">
                             {product.name}
                           </p>
                           <p className="text-xs text-gray-400 font-mono">
@@ -422,7 +429,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                       <div className="text-right shrink-0">
                         {isSelected ? (
                           <>
-                            <p className="text-xs sm:text-sm font-bold font-mono text-zinc-950 leading-tight">
+                            <p className="text-sm font-bold font-mono text-zinc-950 leading-tight">
                               {formatIDR(discountedPrice)}
                             </p>
                             <p className="text-xs text-zinc-400 font-mono line-through">
@@ -430,7 +437,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                             </p>
                           </>
                         ) : (
-                          <p className="text-xs sm:text-sm font-bold font-mono text-zinc-700">
+                          <p className="text-sm font-bold font-mono text-zinc-700">
                             {formatIDR(product.harga)}
                           </p>
                         )}
@@ -444,7 +451,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
 
           {/* Description */}
           <div>
-            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+            <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
               Catatan / Deskripsi Promo
             </label>
             <textarea

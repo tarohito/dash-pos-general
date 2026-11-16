@@ -20,6 +20,9 @@ import {
 } from '../common/ModalShell';
 import { MoneyAmount } from '../common/MoneyAmount';
 import { KpiCard } from '../common/KpiCard';
+import { StatusToggle } from '../common/StatusToggle';
+import { NewBadge } from '../common/NewBadge';
+import { isRecentlyCreated, useNewBadgeClock } from '../../utils/newBadge';
 import {
   SortableTh,
   SortDirection,
@@ -105,6 +108,8 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
   const { showToast } = useToast();
 
   const [productList, setProductList] = useState<Product[]>([]);
+  const promoTimestamps = useMemo(() => items.map(p => p.createdAt), [items]);
+  const nowMs = useNewBadgeClock(promoTimestamps);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -341,14 +346,14 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
           />
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-            <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-full border border-zinc-200 items-center overflow-x-auto max-w-full no-scrollbar">
+            <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 items-center overflow-x-auto max-w-full no-scrollbar">
               <button
                 type="button"
                 onClick={() => setStatusFilter('all')}
                 className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   statusFilter === 'all'
-                    ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                    : 'text-zinc-500 hover:text-zinc-900'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-950'
                 }`}
               >
                 Semua ({stats?.totalPromos ?? 0})
@@ -358,8 +363,8 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                 onClick={() => setStatusFilter('active')}
                 className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   statusFilter === 'active'
-                    ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                    : 'text-zinc-500 hover:text-zinc-900'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-950'
                 }`}
               >
                 Aktif ({stats?.activeCount ?? 0})
@@ -369,8 +374,8 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                 onClick={() => setStatusFilter('inactive')}
                 className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   statusFilter === 'inactive'
-                    ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                    : 'text-zinc-500 hover:text-zinc-900'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-950'
                 }`}
               >
                 Nonaktif ({Math.max(0, (stats?.totalPromos ?? 0) - (stats?.activeCount ?? 0))})
@@ -439,7 +444,10 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                             <GoogleIcon name="content_copy" size={11} className="text-gray-400" />
                           </button>
                         </div>
-                        <h4 className="text-sm font-bold text-gray-900">{promo.name}</h4>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="text-sm font-bold text-gray-900">{promo.name}</h4>
+                          {isRecentlyCreated(promo.createdAt, nowMs) && <NewBadge />}
+                        </div>
                         {(() => {
                           const days = getPromoDurationDays(promo.startDate, promo.endDate);
                           return (
@@ -457,28 +465,17 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                         })()}
                       </div>
 
-                      <Tooltip
-                        content={promo.isActive ? 'Aktif — klik untuk nonaktifkan' : 'Nonaktif — klik untuk aktifkan'}
-                        side="top"
-                      >
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={promo.isActive}
-                          disabled={togglingId === promo.id}
-                          onClick={() => void handleToggleStatus(promo)}
-                          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
-                            promo.isActive ? 'bg-emerald-500' : 'bg-gray-300'
-                          }`}
-                          aria-label="Toggle Status Promo"
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-2xs transition-transform ${
-                              promo.isActive ? 'translate-x-6' : 'translate-x-1'
-                            }`}
-                          />
-                        </button>
-                      </Tooltip>
+                      <StatusToggle
+                        checked={promo.isActive}
+                        isLoading={togglingId === promo.id}
+                        onChange={() => void handleToggleStatus(promo)}
+                        ariaLabel={`Toggle Status Promo ${promo.name}`}
+                        tooltip={
+                          promo.isActive
+                            ? 'Aktif — klik untuk nonaktifkan'
+                            : 'Nonaktif — klik untuk aktifkan'
+                        }
+                      />
                     </div>
 
                     <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
@@ -577,9 +574,12 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                         }`}
                       >
                         <td className="py-3.5 px-4 align-middle max-w-[260px]">
-                          <span className="font-bold text-gray-900 text-xs sm:text-sm block truncate">
-                            {promo.name}
-                          </span>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-bold text-gray-900 text-xs sm:text-sm truncate">
+                              {promo.name}
+                            </span>
+                            {isRecentlyCreated(promo.createdAt, nowMs) && <NewBadge />}
+                          </div>
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                             <Tooltip content="Klik untuk salin kode promo" side="top">
                               <button
@@ -631,28 +631,19 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                         </td>
 
                         <td className="py-3.5 px-4 text-center whitespace-nowrap align-middle">
-                          <Tooltip
-                            content={promo.isActive ? 'Aktif — klik untuk nonaktifkan' : 'Nonaktif — klik untuk aktifkan'}
-                            side="top"
-                          >
-                            <button
-                              type="button"
-                              role="switch"
-                              aria-checked={promo.isActive}
-                              disabled={togglingId === promo.id}
-                              onClick={() => void handleToggleStatus(promo)}
-                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
-                                promo.isActive ? 'bg-emerald-500' : 'bg-gray-300'
-                              }`}
-                              aria-label="Toggle Status Promo"
-                            >
-                              <span
-                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-2xs transition-transform ${
-                                  promo.isActive ? 'translate-x-6' : 'translate-x-1'
-                                }`}
-                              />
-                            </button>
-                          </Tooltip>
+                          <div className="inline-flex justify-center">
+                            <StatusToggle
+                              checked={promo.isActive}
+                              isLoading={togglingId === promo.id}
+                              onChange={() => void handleToggleStatus(promo)}
+                              ariaLabel={`Toggle Status Promo ${promo.name}`}
+                              tooltip={
+                                promo.isActive
+                                  ? 'Aktif — klik untuk nonaktifkan'
+                                  : 'Nonaktif — klik untuk aktifkan'
+                              }
+                            />
+                          </div>
                         </td>
 
                         <td className="py-3.5 px-3 text-center whitespace-nowrap align-middle">
@@ -720,12 +711,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
         isOpen={!!detailPromo}
         onClose={() => setDetailPromo(null)}
         size="xl"
-        title={detailPromo?.name ?? 'Detail Promo'}
-        subtitle={
-          detailPromo
-            ? `${detailPromo.startDate} s/d ${detailPromo.endDate} • ${detailPromo.isActive ? 'Aktif' : 'Nonaktif'}`
-            : undefined
-        }
+        title="Detail Promo"
         footer={
           detailPromo ? (
             <div className={MODAL_FOOTER_END_CLASS}>
@@ -737,7 +723,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                   setBroadcastPromo(target);
                   setIsBroadcastOpen(true);
                 }}
-                className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1EBE5D] rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs active:scale-[0.98]"
+                className="h-9 px-4 text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1EBE5D] rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs active:scale-[0.98]"
               >
                 <GoogleIcon name="chat" size={15} className="shrink-0" />
                 <span>Broadcast WA</span>
@@ -764,14 +750,16 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
             <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 text-white shadow-md flex flex-col sm:flex-row items-stretch">
               {/* Left Body: Discount Value */}
               <div className="flex-1 px-4 py-4 sm:px-5 sm:py-5 flex flex-col justify-center min-w-0">
-                <span className="text-xs font-semibold uppercase tracking-wider text-white/75 block">
-                  Besaran Potongan Harga
+                <span className="text-xs font-semibold uppercase tracking-wider text-white/75 block truncate">
+                  {detailPromo.name}
                 </span>
                 <p className="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-white mt-0.5">
                   Diskon {detailPromo.discountPercent}%
                 </p>
-                <p className="text-xs text-white/85 mt-1 truncate">
-                  Label: <strong className="text-white">{detailPromo.label || '-'}</strong>
+                <p className="text-xs text-white/85 mt-1 truncate tabular-nums">
+                  Periode: <strong className="text-white">{formatPromoDate(detailPromo.startDate)} – {formatPromoDate(detailPromo.endDate)}</strong>
+                  <span className="mx-1.5 text-white/50">&bull;</span>
+                  <span>{detailPromo.isActive ? 'Aktif' : 'Nonaktif'}</span>
                 </p>
               </div>
 
@@ -809,7 +797,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                   type="button"
                   onClick={() => handleCopyCode(detailPromo.code)}
                   title="Klik untuk salin kode promo"
-                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-mono font-bold text-xs sm:text-sm border border-dashed border-white/40 transition-colors cursor-pointer active:scale-[0.98]"
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-mono font-bold text-sm border border-dashed border-white/40 transition-colors cursor-pointer active:scale-[0.98]"
                 >
                   <span>{detailPromo.code}</span>
                   <GoogleIcon name="content_copy" size={13} />
@@ -818,9 +806,9 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
             </div>
 
             {/* Info Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl p-3.5 min-w-0">
-                <span className="text-gray-500 block mb-1">Minimal Pembelian</span>
+                <span className="text-xs text-gray-500 block mb-1">Minimal Pembelian</span>
                 {detailPromo.minPurchase ? (
                   <MoneyAmount
                     value={detailPromo.minPurchase}
@@ -835,7 +823,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                 )}
               </div>
               <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl p-3.5">
-                <span className="text-gray-500 block mb-1">Total Produk Terdaftar</span>
+                <span className="text-xs text-gray-500 block mb-1">Total Produk Terdaftar</span>
                 <span className="font-mono font-bold text-gray-900 text-sm">
                   {detailPromo.productIds.length} Item Produk (SKU)
                 </span>
@@ -843,8 +831,8 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
             </div>
 
             {detailPromo.description && (
-              <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl p-3.5 text-xs">
-                <span className="font-bold text-gray-800 block mb-1">Deskripsi &amp; Syarat Promo</span>
+              <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl p-3.5 text-sm">
+                <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider block mb-1">Deskripsi &amp; Syarat Promo</span>
                 <p className="text-gray-600 leading-relaxed">{detailPromo.description}</p>
               </div>
             )}
@@ -852,12 +840,12 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
             {/* Product List */}
             <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl p-3.5">
               <div className="flex items-center justify-between pb-2 border-b border-gray-200/60 mb-2.5">
-                <span className="text-xs font-bold text-gray-800">
+                <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider">
                   Daftar Produk dalam Promo ({detailPromo.productIds.length})
                 </span>
               </div>
               {detailProducts.length === 0 ? (
-                <p className="text-xs text-gray-500 py-3 text-center">
+                <p className="text-sm text-gray-500 py-3 text-center">
                   {detailPromo.productIds.length > 0
                     ? `${detailPromo.productIds.length} produk terpilih pada kampanye ini.`
                     : 'Belum ada produk yang dipilih pada kampanye ini.'}
@@ -869,7 +857,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                       prod.harga * (1 - detailPromo.discountPercent / 100)
                     );
                     return (
-                      <div key={prod.id} className="p-2.5 flex items-center justify-between gap-3 text-xs">
+                      <div key={prod.id} className="p-2.5 flex items-center justify-between gap-3 text-sm">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <img
                             src={prod.image}
@@ -927,7 +915,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
 
       <ConfirmModal
         isOpen={!!deletingPromo}
-        title="Hapus Kampanye Promo"
+        title="Hapus Promo"
         description={
           deletingPromo
             ? `Apakah Anda yakin ingin menghapus promo "${deletingPromo.name}" (${deletingPromo.code})?`

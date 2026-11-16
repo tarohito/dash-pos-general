@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { GoogleIcon, GoogleIconName } from '../common/GoogleIcon';
 import Tooltip from '../Tooltip';
 import { BrandLogo } from '../common/BrandLogo';
@@ -52,12 +53,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const profilePopoverRef = useRef<HTMLDivElement>(null);
 
   const activeTenant = tenants.find(t => t.id === activeTenantId) || tenants[0];
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const insideTrigger = profileMenuRef.current?.contains(target);
+      const insidePopover = profilePopoverRef.current?.contains(target);
+      if (!insideTrigger && !insidePopover) {
         setIsProfileMenuOpen(false);
       }
     };
@@ -120,10 +125,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside
-        className={`flex flex-col flex-shrink-0 z-40 transition-all duration-300 fixed inset-y-0 left-0 lg:static lg:h-auto bg-white lg:bg-transparent text-zinc-800 border-r border-zinc-200 lg:border-none ${
+        className={`flex flex-col flex-shrink-0 transition-all duration-300 fixed inset-y-0 left-0 lg:relative lg:z-0 lg:h-auto bg-white lg:bg-transparent text-zinc-800 border-r border-zinc-200 lg:border-none ${
           isSidebarCollapsed
-            ? '-translate-x-full lg:translate-x-0 lg:w-16'
-            : 'translate-x-0 w-72 lg:w-60'
+            ? 'z-0 -translate-x-full lg:translate-x-0 lg:w-16'
+            : 'z-40 translate-x-0 w-72 lg:w-60'
         }`}
       >
         {/* Desktop Top Header (Logo + Collapse Toggle) */}
@@ -226,7 +231,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     className={`relative flex items-center text-left text-sm group cursor-pointer transition-colors duration-150 ${
                       isSidebarCollapsed
                         ? 'w-10 h-10 aspect-square mx-auto justify-center p-0 rounded-full shrink-0'
-                        : 'px-3 py-2 rounded-lg w-full min-h-[38px]'
+                        : 'px-3.5 py-2 rounded-full w-full min-h-[38px]'
                     } ${
                       isDarkSidebar
                         ? isParentActive
@@ -296,8 +301,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             onClick={() => handleItemSelect(sub.name)}
                             className={`relative flex items-center text-left text-[14px] group cursor-pointer transition-colors duration-150 ${
                               isSidebarCollapsed
-                                ? 'w-10 h-10 mx-auto justify-center p-0 rounded-xl shrink-0'
-                                : 'pl-8 pr-3 py-1.5 rounded-lg w-full min-h-[36px]'
+                                ? 'w-10 h-10 aspect-square mx-auto justify-center p-0 rounded-full shrink-0'
+                                : 'pl-8 pr-3.5 py-1.5 rounded-full w-full min-h-[36px]'
                             } ${
                               isDarkSidebar
                                 ? isSubActive
@@ -422,96 +427,112 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               )}
 
-              {/* Profile Dropdown Popover */}
-              {isProfileMenuOpen && (
-                <div
-                  className={`absolute rounded-xl border shadow-2xl p-1.5 z-50 duration-150 ${
-                    isDarkSidebar
-                      ? 'bg-[#18181b] text-zinc-100 border-zinc-700/80 shadow-black/80'
-                      : 'bg-white text-zinc-900 border-zinc-200 shadow-xl'
-                  } ${
-                    isSidebarCollapsed
-                      ? 'bottom-0 left-full ml-3 w-64 animate-in fade-in slide-in-from-left-2'
-                      : 'bottom-full left-0 mb-2 w-64 animate-in fade-in slide-in-from-bottom-2'
-                  }`}
-                >
-                  {/* User Profile Header */}
-                  <div className="px-3 py-2.5 border-b border-zinc-100">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-                        {getInitials(currentUser.fullName)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-1">
-                          <p className="text-xs sm:text-sm font-bold text-zinc-950 truncate">
-                            {currentUser.fullName}
-                          </p>
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary-soft text-primary-text shrink-0">
-                            {ROLE_LABELS[currentUser.role]}
-                          </span>
+              {/* Profile Dropdown Popover (Portaled so z-0 sidebar never traps popover under z-30 main container) */}
+              {isProfileMenuOpen &&
+                createPortal(
+                  <div
+                    ref={profilePopoverRef}
+                    className={`fixed rounded-xl border shadow-2xl p-1.5 z-50 duration-150 ${
+                      isDarkSidebar
+                        ? 'bg-[#18181b] text-zinc-100 border-zinc-700/80 shadow-black/80'
+                        : 'bg-white text-zinc-900 border-zinc-200 shadow-xl'
+                    } ${
+                      isSidebarCollapsed
+                        ? 'bottom-2.5 left-[4.5rem] w-64 animate-in fade-in slide-in-from-left-2'
+                        : 'bottom-[4.25rem] left-2.5 w-64 animate-in fade-in slide-in-from-bottom-2'
+                    }`}
+                  >
+                    {/* User Profile Header */}
+                    <div className="px-3 py-2.5 border-b border-zinc-100">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                          {getInitials(currentUser.fullName)}
                         </div>
-                        <p className="text-[11px] text-zinc-500 truncate mt-0.5">
-                          {currentUser.shiftLabel}
-                        </p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <p className="text-sm font-bold text-zinc-950 truncate">
+                              {currentUser.fullName}
+                            </p>
+                            <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-primary-soft text-primary-text shrink-0">
+                              {ROLE_LABELS[currentUser.role]}
+                            </span>
+                          </div>
+                          <p className="text-xs text-zinc-500 truncate mt-0.5">
+                            {currentUser.shiftLabel}
+                          </p>
+                        </div>
                       </div>
+
+                      {activeTenant && (
+                        <div className="mt-2 bg-zinc-50 border border-zinc-200/80 text-zinc-700 px-2 py-1.5 rounded-md flex items-center gap-2">
+                          {activeTenant.logoUrl ? (
+                            <img
+                              src={activeTenant.logoUrl}
+                              alt={activeTenant.name}
+                              className="w-7 h-7 aspect-square rounded-lg object-cover border border-zinc-200 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-7 h-7 aspect-square rounded-lg bg-primary-soft text-primary-text border border-primary-border flex items-center justify-center font-bold text-xs shrink-0">
+                              {activeTenant.logoInitial}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1 text-xs">
+                            <span className="text-xs text-zinc-400 block leading-tight">Outlet Aktif:</span>
+                            <span className="font-semibold text-zinc-900 block truncate">
+                              {activeTenant.code} &bull; {activeTenant.name}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {activeTenant && (
-                      <div className="mt-2 text-[11px] bg-zinc-50 border border-zinc-200/80 text-zinc-700 px-2 py-1 rounded-md">
-                        <span className="text-[10px] text-zinc-400 block leading-tight">Outlet Aktif:</span>
-                        <span className="font-semibold text-zinc-900 block truncate">
-                          {activeTenant.code} &bull; {activeTenant.name}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                    {/* Menu Options */}
+                    <div className="p-1 space-y-0.5">
+                      {currentUser.role === 'owner' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSelectMenu('Manajemen User');
+                            setIsProfileMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 rounded-lg transition-colors text-left cursor-pointer"
+                        >
+                          <GoogleIcon name="manage_accounts" size={16} className="text-zinc-400 shrink-0" />
+                          <span>Manajemen User &amp; Akses</span>
+                        </button>
+                      )}
 
-                  {/* Menu Options */}
-                  <div className="p-1 space-y-0.5">
-                    {currentUser.role === 'owner' && (
+                      {currentUser.role !== 'cashier' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSelectMenu('Pengaturan');
+                            setIsProfileMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 rounded-lg transition-colors text-left cursor-pointer"
+                        >
+                          <GoogleIcon name="settings" size={16} className="text-zinc-400 shrink-0" />
+                          <span>Pengaturan Toko</span>
+                        </button>
+                      )}
+
+                      <div className="my-1 border-t border-zinc-100" />
+
                       <button
                         type="button"
                         onClick={() => {
-                          onSelectMenu('Manajemen User');
                           setIsProfileMenuOpen(false);
+                          onLogout?.();
                         }}
-                        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 rounded-lg transition-colors text-left cursor-pointer"
+                        className="w-full flex items-center gap-2 px-2.5 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors text-left cursor-pointer"
                       >
-                        <GoogleIcon name="manage_accounts" size={15} className="text-zinc-400 shrink-0" />
-                        <span>Manajemen User &amp; Akses</span>
+                        <GoogleIcon name="logout" size={16} className="text-red-500 shrink-0" />
+                        <span>Keluar (Logout)</span>
                       </button>
-                    )}
-
-                    {currentUser.role !== 'cashier' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onSelectMenu('Pengaturan');
-                          setIsProfileMenuOpen(false);
-                        }}
-                        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 rounded-lg transition-colors text-left cursor-pointer"
-                      >
-                        <GoogleIcon name="settings" size={15} className="text-zinc-400 shrink-0" />
-                        <span>Pengaturan Toko</span>
-                      </button>
-                    )}
-
-                    <div className="my-1 border-t border-zinc-100" />
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsProfileMenuOpen(false);
-                        onLogout?.();
-                      }}
-                      className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors text-left cursor-pointer"
-                    >
-                      <GoogleIcon name="logout" size={15} className="text-red-500 shrink-0" />
-                      <span>Keluar (Logout)</span>
-                    </button>
-                  </div>
-                </div>
-              )}
+                    </div>
+                  </div>,
+                  document.body
+                )}
             </div>
           )}
         </div>

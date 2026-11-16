@@ -9,6 +9,8 @@ import { PaginationControls } from '../common/PaginationControls';
 import { ErrorBanner } from '../common/ErrorBanner';
 import { SearchInput } from '../common/SearchInput';
 import { useToast } from '../../contexts/ToastContext';
+import { NewBadge } from '../common/NewBadge';
+import { isRecentlyCreated, useNewBadgeClock } from '../../utils/newBadge';
 import {
   SortableTh,
   SortDirection,
@@ -27,6 +29,7 @@ interface CategoryRow {
   count: number;
   totalStok: number;
   totalGram: number;
+  createdAt?: string;
 }
 
 export const CategoryListView: React.FC<CategoryListViewProps> = ({
@@ -37,6 +40,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
 }) => {
   const [categories, setCategories] = useState<string[]>([]);
   const [categoryStats, setCategoryStats] = useState<Record<string, CategoryStatsItem>>({});
+  const [categoryCreatedAt, setCategoryCreatedAt] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -59,6 +63,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
       .then(res => {
         setCategories(res.categories);
         setCategoryStats(res.stats);
+        setCategoryCreatedAt(res.categoryCreatedAt ?? {});
         setIsLoading(false);
       })
       .catch(err => {
@@ -80,9 +85,13 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
         count: stats.count ?? 0,
         totalStok: stats.totalStok ?? 0,
         totalGram: stats.totalGram ?? 0,
+        createdAt: categoryCreatedAt[name],
       };
     });
-  }, [categories, categoryStats]);
+  }, [categories, categoryStats, categoryCreatedAt]);
+
+  const categoryTimestamps = useMemo(() => rows.map(r => r.createdAt), [rows]);
+  const nowMs = useNewBadgeClock(categoryTimestamps);
 
   const summary = useMemo(() => {
     let filledCount = 0;
@@ -114,12 +123,18 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
 
     const factor = sortDir === 'asc' ? 1 : -1;
     return [...filtered].sort((a, b) => {
+      const aNew = isRecentlyCreated(a.createdAt, nowMs);
+      const bNew = isRecentlyCreated(b.createdAt, nowMs);
+      if (aNew !== bNew) return aNew ? -1 : 1;
+      if (aNew && bNew) {
+        return Date.parse(b.createdAt || '') - Date.parse(a.createdAt || '');
+      }
       if (sortBy === 'count') return (a.count - b.count) * factor;
       if (sortBy === 'totalStok') return (a.totalStok - b.totalStok) * factor;
       if (sortBy === 'totalGram') return (a.totalGram - b.totalGram) * factor;
       return a.name.localeCompare(b.name, 'id-ID') * factor;
     });
-  }, [rows, search, statusFilter, sortBy, sortDir]);
+  }, [rows, search, statusFilter, sortBy, sortDir, nowMs]);
 
   const {
     currentPage,
@@ -167,7 +182,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h3 className="text-lg sm:text-xl font-bold text-zinc-950 leading-tight">
+            <h3 className="text-lg sm:text-xl font-bold text-zinc-950 leading-tight tracking-tight">
               Daftar Kategori Produk
             </h3>
             {isLoading && <GoogleIcon name="progress_activity" size={14} className="animate-spin text-primary" />}
@@ -198,7 +213,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
             placeholder="Cari nama kategori produk..."
           />
 
-          <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-full border border-zinc-200 items-center overflow-x-auto max-w-full shrink-0">
+          <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 items-center overflow-x-auto max-w-full shrink-0">
             {[
               { id: 'all' as const, label: `Semua (${summary.totalCategories})` },
               { id: 'filled' as const, label: `Terisi (${summary.filledCount})` },
@@ -210,8 +225,8 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                 onClick={() => handleStatusFilterChange(tab.id)}
                 className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   statusFilter === tab.id
-                    ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                    : 'text-zinc-500 hover:text-zinc-900'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-950'
                 }`}
               >
                 {tab.label}
@@ -272,7 +287,10 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                           <GoogleIcon name="deployed_code" size={18} />
                         </span>
                         <div className="min-w-0">
-                          <h4 className="text-sm sm:text-base font-bold text-gray-900 truncate">{row.name}</h4>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <h4 className="text-sm sm:text-base font-bold text-gray-900 truncate">{row.name}</h4>
+                            {isRecentlyCreated(row.createdAt, nowMs) && <NewBadge />}
+                          </div>
                           <p className="text-xs text-gray-500 mt-0.5 font-mono tabular-nums">
                             {row.count} SKU · {sharePercent}% katalog
                           </p>
@@ -299,7 +317,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                           </strong>
                         </span>
                         <span>
-                          Netto:{' '}
+                          Berat:{' '}
                           <strong className="text-zinc-950 font-mono tabular-nums">
                             {Number(row.totalGram.toFixed(2))} gr
                           </strong>
@@ -366,7 +384,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                     className="py-3 px-3 sm:px-4"
                   />
                   <SortableTh
-                    label="Total Netto"
+                    label="Total Berat"
                     sortKey="totalGram"
                     currentSortBy={sortBy}
                     currentSortDir={sortDir}
@@ -424,9 +442,12 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                               <GoogleIcon name="deployed_code" size={16} />
                             </span>
                             <div className="min-w-0">
-                              <span className="font-bold text-zinc-950 text-xs sm:text-sm block truncate">
-                                {row.name}
-                              </span>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="font-bold text-zinc-950 text-xs sm:text-sm truncate">
+                                  {row.name}
+                                </span>
+                                {isRecentlyCreated(row.createdAt, nowMs) && <NewBadge />}
+                              </div>
                               <span className="text-xs text-zinc-400 font-normal block mt-0.5">
                                 {sharePercent}% porsi katalog produk
                               </span>
@@ -504,7 +525,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
 
       <ConfirmModal
         isOpen={!!deletingCategory}
-        title="Hapus Kategori Produk"
+        title="Hapus Kategori"
         description={
           deletingCategory
             ? `Apakah Anda yakin ingin menghapus kategori "${deletingCategory}"? Kategori hanya dapat dihapus jika tidak ada barang yang menggunakannya.`

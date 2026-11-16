@@ -82,8 +82,8 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
                       onSelectTenant(tenant.id);
                       setIsOpen(false);
                     }}
-                    className={`w-full text-left p-2 rounded-xl flex items-center justify-between text-xs transition-colors cursor-pointer ${
-                      isSelected ? 'bg-primary text-white font-bold' : 'hover:bg-zinc-100/80 text-zinc-700'
+                    className={`w-full text-left p-2 rounded-xl flex items-center justify-between text-sm transition-colors cursor-pointer ${
+                      isSelected ? 'bg-primary text-white font-bold' : 'hover:bg-zinc-100/80 text-zinc-700 font-medium'
                     }`}
                   >
                     <div className="min-w-0 flex-1 pr-2">
@@ -104,7 +104,7 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
                   setIsOpen(false);
                   onOpenRegisterModal();
                 }}
-                className="w-full py-1.5 px-2 text-xs font-bold text-primary hover:bg-primary-soft/50 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-1.5 px-2 text-sm font-semibold text-primary hover:bg-primary-soft/50 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <GoogleIcon name="add" size={14} className="shrink-0" />
                 <span>Daftar Tenant Baru</span>
@@ -210,7 +210,7 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-xs truncate font-bold leading-tight">{t.name}</p>
+                          <p className="text-sm truncate font-semibold leading-tight">{t.name}</p>
                           <span
                             className={`text-xs px-1.5 py-0.5 rounded font-mono font-medium ${
                               isSelected ? 'bg-white/25 text-white' : 'bg-zinc-200/80 text-zinc-700'
@@ -243,7 +243,7 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
                 setIsOpen(false);
                 onOpenRegisterModal();
               }}
-              className="w-full py-2 px-3 text-xs font-bold text-white bg-primary hover:bg-primary-hover rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              className="w-full py-2 px-3 text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <GoogleIcon name="add" size={14} className="shrink-0" />
               <span>Daftar / Tambah Tenant Baru</span>
@@ -255,7 +255,7 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
                 setIsOpen(false);
                 onNavigateToManagement();
               }}
-              className="w-full py-2 px-3 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+              className="w-full py-2 px-3 text-sm font-medium text-zinc-700 hover:bg-zinc-100 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
             >
               Kelola Semua Tenant &amp; Outlet
             </button>

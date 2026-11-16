@@ -38,18 +38,17 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
       isOpen={isOpen && Boolean(receipt)}
       onClose={onClose}
       size="2xl"
-      title="Struk & Nota Penjualan"
-      subtitle={`${receipt.invoiceNo} • ${receipt.customerName || 'Pelanggan Umum'}`}
+      title="Nota Penjualan"
       headerActions={
-        <div className="inline-flex p-0.5 bg-zinc-200/80 rounded-xl border border-zinc-300/70">
+        <div className="inline-flex h-8 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 items-center">
           {(['a5', 'a6', '80mm'] as const).map(size => (
             <button
               key={size}
               type="button"
               onClick={() => onPaperSizeChange(size)}
-              className={`px-2.5 py-1 text-xs font-bold uppercase rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+              className={`h-full px-3 text-xs font-bold uppercase rounded-full transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center ${
                 paperSize === size
-                  ? 'bg-white text-zinc-950 shadow-2xs'
+                  ? 'bg-primary text-white shadow-xs'
                   : 'text-zinc-600 hover:text-zinc-950'
               }`}
             >

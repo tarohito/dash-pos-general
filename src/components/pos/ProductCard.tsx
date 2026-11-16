@@ -38,7 +38,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToC
           {/* Promo Badge (jika ada promo aktif) */}
           {product.isPromo && (
             <div className="absolute top-2 left-2">
-              <span className="text-xs font-bold px-2.5 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full shadow-xs">
+              <span className="text-xs font-bold px-2.5 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-md shadow-xs">
                 {product.promoLabel || 'PROMO'}
               </span>
             </div>
@@ -47,7 +47,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToC
           {/* Stock Badge: Cukup angka saja */}
           <div className="absolute top-2 right-2">
             <span
-              className={`text-xs font-bold font-mono px-2 py-0.5 rounded-full shadow-2xs ${
+              className={`text-xs font-bold font-mono px-2 py-0.5 rounded-md shadow-2xs ${
                 isOutOfStock
                   ? 'bg-red-600 text-white'
                   : product.stok <= 5

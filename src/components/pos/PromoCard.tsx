@@ -50,7 +50,7 @@ export const PromoCard: React.FC<PromoCardProps> = ({
         </div>
 
         {isActiveFilter && (
-          <span className="text-xs font-bold px-2.5 py-0.5 bg-white text-orange-600 rounded-full uppercase tracking-wider shadow-xs">
+          <span className="text-xs font-bold px-2.5 py-0.5 bg-white text-orange-600 rounded-md uppercase tracking-wider shadow-xs">
             Filter Aktif
           </span>
         )}

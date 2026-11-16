@@ -77,7 +77,6 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       onClose={onCancel}
       size="sm"
       title={title}
-      subtitle={variant === 'void' ? 'Konfirmasi pembatalan transaksi' : 'Konfirmasi penghapusan data'}
       disableEscapeClose={isLoading}
       footer={
         <div className={MODAL_FOOTER_END_CLASS}>
@@ -93,7 +92,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             type="button"
             onClick={() => void handleConfirmClick()}
             disabled={isLoading}
-            className={`h-9 px-4 text-xs sm:text-sm font-semibold text-white rounded-full transition-colors cursor-pointer inline-flex items-center justify-center whitespace-nowrap shadow-xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`h-9 px-4 text-sm font-semibold text-white rounded-full transition-colors cursor-pointer inline-flex items-center justify-center whitespace-nowrap shadow-xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
               variant === 'void'
                 ? 'bg-amber-600 hover:bg-amber-700'
                 : 'bg-red-600 hover:bg-red-700'
@@ -112,7 +111,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </div>
         )}
 
-        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{description}</p>
+        <p className="text-sm text-zinc-600 leading-relaxed">{description}</p>
 
         {inputLabel && (
           <div>
@@ -127,7 +126,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 if (localError) setLocalError(null);
               }}
               placeholder={inputPlaceholder}
-              className="w-full h-9 px-3 text-xs sm:text-sm bg-white border border-zinc-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="w-full h-10 px-3.5 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
         )}

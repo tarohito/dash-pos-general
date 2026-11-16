@@ -4,6 +4,8 @@ import { Tenant } from '../../types';
 import { SearchInput } from '../common/SearchInput';
 import { ActionDropdownMenu } from '../common/ActionDropdownMenu';
 import { KpiCard } from '../common/KpiCard';
+import { NewBadge } from '../common/NewBadge';
+import { isRecentlyCreated, useNewBadgeClock } from '../../utils/newBadge';
 import {
   ModalShell,
   MODAL_FOOTER_END_CLASS,
@@ -58,9 +60,12 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
     };
   }, [tenants]);
 
+  const tenantTimestamps = useMemo(() => tenants.map(t => t.createdAt), [tenants]);
+  const nowMs = useNewBadgeClock(tenantTimestamps);
+
   const filteredTenants = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return tenants.filter(t => {
+    const list = tenants.filter(t => {
       if (filterTab === 'active' && t.status !== 'Aktif') return false;
       if (filterTab === 'enterprise' && t.plan !== 'Enterprise Multi-Tenant') return false;
       if (filterTab === 'pro' && t.plan === 'Enterprise Multi-Tenant') return false;
@@ -75,7 +80,16 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
         t.email.toLowerCase().includes(q)
       );
     });
-  }, [tenants, searchQuery, filterTab]);
+    return [...list].sort((a, b) => {
+      const aNew = isRecentlyCreated(a.createdAt, nowMs);
+      const bNew = isRecentlyCreated(b.createdAt, nowMs);
+      if (aNew !== bNew) return aNew ? -1 : 1;
+      if (aNew && bNew) {
+        return Date.parse(b.createdAt || '') - Date.parse(a.createdAt || '');
+      }
+      return 0;
+    });
+  }, [tenants, searchQuery, filterTab, nowMs]);
 
   const [visibleCount, setVisibleCount] = useState(OUTLET_BATCH_SIZE);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -123,10 +137,10 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
       {/* Page Header (Unboxed, Tanpa Card) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">
+          <h3 className="text-lg sm:text-xl font-bold text-zinc-950 leading-tight tracking-tight">
             Kelola Multi-Outlet Bisnis
           </h3>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+          <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
             Kelola daftar gerai / cabang bisnis, peralihan cabang kasir aktif, dan informasi operasional setiap outlet.
           </p>
         </div>
@@ -221,7 +235,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
             placeholder="Cari nama outlet, kode gerai, cabang, kota, atau kontak..."
           />
 
-          <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-full border border-zinc-200 items-center self-start lg:self-auto overflow-x-auto max-w-full shrink-0">
+          <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 items-center self-start lg:self-auto overflow-x-auto max-w-full shrink-0">
             {[
               { id: 'all' as const, label: `Semua (${summary.totalTenants})` },
               { id: 'active' as const, label: `Aktif (${summary.activeCount})` },
@@ -234,8 +248,8 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                 onClick={() => handleTabChange(tab.id)}
                 className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   filterTab === tab.id
-                    ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                    : 'text-zinc-600 hover:text-zinc-900'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-950'
                 }`}
               >
                 {tab.label}
@@ -316,6 +330,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                         >
                           {tenant.status}
                         </span>
+                        {isRecentlyCreated(tenant.createdAt, nowMs) && <NewBadge />}
                       </div>
 
                       {isSelected && (
@@ -327,15 +342,25 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
 
                     {/* Outlet Identity */}
                     <div className="flex items-center gap-3 mb-4">
-                      <div
-                        className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
-                          isSelected
-                            ? 'bg-white text-primary'
-                            : 'bg-secondary-soft text-secondary-text border border-secondary-border'
-                        }`}
-                      >
-                        {tenant.logoInitial}
-                      </div>
+                      {tenant.logoUrl ? (
+                        <img
+                          src={tenant.logoUrl}
+                          alt={tenant.name}
+                          className={`w-11 h-11 aspect-square rounded-xl object-cover shrink-0 border ${
+                            isSelected ? 'border-white/50' : 'border-zinc-200'
+                          }`}
+                        />
+                      ) : (
+                        <div
+                          className={`w-11 h-11 aspect-square rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
+                            isSelected
+                              ? 'bg-white text-primary'
+                              : 'bg-secondary-soft text-secondary-text border border-secondary-border'
+                          }`}
+                        >
+                          {tenant.logoInitial}
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
                         <h4
                           className={`text-sm sm:text-base font-bold truncate leading-tight ${
@@ -483,8 +508,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
         isOpen={!!detailTenant}
         onClose={() => setDetailTenant(null)}
         size="md"
-        title={detailTenant?.name ?? 'Detail Outlet'}
-        subtitle={detailTenant ? `${detailTenant.code} • ${detailTenant.branchName}` : undefined}
+        title="Detail Outlet"
         footer={
           detailTenant ? (
             <div className={MODAL_FOOTER_END_CLASS}>
@@ -524,8 +548,12 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
         }
       >
         {detailTenant && (
-          <div className="space-y-3 text-xs sm:text-sm">
+          <div className="space-y-3 text-sm">
             <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl p-4 space-y-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-gray-500">Nama Outlet</span>
+                <span className="font-bold text-gray-900 text-right">{detailTenant.name}</span>
+              </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-gray-500">Kode Outlet</span>
                 <span className="font-mono font-bold text-gray-900">{detailTenant.code}</span>

@@ -10,7 +10,7 @@ import {
 } from '../../types';
 import { RetailReceiptDocument } from '../common/RetailReceiptDocument';
 import { CustomSelect } from '../common/CustomSelect';
-import { CustomCheckbox } from '../common/CustomCheckbox';
+import { StatusToggle } from '../common/StatusToggle';
 import { useToast } from '../../contexts/ToastContext';
 
 export const DEFAULT_RECEIPT_TERMS_TEMPLATE = [
@@ -185,10 +185,10 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
       subtotal,
       tax,
       grandTotal,
-      paymentMethod: 'qris',
+      paymentMethod: 'transfer',
       paymentDetails: {
-        qrisRrn: '991827364512',
-        qrisNmid: 'ID102003948571',
+        transferBank: 'BCA',
+        transferRef: 'TRF-261115-001',
       },
       status: 'completed',
     };
@@ -298,7 +298,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
         </div>
 
         {/* Sub-tab Switcher */}
-        <div className="grid grid-cols-3 gap-1 p-1 bg-zinc-100/90 rounded-xl border border-zinc-200/80">
+        <div className="inline-flex h-10 p-1 bg-zinc-100/90 rounded-full border border-zinc-200 items-center gap-1 overflow-x-auto max-w-full no-scrollbar">
           {(
             [
               { key: 'theme_header', label: 'Tema & Header', icon: 'palette' as GoogleIconName },
@@ -313,14 +313,14 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                 key={tab.key}
                 type="button"
                 onClick={() => setEditorTab(tab.key)}
-                className={`h-8 px-2 rounded-lg text-xs font-semibold transition-all inline-flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                className={`h-full px-3 rounded-full text-xs font-semibold transition-all inline-flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   active
-                    ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                    : 'text-zinc-600 hover:text-zinc-900'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-zinc-600 hover:text-zinc-950'
                 }`}
               >
                 <GoogleIcon name={Icon} size={14} filled={active} className="shrink-0" />
-                <span className="truncate">{tab.label}</span>
+                <span>{tab.label}</span>
               </button>
             );
           })}
@@ -485,7 +485,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                 </div>
               )}
 
-              <label className="flex items-center justify-between gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50/70 cursor-pointer">
+              <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50/70">
                 <div>
                   <span className="text-xs font-semibold text-gray-900 block">
                     Tampilkan Watermark Nama Toko di Latar
@@ -494,11 +494,17 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                     Opsional: tampilkan teks nama toko tipis di belakang struk.
                   </span>
                 </div>
-                <CustomCheckbox
+                <StatusToggle
                   checked={settings.receiptShowWatermark}
                   onChange={val => onUpdateField('receiptShowWatermark', val)}
+                  ariaLabel="Tampilkan Watermark Nama Toko di Latar"
+                  tooltip={
+                    settings.receiptShowWatermark
+                      ? 'Watermark aktif — klik untuk sembunyikan'
+                      : 'Watermark nonaktif — klik untuk tampilkan'
+                  }
                 />
-              </label>
+              </div>
             </div>
 
             {/* Header Text Fields */}
@@ -511,7 +517,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                   type="text"
                   value={settings.receiptTagline}
                   onChange={e => onUpdateField('receiptTagline', e.target.value)}
-                  className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="w-full h-10 px-3.5 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   placeholder="Kosongkan untuk tampilan simpel"
                 />
               </div>
@@ -524,7 +530,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                   type="text"
                   value={settings.receiptSaleTitle}
                   onChange={e => onUpdateField('receiptSaleTitle', e.target.value)}
-                  className="w-full h-9 px-3 text-xs font-semibold bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="w-full h-10 px-3.5 text-sm font-semibold bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   placeholder="Contoh: Struk Pembelian (kosongkan jika tidak perlu)"
                 />
               </div>
@@ -537,7 +543,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                   type="text"
                   value={settings.receiptHeaderExtra}
                   onChange={e => onUpdateField('receiptHeaderExtra', e.target.value)}
-                  className="w-full h-9 px-3 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="w-full h-10 px-3.5 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   placeholder="IG @mki.kosmetik • Buka Setiap Hari 09:00–21:00"
                 />
               </div>
@@ -549,9 +555,9 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
         {editorTab === 'elements' && (
           <div className="space-y-2.5">
             {elementToggles.map(item => (
-              <label
+              <div
                 key={item.key}
-                className="flex items-start justify-between gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50/70 transition-colors cursor-pointer"
+                className="flex items-center justify-between gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50/70 transition-colors"
               >
                 <div className="min-w-0">
                   <span className="text-xs font-semibold text-gray-900 block">{item.label}</span>
@@ -559,12 +565,17 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                     {item.desc}
                   </span>
                 </div>
-                <CustomCheckbox
+                <StatusToggle
                   checked={item.checked}
                   onChange={val => onUpdateField(item.key, val as StoreSettings[typeof item.key])}
-                  className="mt-0.5"
+                  ariaLabel={item.label}
+                  tooltip={
+                    item.checked
+                      ? `${item.label} aktif — klik untuk sembunyikan di nota`
+                      : `${item.label} nonaktif — klik untuk tampilkan di nota`
+                  }
                 />
-              </label>
+              </div>
             ))}
           </div>
         )}
@@ -580,7 +591,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                 type="text"
                 value={settings.receiptTermsTitle}
                 onChange={e => onUpdateField('receiptTermsTitle', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-semibold"
+                className="w-full h-10 px-3.5 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-semibold"
                 placeholder="Catatan:"
               />
             </div>
@@ -634,7 +645,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                     type="text"
                     value={settings.receiptSignatureGreeting}
                     onChange={e => onUpdateField('receiptSignatureGreeting', e.target.value)}
-                    className="w-full h-9 px-2.5 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    className="w-full h-10 px-3.5 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="Hormat Kami,"
                   />
                 </div>
@@ -646,7 +657,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                     type="text"
                     value={settings.receiptCustomerSignLabel}
                     onChange={e => onUpdateField('receiptCustomerSignLabel', e.target.value)}
-                    className="w-full h-9 px-2.5 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    className="w-full h-10 px-3.5 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="Customer"
                   />
                 </div>
@@ -658,7 +669,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                     type="text"
                     value={settings.receiptCashierSignLabel}
                     onChange={e => onUpdateField('receiptCashierSignLabel', e.target.value)}
-                    className="w-full h-9 px-2.5 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    className="w-full h-10 px-3.5 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="Kasir / Staff"
                   />
                 </div>
@@ -684,16 +695,16 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
           </div>
 
           <div className="flex items-center gap-2 flex-wrap shrink-0">
-            <div className="inline-flex p-0.5 bg-zinc-100/90 rounded-xl border border-zinc-200/80">
+            <div className="inline-flex h-8 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 items-center">
               {(['a5', 'a6', '80mm'] as const).map(size => (
                 <button
                   key={size}
                   type="button"
                   onClick={() => setPreviewPaperSize(size)}
-                  className={`px-2 py-1 text-xs font-bold uppercase rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                  className={`h-full px-2.5 text-xs font-bold uppercase rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center ${
                     previewPaperSize === size
-                      ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                      : 'text-zinc-500 hover:text-zinc-900'
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'text-zinc-500 hover:text-zinc-950'
                   }`}
                 >
                   {size}

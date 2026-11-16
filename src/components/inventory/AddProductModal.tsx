@@ -1,11 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleIcon } from '../common/GoogleIcon';
 import { Product, ProductCondition, ProductStatus } from '../../types';
 import { CustomSelect } from '../common/CustomSelect';
 import { NumericInput } from '../common/NumericInput';
+import { StatusToggle } from '../common/StatusToggle';
 import { generateJewelrySku, isValidCode128 } from '../../utils/barcode';
 import { JewelryBarcodeTag } from '../common/JewelryBarcodeTag';
 import { useToast } from '../../contexts/ToastContext';
+import { posApi } from '../../services/api';
+import { useDebounce } from '../../hooks/useDebounce';
 import {
   compressAndCropSquareToWebP,
   formatBytes,
@@ -57,59 +60,143 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     sizeBytes: number;
     originalSizeBytes: number;
   } | null>(null);
+  const [isGeneratingSku, setIsGeneratingSku] = useState(false);
+  const [skuCheckState, setSkuCheckState] = useState<{
+    status: 'idle' | 'checking' | 'available' | 'duplicate';
+    message?: string;
+    conflictProduct?: { id: number; name: string; sku: string };
+  }>({ status: 'idle' });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasManualSkuEditRef = useRef(false);
+  const skuGenAbortRef = useRef<AbortController | null>(null);
   const { showToast } = useToast();
 
-  useEffect(() => {
-    if (isOpen) {
-      setErrorMsg(null);
-      setCompressionInfo(null);
-      const defaultCategory = categories[0] || 'Parfum';
-      if (editingProduct) {
-        setFormData({
-          sku: editingProduct.sku,
-          name: editingProduct.name,
-          category: editingProduct.category || defaultCategory,
-          brand: editingProduct.brand || 'No Brand',
-          kondisi: (editingProduct.kondisi === 'Bekas' ? 'Bekas' : 'Baru') as ProductCondition,
-          deskripsi: editingProduct.deskripsi || '',
-          berat: String(editingProduct.berat),
-          harga: String(editingProduct.harga),
-          hpp: editingProduct.hpp ? String(editingProduct.hpp) : '',
-          stok: String(editingProduct.stok),
-          panjang: editingProduct.panjang ? String(editingProduct.panjang) : '',
-          lebar: editingProduct.lebar ? String(editingProduct.lebar) : '',
-          tinggi: editingProduct.tinggi ? String(editingProduct.tinggi) : '',
-          status: (editingProduct.status === 'Nonaktif' ? 'Nonaktif' : 'Aktif') as ProductStatus,
-          image: editingProduct.image,
-        });
-      } else {
-        setFormData({
-          sku: generateJewelrySku(defaultCategory, ''),
-          name: '',
-          category: defaultCategory,
-          brand: 'No Brand',
-          kondisi: 'Baru',
-          deskripsi: '',
-          berat: '50',
-          harga: '185000',
-          hpp: '',
-          stok: '24',
-          panjang: '',
-          lebar: '',
-          tinggi: '',
-          status: 'Aktif',
-          image: '/assets/products/parfum.jpg',
-        });
+  const debouncedSku = useDebounce(formData.sku.trim().toUpperCase(), 220);
+
+  const fetchUniqueSku = useCallback(
+    async (category: string, currentSku?: string, forceReplace = false) => {
+      skuGenAbortRef.current?.abort();
+      const controller = new AbortController();
+      skuGenAbortRef.current = controller;
+      setIsGeneratingSku(true);
+      try {
+        const res = await posApi.getNextUniqueSku(category, currentSku, controller.signal);
+        if (controller.signal.aborted) return;
+        if (forceReplace || !hasManualSkuEditRef.current) {
+          setFormData(prev => ({ ...prev, sku: res.sku }));
+        }
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError' && forceReplace) {
+          setFormData(prev => ({
+            ...prev,
+            sku: generateJewelrySku(category, prev.name),
+          }));
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsGeneratingSku(false);
+        }
       }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!isOpen) {
+      skuGenAbortRef.current?.abort();
+      setSkuCheckState({ status: 'idle' });
+      return;
     }
-  }, [isOpen, editingProduct, categories]);
+
+    setErrorMsg(null);
+    setCompressionInfo(null);
+    setSkuCheckState({ status: 'idle' });
+    const defaultCategory = categories[0] || 'Parfum';
+
+    if (editingProduct) {
+      hasManualSkuEditRef.current = true;
+      setFormData({
+        sku: editingProduct.sku,
+        name: editingProduct.name,
+        category: editingProduct.category || defaultCategory,
+        brand: editingProduct.brand || 'No Brand',
+        kondisi: (editingProduct.kondisi === 'Bekas' ? 'Bekas' : 'Baru') as ProductCondition,
+        deskripsi: editingProduct.deskripsi || '',
+        berat: String(editingProduct.berat),
+        harga: String(editingProduct.harga),
+        hpp: editingProduct.hpp ? String(editingProduct.hpp) : '',
+        stok: String(editingProduct.stok),
+        panjang: editingProduct.panjang ? String(editingProduct.panjang) : '',
+        lebar: editingProduct.lebar ? String(editingProduct.lebar) : '',
+        tinggi: editingProduct.tinggi ? String(editingProduct.tinggi) : '',
+        status: (editingProduct.status === 'Nonaktif' ? 'Nonaktif' : 'Aktif') as ProductStatus,
+        image: editingProduct.image,
+      });
+    } else {
+      hasManualSkuEditRef.current = false;
+      setFormData({
+        sku: generateJewelrySku(defaultCategory, ''),
+        name: '',
+        category: defaultCategory,
+        brand: 'No Brand',
+        kondisi: 'Baru',
+        deskripsi: '',
+        berat: '50',
+        harga: '185000',
+        hpp: '',
+        stok: '24',
+        panjang: '',
+        lebar: '',
+        tinggi: '',
+        status: 'Aktif',
+        image: '/assets/products/parfum.jpg',
+      });
+      void fetchUniqueSku(defaultCategory, undefined, false);
+    }
+
+    return () => {
+      skuGenAbortRef.current?.abort();
+    };
+  }, [isOpen, editingProduct, categories, fetchUniqueSku]);
+
+  useEffect(() => {
+    if (!isOpen || !debouncedSku || !isValidCode128(debouncedSku)) {
+      setSkuCheckState({ status: 'idle' });
+      return;
+    }
+
+    const controller = new AbortController();
+    setSkuCheckState({ status: 'checking' });
+
+    posApi
+      .checkProductSku(debouncedSku, editingProduct?.id, controller.signal)
+      .then(res => {
+        if (controller.signal.aborted) return;
+        if (res.available) {
+          setSkuCheckState({ status: 'available' });
+        } else {
+          const conflictName = res.conflictProduct?.name;
+          setSkuCheckState({
+            status: 'duplicate',
+            message: conflictName
+              ? `SKU/Barcode "${debouncedSku}" sudah dipakai oleh produk "${conflictName}".`
+              : `SKU/Barcode "${debouncedSku}" sudah digunakan produk lain di outlet ini.`,
+            conflictProduct: res.conflictProduct,
+          });
+        }
+      })
+      .catch(err => {
+        if ((err as Error).name !== 'AbortError') {
+          setSkuCheckState({ status: 'idle' });
+        }
+      });
+
+    return () => controller.abort();
+  }, [isOpen, debouncedSku, editingProduct?.id]);
 
   const handleRegenerateSku = () => {
-    setFormData(prev => ({
-      ...prev,
-      sku: generateJewelrySku(prev.category, prev.name),
-    }));
+    hasManualSkuEditRef.current = false;
+    void fetchUniqueSku(formData.category, formData.sku.trim().toUpperCase(), true);
   };
 
   const failValidation = (msg: string) => {
@@ -218,6 +305,36 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 
     setIsSubmitting(true);
     try {
+      if (skuCheckState.status === 'duplicate') {
+        failValidation(
+          skuCheckState.message ||
+            `SKU/Barcode "${cleanSku}" sudah digunakan produk lain di outlet ini.`
+        );
+        return;
+      }
+
+      if (skuCheckState.status !== 'available' || debouncedSku !== cleanSku) {
+        try {
+          const check = await posApi.checkProductSku(cleanSku, editingProduct?.id);
+          if (!check.available) {
+            const conflictName = check.conflictProduct?.name;
+            const dupMsg = conflictName
+              ? `SKU/Barcode "${cleanSku}" sudah dipakai oleh produk "${conflictName}".`
+              : `SKU/Barcode "${cleanSku}" sudah digunakan produk lain di outlet ini.`;
+            setSkuCheckState({
+              status: 'duplicate',
+              message: dupMsg,
+              conflictProduct: check.conflictProduct,
+            });
+            failValidation(dupMsg);
+            return;
+          }
+          setSkuCheckState({ status: 'available' });
+        } catch {
+          // Biarkan server POST/PUT memvalidasi jika cek pra-simpan gagal jaringan
+        }
+      }
+
       await onSaveProduct(
         {
           sku: cleanSku,
@@ -257,12 +374,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size="2xl"
-      title={editingProduct ? 'Edit Data Produk' : 'Tambah Produk Baru'}
-      subtitle={
-        editingProduct
-          ? `Perbarui informasi katalog, harga jual, stok, dan logistik SKU ${editingProduct.sku}`
-          : 'Lengkapi spesifikasi produk, harga jual, persediaan fisik, dan informasi pengiriman'
-      }
+      title={editingProduct ? 'Edit Produk' : 'Tambah Produk'}
       disableEscapeClose={isSubmitting}
       footer={
         <div className={MODAL_FOOTER_END_CLASS}>
@@ -307,10 +419,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           {/* Nama Produk */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-semibold text-zinc-800">
+              <label className="block text-xs font-semibold text-zinc-700">
                 Nama Produk <span className="text-red-500">*</span>
               </label>
-              <span className="text-[11px] font-mono text-zinc-400">
+              <span className="text-xs font-mono text-zinc-400">
                 {formData.name.length}/255
               </span>
             </div>
@@ -321,9 +433,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               value={formData.name}
               onChange={e => setFormData({ ...formData, name: e.target.value })}
               placeholder="Contoh: Kahf Oil & Acne Care Face Wash 100ml"
-              className="w-full px-3.5 py-2 text-sm font-medium bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+              className="w-full h-10 px-3.5 text-sm font-medium bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
             />
-            <p className="text-[11px] text-zinc-400 mt-1">
+            <p className="text-xs text-zinc-400 mt-1">
               Format: <strong>[Merek] + [Nama / Jenis Barang] + [Varian / Ukuran]</strong>
             </p>
           </div>
@@ -331,25 +443,31 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           {/* Kategori, Merek, Kondisi */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-zinc-800 mb-1">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1">
                 Kategori <span className="text-red-500">*</span>
               </label>
               <CustomSelect
                 value={formData.category}
-                onChange={val => setFormData({ ...formData, category: val })}
+                onChange={val => {
+                  setFormData(prev => ({ ...prev, category: val }));
+                  if (!editingProduct && !hasManualSkuEditRef.current) {
+                    void fetchUniqueSku(val, undefined, false);
+                  }
+                }}
                 options={categories}
+                columns={2}
               />
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-zinc-800">
+                <label className="block text-xs font-semibold text-zinc-700">
                   Merek / Brand
                 </label>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, brand: 'No Brand' })}
-                  className="text-[11px] font-medium text-primary hover:underline cursor-pointer"
+                  className="text-xs font-medium text-primary hover:underline cursor-pointer"
                 >
                   Set "No Brand"
                 </button>
@@ -359,21 +477,21 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 value={formData.brand}
                 onChange={e => setFormData({ ...formData, brand: e.target.value })}
                 placeholder="Contoh: Kahf, Wardah, No Brand"
-                className="w-full px-3.5 py-2 text-sm font-medium bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3.5 text-sm font-medium bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-800 mb-1">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1">
                 Kondisi Produk
               </label>
-              <div className="grid grid-cols-2 gap-1.5 h-[38px]">
+              <div className="grid grid-cols-2 gap-1.5 h-10">
                 {(['Baru', 'Bekas'] as ProductCondition[]).map(cond => (
                   <button
                     key={cond}
                     type="button"
                     onClick={() => setFormData({ ...formData, kondisi: cond })}
-                    className={`h-full rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`h-full rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                       formData.kondisi === cond
                         ? 'bg-primary text-white shadow-xs'
                         : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
@@ -389,7 +507,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 
           {/* Deskripsi Produk */}
           <div>
-            <label className="block text-xs font-semibold text-zinc-800 mb-1">
+            <label className="block text-xs font-semibold text-zinc-700 mb-1">
               Deskripsi &amp; Spesifikasi Produk
             </label>
             <textarea
@@ -397,7 +515,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               value={formData.deskripsi}
               onChange={e => setFormData({ ...formData, deskripsi: e.target.value })}
               placeholder="Spesifikasi, keunggulan, komposisi, atau panduan penggunaan produk..."
-              className="w-full px-3.5 py-2 text-xs sm:text-sm bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none"
+              className="w-full px-3.5 py-2 text-sm bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors resize-none"
             />
           </div>
         </div>
@@ -409,12 +527,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <GoogleIcon name="payments" size={15} />
               </div>
-              <h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
+              <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider">
                 2. Harga, Stok &amp; Barcode SKU
               </h4>
             </div>
             {marginPercent !== null && (
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
                 Margin: +{marginPercent}% (+Rp {marginAmount?.toLocaleString('id-ID')})
               </span>
             )}
@@ -422,7 +540,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-zinc-800 mb-1">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1">
                 Harga Jual (Rp) <span className="text-red-500">*</span>
               </label>
               <NumericInput
@@ -431,12 +549,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 prefix="Rp"
                 placeholder="185.000"
                 required
-                className="w-full px-3.5 py-2 text-sm font-bold font-mono text-zinc-950 bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3.5 text-sm font-bold font-mono text-zinc-950 bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-800 mb-1">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1">
                 Harga Modal / HPP (Rp)
               </label>
               <NumericInput
@@ -444,12 +562,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 onChange={val => setFormData({ ...formData, hpp: String(val) })}
                 prefix="Rp"
                 placeholder="120.000"
-                className="w-full px-3.5 py-2 text-sm font-bold font-mono text-zinc-700 bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3.5 text-sm font-bold font-mono text-zinc-700 bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-800 mb-1">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1">
                 Stok Fisik (pcs) <span className="text-red-500">*</span>
               </label>
               <NumericInput
@@ -458,49 +576,37 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 placeholder="24"
                 suffix="pcs"
                 required
-                className="w-full px-3.5 py-2 text-sm font-bold font-mono bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3.5 text-sm font-bold font-mono bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-800 mb-1">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1">
                 Status Produk
               </label>
-              <div className="flex items-center justify-between h-[38px] px-3 bg-white border border-zinc-200 rounded-xl">
+              <div className="flex items-center justify-between h-10 px-3.5 bg-white border border-zinc-200 rounded-xl">
                 <span
-                  onClick={() =>
-                    setFormData(prev => ({
-                      ...prev,
-                      status: prev.status === 'Aktif' ? 'Nonaktif' : 'Aktif',
-                    }))
-                  }
-                  className={`text-xs font-bold cursor-pointer select-none transition-colors ${
+                  className={`text-sm font-semibold select-none transition-colors ${
                     formData.status === 'Aktif' ? 'text-emerald-700' : 'text-zinc-500'
                   }`}
                 >
                   {formData.status === 'Aktif' ? 'Aktif (Dijual)' : 'Nonaktif'}
                 </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={formData.status === 'Aktif'}
-                  onClick={() =>
+                <StatusToggle
+                  checked={formData.status === 'Aktif'}
+                  onChange={nextChecked =>
                     setFormData(prev => ({
                       ...prev,
-                      status: prev.status === 'Aktif' ? 'Nonaktif' : 'Aktif',
+                      status: nextChecked ? 'Aktif' : 'Nonaktif',
                     }))
                   }
-                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
-                    formData.status === 'Aktif' ? 'bg-emerald-500' : 'bg-zinc-300'
-                  }`}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                      formData.status === 'Aktif' ? 'translate-x-4' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
+                  ariaLabel="Status Produk"
+                  tooltip={
+                    formData.status === 'Aktif'
+                      ? 'Aktif — klik untuk nonaktifkan di kasir'
+                      : 'Nonaktif — klik untuk aktifkan di kasir'
+                  }
+                />
               </div>
             </div>
           </div>
@@ -508,27 +614,70 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           {/* SKU / Barcode */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-semibold text-zinc-800">
+              <label className="block text-xs font-semibold text-zinc-700">
                 SKU Induk / Kode Barcode (Code 128) <span className="text-red-500">*</span>
               </label>
               <button
                 type="button"
                 onClick={handleRegenerateSku}
-                className="text-xs font-semibold text-primary hover:text-primary-hover cursor-pointer inline-flex items-center gap-1"
-                title="Generate kode SKU otomatis"
+                disabled={isGeneratingSku}
+                className="text-xs font-semibold text-primary hover:text-primary-hover cursor-pointer inline-flex items-center gap-1 disabled:opacity-60"
+                title="Buat kode SKU unik otomatis"
               >
-                <GoogleIcon name="sync" size={13} className="shrink-0" />
-                <span>Generate Auto SKU</span>
+                <GoogleIcon
+                  name="sync"
+                  size={13}
+                  className={`shrink-0 ${isGeneratingSku ? 'animate-spin' : ''}`}
+                />
+                <span>{isGeneratingSku ? 'Membuat SKU...' : 'Generate Auto SKU'}</span>
               </button>
             </div>
             <input
               type="text"
               required
               value={formData.sku}
-              onChange={e => setFormData({ ...formData, sku: e.target.value.toUpperCase() })}
+              onChange={e => {
+                hasManualSkuEditRef.current = true;
+                setFormData({ ...formData, sku: e.target.value.toUpperCase() });
+              }}
               placeholder="Cth: KF-FCW-01"
-              className="w-full px-3.5 py-2 text-sm font-mono font-bold bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 uppercase transition-colors"
+              className={`w-full h-10 px-3.5 text-sm font-mono font-bold bg-white border rounded-xl outline-none focus:ring-2 uppercase transition-colors ${
+                skuCheckState.status === 'duplicate'
+                  ? 'border-red-400 text-red-900 focus:border-red-500 focus:ring-red-500/20'
+                  : skuCheckState.status === 'available'
+                  ? 'border-emerald-400 focus:border-emerald-500 focus:ring-emerald-500/20'
+                  : 'border-zinc-200 focus:border-primary focus:ring-primary/20'
+              }`}
             />
+            {skuCheckState.status === 'checking' && (
+              <p className="text-xs text-zinc-500 mt-1.5 inline-flex items-center gap-1.5">
+                <GoogleIcon name="progress_activity" size={13} className="animate-spin text-primary shrink-0" />
+                <span>Memeriksa ketersediaan kode SKU / barcode...</span>
+              </p>
+            )}
+            {skuCheckState.status === 'duplicate' && (
+              <div className="mt-1.5 p-2.5 rounded-xl bg-red-50 border border-red-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-start sm:items-center gap-1.5 min-w-0 text-xs font-semibold text-red-700">
+                  <GoogleIcon name="error" size={14} className="shrink-0 text-red-600 mt-0.5 sm:mt-0" />
+                  <span>{skuCheckState.message}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRegenerateSku}
+                  disabled={isGeneratingSku}
+                  className="shrink-0 h-7 px-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors disabled:opacity-60"
+                >
+                  <GoogleIcon name="auto_awesome" size={12} />
+                  <span>Pakai SKU Unik</span>
+                </button>
+              </div>
+            )}
+            {skuCheckState.status === 'available' && formData.sku.trim() && (
+              <p className="text-xs font-semibold text-emerald-700 mt-1.5 inline-flex items-center gap-1">
+                <GoogleIcon name="check_circle" size={13} className="shrink-0 text-emerald-600" />
+                <span>SKU unik &amp; siap digunakan pada outlet ini</span>
+              </p>
+            )}
           </div>
         </div>
 
@@ -539,16 +688,16 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <GoogleIcon name="local_shipping" size={15} />
               </div>
-              <h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
+              <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider">
                 3. Pengiriman &amp; Logistik Ekspedisi
               </h4>
             </div>
-            <span className="text-[11px] text-zinc-400">Untuk kalkulasi ongkir kurir</span>
+            <span className="text-xs text-zinc-400">Untuk kalkulasi ongkir kurir</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-zinc-800 mb-1">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1">
                 Berat Paket (gr) <span className="text-red-500">*</span>
               </label>
               <NumericInput
@@ -558,12 +707,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 placeholder="50"
                 suffix="gr"
                 required
-                className="w-full px-3.5 py-2 text-sm font-bold font-mono bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3.5 text-sm font-bold font-mono bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-800 mb-1">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1">
                 Panjang (cm)
               </label>
               <NumericInput
@@ -572,12 +721,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 allowDecimal={true}
                 placeholder="10"
                 suffix="cm"
-                className="w-full px-3.5 py-2 text-sm font-mono bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3.5 text-sm font-mono bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-800 mb-1">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1">
                 Lebar (cm)
               </label>
               <NumericInput
@@ -586,12 +735,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 allowDecimal={true}
                 placeholder="5"
                 suffix="cm"
-                className="w-full px-3.5 py-2 text-sm font-mono bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3.5 text-sm font-mono bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-800 mb-1">
+              <label className="block text-xs font-semibold text-zinc-700 mb-1">
                 Tinggi (cm)
               </label>
               <NumericInput
@@ -600,7 +749,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 allowDecimal={true}
                 placeholder="15"
                 suffix="cm"
-                className="w-full px-3.5 py-2 text-sm font-mono bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 px-3.5 text-sm font-mono bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
           </div>
@@ -615,11 +764,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <GoogleIcon name="add_a_photo" size={15} />
                 </div>
-                <h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
+                <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider">
                   4. Foto Produk 1:1 (WebP)
                 </h4>
               </div>
-              <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
                 Auto Kompres WebP
               </span>
             </div>
@@ -700,12 +849,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                       <p className="text-xs text-zinc-600 font-medium leading-relaxed">
                         Tarik file foto ke sini atau klik tombol di atas.
                       </p>
-                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                      <p className="text-xs text-zinc-400 mt-0.5">
                         Foto otomatis dipotong simetris 1:1 &amp; dikompres ke WebP (600x600 px).
                       </p>
 
                       {compressionInfo && (
-                        <div className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                        <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
                           <GoogleIcon name="check_circle" size={12} className="text-emerald-600" />
                           <span>
                             Dikompresi: {formatBytes(compressionInfo.sizeBytes)} (dari {formatBytes(compressionInfo.originalSizeBytes)})
@@ -719,7 +868,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 
               {/* Preset Foto Cepat */}
               <div>
-                <label className="block text-[11px] font-semibold text-zinc-500 mb-1.5">
+                <label className="block text-xs font-semibold text-zinc-600 mb-1.5">
                   Atau pilih cepat dari preset gambar retail:
                 </label>
                 <div className="grid grid-cols-5 gap-1.5">
@@ -744,7 +893,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                       }`}
                     >
                       <img src={p.img} alt={p.label} className="w-8 h-8 object-cover rounded-lg aspect-square" />
-                      <span className="text-[10px] font-semibold text-zinc-700">{p.label}</span>
+                      <span className="text-xs font-semibold text-zinc-700">{p.label}</span>
                     </button>
                   ))}
                 </div>
@@ -760,11 +909,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                   <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <GoogleIcon name="barcode_scanner" size={15} />
                   </div>
-                  <h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
+                  <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider">
                     Label Barcode
                   </h4>
                 </div>
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
                   Siap Scan
                 </span>
               </div>
@@ -790,7 +939,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               )}
             </div>
 
-            <p className="text-[10px] text-zinc-400 text-center mt-3 pt-2 border-t border-zinc-200/60">
+            <p className="text-xs text-zinc-400 text-center mt-3 pt-2 border-t border-zinc-200/60">
               Standar Code 128 &amp; QR Code (Kompatibel Semua Scanner POS)
             </p>
           </div>

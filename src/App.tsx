@@ -821,9 +821,9 @@ const App: React.FC = () => {
             onLogout={handleLogout}
           />
 
-          {/* Right Outer Frame: Selalu fixed & overflow-hidden agar background kontainer tidak ikut discroll */}
-          <div className="flex-1 min-h-0 min-w-0 flex flex-col px-2 pt-2 pb-0 sm:px-3 sm:pt-3 sm:pb-0 lg:pl-0 lg:pr-3 lg:pt-3 overflow-hidden">
-            <div className="flex-1 min-h-0 flex flex-col rounded-t-2xl sm:rounded-t-[22px] rounded-b-none border-t border-x border-b-0 overflow-hidden relative bg-zinc-50 border-zinc-200/60 shadow-none">
+          {/* Right Outer Frame: Container konten utama berada di layer z-index paling atas */}
+          <div className="relative z-20 lg:z-30 flex-1 min-h-0 min-w-0 flex flex-col px-2 pt-2 pb-0 sm:px-3 sm:pt-3 sm:pb-0 lg:pl-0 lg:pr-3 lg:pt-3 overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col rounded-t-2xl sm:rounded-t-[22px] rounded-b-none border-t border-x border-b-0 overflow-hidden relative bg-zinc-50 border-zinc-200/60 shadow-[0_-4px_24px_-8px_rgba(15,23,42,0.06)]">
               {/* Background Gradient: Terkunci fix di atas, tidak bisa di-scroll */}
               <div
                 aria-hidden="true"
@@ -840,12 +840,12 @@ const App: React.FC = () => {
               {/* Main Content Area: Hanya konten di dalam sini yang bergulir */}
               <main
                 ref={mainScrollRef}
-                className={`relative z-10 flex-1 min-h-0 flex flex-col px-3.5 sm:px-5 lg:px-6 pt-4 sm:pt-5 lg:pt-6 ${
+                className={`relative z-10 flex-1 min-h-0 flex flex-col ${
                   !isLoadingData &&
                   !loadError &&
                   (activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS')
-                    ? 'pb-2.5 sm:pb-3.5 lg:pb-4 overflow-hidden'
-                    : 'pb-20 sm:pb-8 overflow-y-auto overflow-x-hidden'
+                    ? 'px-3.5 sm:px-5 lg:px-0 pt-2 sm:pt-3 lg:pt-0 pb-2.5 sm:pb-3.5 lg:pb-0 overflow-hidden'
+                    : 'px-3.5 sm:px-5 lg:px-6 pt-4 sm:pt-5 lg:pt-6 pb-20 sm:pb-8 overflow-y-auto overflow-x-hidden'
                 }`}
               >
                 {isLoadingData ? (
@@ -937,6 +937,7 @@ const App: React.FC = () => {
                       <DashboardView
                         refreshTrigger={dashboardRefreshKey}
                         activeTenant={activeTenant}
+                        currentUser={currentUser}
                         onNavigateTo={handleGuardedSelectMenu}
                         onOpenRegisterTenant={() => setIsRegisterTenantOpen(true)}
                       />
@@ -983,7 +984,7 @@ const App: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveMenu('Kasir POS (Penjualan)')}
-            className={`flex flex-col items-center justify-center py-0.5 px-1.5 rounded-lg transition-colors min-w-[48px] min-h-[40px] cursor-pointer active:scale-95 ${
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-full transition-colors min-w-[54px] min-h-[40px] cursor-pointer active:scale-95 ${
               activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS'
                 ? 'text-primary font-semibold bg-primary/12'
                 : 'text-zinc-500 hover:text-zinc-900'
@@ -1001,7 +1002,7 @@ const App: React.FC = () => {
                 }
               />
               {cart.reduce((a, b) => a + b.qty, 0) > 0 && (
-                <span className="absolute -top-1 -right-2.5 w-4 h-4 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center font-mono">
+                <span className="absolute -top-1 -right-2.5 min-w-[16px] h-4 px-1 rounded-md bg-accent text-white text-xs font-bold flex items-center justify-center font-mono">
                   {cart.reduce((a, b) => a + b.qty, 0)}
                 </span>
               )}
@@ -1012,7 +1013,7 @@ const App: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveMenu('Transaksi')}
-            className={`flex flex-col items-center justify-center py-0.5 px-1.5 rounded-lg transition-all min-w-[48px] min-h-[40px] cursor-pointer active:scale-95 ${
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-full transition-all min-w-[54px] min-h-[40px] cursor-pointer active:scale-95 ${
               activeMenu === 'Transaksi' || activeMenu === 'Transaksi Harian'
                 ? 'text-primary font-semibold bg-primary/12'
                 : 'text-zinc-500 hover:text-zinc-900'
@@ -1034,7 +1035,7 @@ const App: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveMenu('Daftar Barang')}
-            className={`flex flex-col items-center justify-center py-0.5 px-1.5 rounded-lg transition-all min-w-[48px] min-h-[40px] cursor-pointer active:scale-95 ${
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-full transition-all min-w-[54px] min-h-[40px] cursor-pointer active:scale-95 ${
               activeMenu === 'Daftar Barang'
                 ? 'text-primary font-semibold bg-primary/12'
                 : 'text-zinc-500 hover:text-zinc-900'
@@ -1052,7 +1053,7 @@ const App: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsSidebarCollapsed(false)}
-            className="flex flex-col items-center justify-center py-0.5 px-1.5 rounded-lg transition-all text-zinc-500 hover:text-zinc-900 min-w-[48px] min-h-[40px] cursor-pointer active:scale-95"
+            className="flex flex-col items-center justify-center py-1 px-3 rounded-full transition-all text-zinc-500 hover:text-zinc-900 min-w-[54px] min-h-[40px] cursor-pointer active:scale-95"
           >
             <GoogleIcon name="menu" size={18} />
             <span className="text-xs font-semibold mt-0.5 leading-none">Menu</span>

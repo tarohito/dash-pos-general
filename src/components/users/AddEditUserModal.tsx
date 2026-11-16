@@ -9,6 +9,7 @@ import {
 } from '../common/ModalShell';
 import { CustomSelect } from '../common/CustomSelect';
 import { CustomCheckbox } from '../common/CustomCheckbox';
+import { StatusToggle } from '../common/StatusToggle';
 
 interface AddEditUserModalProps {
   isOpen: boolean;
@@ -188,8 +189,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size="xl"
-      title={isEdit ? `Edit Akun: ${editingUser?.fullName}` : 'Tambah Pengguna & Hak Akses Baru'}
-      subtitle="Atur identitas login, jabatan (role), jadwal shift, serta cabang outlet yang boleh diakses."
+      title={isEdit ? 'Edit Pengguna' : 'Tambah Pengguna'}
       disableEscapeClose={isSubmitting}
       footer={
         <div className={MODAL_FOOTER_END_CLASS}>
@@ -215,7 +215,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
     >
       <form id="add-edit-user-form" onSubmit={handleSubmit} className="space-y-4.5">
         {formError && (
-          <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-2">
+          <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-2">
             <GoogleIcon name="error" size={16} className="shrink-0 mt-0.5 text-red-600" />
             <span>{formError}</span>
           </div>
@@ -240,7 +240,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                 value={fullName}
                 onChange={e => setFullName(e.target.value)}
                 placeholder="Contoh: Siti Nurhaliza"
-                className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="w-full h-10 px-3.5 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
@@ -254,7 +254,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                 disabled={isEdit}
                 onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
                 placeholder="contoh: kasir.sby"
-                className="w-full h-9 px-3 text-sm font-mono bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-zinc-100 disabled:text-zinc-500"
+                className="w-full h-10 px-3.5 text-sm font-mono bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-zinc-100 disabled:text-zinc-500"
               />
             </div>
 
@@ -267,7 +267,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="nama@logicpos.id"
-                className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="w-full h-10 px-3.5 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
@@ -282,7 +282,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder={isEdit ? 'Kosongkan jika tidak diubah' : 'Minimal 6 karakter'}
-                  className="w-full h-9 pl-3 pr-9 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="w-full h-10 pl-3.5 pr-10 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
                 <button
                   type="button"
@@ -373,7 +373,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-mono font-bold text-gray-800">{t.code}</span>
-                        <span className="text-xs font-semibold truncate">{t.name}</span>
+                        <span className="text-sm font-semibold truncate">{t.name}</span>
                       </div>
                       <p className="text-xs text-gray-500 truncate mt-0.5">{t.branchName}</p>
                     </div>
@@ -398,25 +398,33 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
         </div>
 
         {/* Section 4: Account Active Status */}
-        <label
-          className={`flex items-center justify-between gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-            isActive ? 'bg-emerald-50/40 border-emerald-200/80' : 'bg-gray-50 border-gray-200'
-          } ${isEditingSelf ? 'opacity-70 cursor-not-allowed' : ''}`}
+        <div
+          className={`flex items-center justify-between gap-3 p-3.5 rounded-xl border transition-colors ${
+            isActive ? 'bg-emerald-50/40 border-emerald-200/80' : 'bg-zinc-50 border-zinc-200'
+          } ${isEditingSelf ? 'opacity-75' : ''}`}
         >
           <div>
-            <p className="text-xs font-bold text-gray-800">Status Akun Aktif</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-sm font-bold text-zinc-900">Status Akun Aktif</p>
+            <p className="text-xs text-zinc-500 mt-0.5">
               {isEditingSelf
                 ? 'Anda tidak dapat menonaktifkan akun yang sedang digunakan.'
                 : 'Akun nonaktif langsung ditolak saat login dan sesi aktifnya dicabut.'}
             </p>
           </div>
-          <CustomCheckbox
-            disabled={isEditingSelf}
+          <StatusToggle
             checked={isActive}
+            disabled={isEditingSelf}
             onChange={setIsActive}
+            label={isActive ? 'Aktif' : 'Nonaktif'}
+            tooltip={
+              isEditingSelf
+                ? 'Akun sendiri tidak dapat dinonaktifkan'
+                : isActive
+                ? 'Aktif — klik untuk nonaktifkan akun'
+                : 'Nonaktif — klik untuk aktifkan akun'
+            }
           />
-        </label>
+        </div>
       </form>
     </ModalShell>
   );

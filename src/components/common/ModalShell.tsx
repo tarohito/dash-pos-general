@@ -8,10 +8,10 @@ export const MODAL_FOOTER_END_CLASS =
   'flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2';
 
 export const MODAL_BTN_SECONDARY_CLASS =
-  'h-9 px-4 text-xs sm:text-sm font-semibold text-zinc-700 bg-zinc-100 hover:bg-zinc-200/80 hover:text-zinc-950 rounded-full border border-zinc-200/90 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed';
+  'h-9 px-4 text-sm font-semibold text-zinc-700 bg-zinc-100 hover:bg-zinc-200/80 hover:text-zinc-950 rounded-full border border-zinc-200/90 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed';
 
 export const MODAL_BTN_PRIMARY_CLASS =
-  'h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-full transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.08)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed';
+  'h-9 px-4 text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-full transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.08)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed';
 
 const SIZE_CLASSES: Record<ModalSize, string> = {
   sm: 'max-w-md',
@@ -29,7 +29,6 @@ interface ModalShellProps {
   isOpen: boolean;
   onClose: () => void;
   title: React.ReactNode;
-  subtitle?: React.ReactNode;
   headerActions?: React.ReactNode;
   footer?: React.ReactNode;
   size?: ModalSize;
@@ -42,7 +41,6 @@ export const ModalShell: React.FC<ModalShellProps> = ({
   isOpen,
   onClose,
   title,
-  subtitle,
   headerActions,
   footer,
   size = 'lg',
@@ -99,13 +97,10 @@ export const ModalShell: React.FC<ModalShellProps> = ({
           <div className="min-w-0 flex-1">
             <h3
               id={titleId}
-              className="text-sm sm:text-base font-bold text-zinc-950 leading-tight"
+              className="text-base font-bold text-zinc-950 leading-tight"
             >
               {title}
             </h3>
-            {subtitle && (
-              <p className="text-xs text-zinc-500 mt-0.5 leading-snug">{subtitle}</p>
-            )}
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">

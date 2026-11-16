@@ -13,7 +13,7 @@ import {
 import { posApi } from '../../services/api';
 import { formatIDR } from '../../utils/formatters';
 import { CustomSelect } from '../common/CustomSelect';
-import { CustomCheckbox } from '../common/CustomCheckbox';
+import { StatusToggle } from '../common/StatusToggle';
 import { NumericInput } from '../common/NumericInput';
 import { ErrorBanner } from '../common/ErrorBanner';
 import { useToast } from '../../contexts/ToastContext';
@@ -289,16 +289,16 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">
+            <h3 className="text-lg sm:text-xl font-bold text-zinc-950 leading-tight tracking-tight">
               Pengaturan Toko &amp; Operasional Outlet
             </h3>
-            {isLoading && <GoogleIcon name="progress_activity" size={15} className="animate-spin text-zinc-900" />}
+            {isLoading && <GoogleIcon name="progress_activity" size={15} className="animate-spin text-primary" />}
           </div>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            <span>{activeTenant?.code || 'OUTLET'}</span>
-            <span aria-hidden="true" className="mx-1.5 text-gray-300">&middot;</span>
-            <span className="font-medium text-gray-700">{activeTenant?.name || 'Toko Aktif'}</span>
-            <span aria-hidden="true" className="mx-1.5 text-gray-300">&middot;</span>
+          <p className="text-xs sm:text-sm text-zinc-500 mt-1">
+            <span className="font-mono font-semibold text-primary">{activeTenant?.code || 'OUTLET'}</span>
+            <span aria-hidden="true" className="mx-1.5 text-zinc-300">&middot;</span>
+            <span className="font-semibold text-zinc-800">{activeTenant?.name || 'Toko Aktif'}</span>
+            <span aria-hidden="true" className="mx-1.5 text-zinc-300">&middot;</span>
             <span>Terakhir diperbarui {formattedUpdatedAt}{lastUpdatedMeta.updatedBy ? ` oleh ${lastUpdatedMeta.updatedBy}` : ''}</span>
           </p>
         </div>
@@ -328,7 +328,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
       {fetchError && <ErrorBanner message={fetchError} onRetry={() => void loadSettings()} />}
 
       {/* Section Navigation Tabs */}
-      <div className="bg-zinc-100 rounded-full border border-zinc-200 p-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
+      <div className="inline-flex h-10 p-1 bg-zinc-100/90 rounded-full border border-zinc-200 items-center gap-1 overflow-x-auto max-w-full no-scrollbar">
         {(
           [
             { key: 'profile', label: 'Profil Outlet', icon: 'storefront' as GoogleIconName },
@@ -343,10 +343,10 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`h-9 px-3.5 rounded-full text-xs sm:text-sm font-semibold transition-all inline-flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`h-full px-3.5 rounded-full text-xs sm:text-sm font-semibold transition-all inline-flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer ${
                 active
-                  ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                  : 'text-zinc-600 hover:text-zinc-900'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-zinc-600 hover:text-zinc-950'
               }`}
             >
               <GoogleIcon name={Icon} size={15} filled={active} />
@@ -376,7 +376,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                 required
                 value={storeName}
                 onChange={e => setStoreName(e.target.value)}
-                className="w-full h-10 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="w-full h-10 px-3.5 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="MKI (Maklon Kosmetik Indonesia)"
               />
             </div>
@@ -390,7 +390,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                 required
                 value={branchName}
                 onChange={e => setBranchName(e.target.value)}
-                className="w-full h-10 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="w-full h-10 px-3.5 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="Cabang Utama (Grand City Mall Lt. 1)"
               />
             </div>
@@ -401,7 +401,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                 type="text"
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
-                className="w-full h-10 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-mono"
+                className="w-full h-10 px-3.5 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-mono"
                 placeholder="0812-8899-7766"
               />
             </div>
@@ -412,7 +412,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full h-10 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="w-full h-10 px-3.5 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="admin@mki-kosmetik.id"
               />
             </div>
@@ -423,7 +423,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                 type="text"
                 value={city}
                 onChange={e => setCity(e.target.value)}
-                className="w-full h-10 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="w-full h-10 px-3.5 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="Jakarta Pusat"
               />
             </div>
@@ -476,21 +476,16 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                   Nonaktifkan jika toko menggunakan harga net (Non-PKP) atau pajak sudah termasuk di harga jual.
                 </p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={enablePpn}
-                onClick={() => setEnablePpn(prev => !prev)}
-                className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ${
-                  enablePpn ? 'bg-primary' : 'bg-zinc-300'
-                }`}
-              >
-                <span
-                  className={`block w-5 h-5 rounded-full bg-white transition-transform transform ${
-                    enablePpn ? 'translate-x-5.5' : 'translate-x-0.5'
-                  }`}
-                />
-              </button>
+              <StatusToggle
+                checked={enablePpn}
+                onChange={setEnablePpn}
+                ariaLabel="Aktifkan PPN pada Transaksi Penjualan"
+                tooltip={
+                  enablePpn
+                    ? 'PPN Aktif — klik untuk nonaktifkan'
+                    : 'PPN Nonaktif — klik untuk aktifkan'
+                }
+              />
             </div>
 
             {enablePpn && (
@@ -526,29 +521,33 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                     min={0}
                     max={30}
                     suffix="%"
-                    className="h-10 px-3 text-sm font-mono font-bold bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    className="h-10 px-3.5 text-sm font-mono font-bold bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
               </div>
             )}
 
             <div className="border-t border-gray-100 pt-4 space-y-3">
-
-              <label className="flex items-start gap-3 cursor-pointer">
-                <CustomCheckbox
-                  checked={autoPrintReceipt}
-                  onChange={setAutoPrintReceipt}
-                  className="mt-0.5"
-                />
+              <div className="flex items-center justify-between gap-4 p-3.5 rounded-lg border border-gray-200 bg-gray-50/70">
                 <div>
-                  <span className="text-sm font-semibold text-gray-800 block">
+                  <span className="text-sm font-semibold text-gray-900 block">
                     Tampilkan Opsi Cetak Cepat Setelah Transaksi Lunas
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 mt-0.5 block">
                     Otomatis memunculkan nota resmi transaksi siap cetak begitu pembayaran diselesaikan.
                   </span>
                 </div>
-              </label>
+                <StatusToggle
+                  checked={autoPrintReceipt}
+                  onChange={setAutoPrintReceipt}
+                  ariaLabel="Tampilkan Opsi Cetak Cepat Setelah Transaksi Lunas"
+                  tooltip={
+                    autoPrintReceipt
+                      ? 'Aktif — klik untuk nonaktifkan cetak cepat otomatis'
+                      : 'Nonaktif — klik untuk aktifkan cetak cepat otomatis'
+                  }
+                />
+              </div>
             </div>
           </div>
 

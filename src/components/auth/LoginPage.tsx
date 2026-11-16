@@ -112,7 +112,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   onChange={e => setIdentifier(e.target.value)}
                   disabled={isSubmitting}
                   placeholder="owner / kasir.jkt"
-                  className="w-full h-10 px-3 text-sm bg-white border border-zinc-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 text-zinc-900 placeholder:text-zinc-400 transition-colors"
+                  className="w-full h-10 px-3.5 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-zinc-900 placeholder:text-zinc-400 transition-colors"
                 />
               </div>
 
@@ -129,7 +129,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     onChange={e => setPassword(e.target.value)}
                     disabled={isSubmitting}
                     placeholder="••••••••"
-                    className="w-full h-10 pl-3 pr-10 text-sm bg-white border border-zinc-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 text-zinc-900 placeholder:text-zinc-400 transition-colors"
+                    className="w-full h-10 pl-3.5 pr-10 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-zinc-900 placeholder:text-zinc-400 transition-colors"
                   />
                   <button
                     type="button"

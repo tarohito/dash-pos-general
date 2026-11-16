@@ -17,6 +17,9 @@ import { AddEditUserModal } from './AddEditUserModal';
 import { useToast } from '../../contexts/ToastContext';
 import { ActionDropdownMenu } from '../common/ActionDropdownMenu';
 import { KpiCard } from '../common/KpiCard';
+import { StatusToggle } from '../common/StatusToggle';
+import { NewBadge } from '../common/NewBadge';
+import { isRecentlyCreated, useNewBadgeClock } from '../../utils/newBadge';
 import {
   SortableTh,
   SortDirection,
@@ -75,7 +78,11 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserAccount | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const { showToast } = useToast();
+
+  const userTimestamps = useMemo(() => items.map(u => u.createdAt), [items]);
+  const nowMs = useNewBadgeClock(userTimestamps);
 
   const tenantMap = useMemo(() => new Map(tenants.map(t => [t.id, t])), [tenants]);
 
@@ -165,6 +172,40 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
     }
   };
 
+  const handleToggleUserStatus = async (user: UserAccount) => {
+    if (user.id === currentUser.id) return;
+    const nextActive = !user.isActive;
+    setTogglingId(user.id);
+    setItems(prev =>
+      prev.map(item => (item.id === user.id ? { ...item, isActive: nextActive } : item))
+    );
+    setStats(prev => ({
+      ...prev,
+      activeUsers: Math.max(0, prev.activeUsers + (nextActive ? 1 : -1)),
+    }));
+    try {
+      await posApi.updateUser(user.id, { isActive: nextActive });
+      showToast(
+        'success',
+        `Status akun "${user.fullName}" diubah menjadi ${nextActive ? 'Aktif' : 'Nonaktif'}.`
+      );
+    } catch (err) {
+      setItems(prev =>
+        prev.map(item => (item.id === user.id ? { ...item, isActive: user.isActive } : item))
+      );
+      setStats(prev => ({
+        ...prev,
+        activeUsers: Math.max(0, prev.activeUsers + (nextActive ? -1 : 1)),
+      }));
+      showToast(
+        'error',
+        err instanceof Error ? err.message : 'Gagal memperbarui status akun pengguna.'
+      );
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   const renderAllowedTenants = (user: UserAccount) => {
     if (user.role === 'owner') {
       return (
@@ -200,12 +241,12 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">
+            <h3 className="text-lg sm:text-xl font-bold text-zinc-950 leading-tight tracking-tight">
               Manajemen Pengguna &amp; Hak Akses
             </h3>
             {isLoading && <GoogleIcon name="progress_activity" size={14} className="animate-spin text-primary" />}
           </div>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+          <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
             Kelola akun staf kasir, kepala cabang, jadwal shift, dan pembatasan akses per outlet toko.
           </p>
         </div>
@@ -302,7 +343,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
             placeholder="Cari nama, username, email, atau shift..."
           />
 
-          <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-full border border-zinc-200 items-center self-start md:self-auto shrink-0 overflow-x-auto max-w-full">
+          <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 items-center self-start md:self-auto shrink-0 overflow-x-auto max-w-full">
             {(
               [
                 { id: 'all', label: 'Semua' },
@@ -317,8 +358,8 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 onClick={() => setRoleFilter(tab.id)}
                 className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   roleFilter === tab.id
-                    ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                    : 'text-zinc-600 hover:text-zinc-900'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-950'
                 }`}
               >
                 {tab.label}
@@ -413,6 +454,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                                 <p className="font-bold text-gray-900 text-xs sm:text-sm leading-tight">
                                   {u.fullName}
                                 </p>
+                                {isRecentlyCreated(u.createdAt, nowMs) && <NewBadge />}
                                 {isSelf && (
                                   <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-primary text-white">
                                     Anda
@@ -449,15 +491,23 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                           </td>
 
                           <td className="py-3.5 px-3 sm:px-4 align-top text-center whitespace-nowrap">
-                            <span
-                              className={`inline-block text-xs font-semibold px-2 py-0.5 rounded ${
-                                u.isActive
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : 'bg-gray-100 text-gray-500 border border-gray-200'
-                              }`}
-                            >
-                              {u.isActive ? 'Aktif' : 'Nonaktif'}
-                            </span>
+                            <div className="inline-flex justify-center">
+                              <StatusToggle
+                                checked={u.isActive}
+                                disabled={isSelf}
+                                isLoading={togglingId === u.id}
+                                onChange={() => void handleToggleUserStatus(u)}
+                                label={u.isActive ? 'Aktif' : 'Nonaktif'}
+                                ariaLabel={`Status akun ${u.fullName}`}
+                                tooltip={
+                                  isSelf
+                                    ? 'Akun yang sedang login tidak bisa dinonaktifkan'
+                                    : u.isActive
+                                    ? 'Aktif — klik untuk nonaktifkan'
+                                    : 'Nonaktif — klik untuk aktifkan'
+                                }
+                              />
+                            </div>
                           </td>
 
                           <td className="py-3.5 px-4 align-top text-center whitespace-nowrap">
@@ -506,6 +556,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                             <p className="font-bold text-gray-900 text-xs sm:text-sm leading-tight truncate">
                               {u.fullName}
                             </p>
+                            {isRecentlyCreated(u.createdAt, nowMs) && <NewBadge />}
                             <span className={`text-xs font-semibold px-2 py-0.5 rounded shrink-0 ${meta.badgeClass}`}>
                               {meta.label}
                             </span>
@@ -520,15 +571,21 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                           </p>
                         </div>
 
-                        <span
-                          className={`text-xs font-semibold px-2 py-0.5 rounded shrink-0 ${
-                            u.isActive
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-gray-100 text-gray-500 border border-gray-200'
-                          }`}
-                        >
-                          {u.isActive ? 'Aktif' : 'Nonaktif'}
-                        </span>
+                        <StatusToggle
+                          checked={u.isActive}
+                          disabled={isSelf}
+                          isLoading={togglingId === u.id}
+                          onChange={() => void handleToggleUserStatus(u)}
+                          label={u.isActive ? 'Aktif' : 'Nonaktif'}
+                          ariaLabel={`Status akun ${u.fullName}`}
+                          tooltip={
+                            isSelf
+                              ? 'Akun yang sedang login tidak bisa dinonaktifkan'
+                              : u.isActive
+                              ? 'Aktif — klik untuk nonaktifkan'
+                              : 'Nonaktif — klik untuk aktifkan'
+                          }
+                        />
                       </div>
 
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
@@ -600,7 +657,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
       <ConfirmModal
         isOpen={!!deletingUser}
-        title="Hapus Akun Pengguna"
+        title="Hapus Pengguna"
         description={
           deletingUser
             ? `Apakah Anda yakin ingin menghapus akun "${deletingUser.fullName}" (@${deletingUser.username})? Sesi login pengguna tersebut akan langsung dihentikan.`

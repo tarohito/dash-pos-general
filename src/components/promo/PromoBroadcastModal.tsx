@@ -458,8 +458,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size="xl"
-      title="Broadcast Promo WhatsApp"
-      subtitle="Kirim info promo & kode voucher ke semua atau beberapa pelanggan pilihan"
+      title="Broadcast Promo"
       disableEscapeClose={isSending}
       footer={
         <div className={MODAL_FOOTER_END_CLASS}>
@@ -482,7 +481,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                 isGatewayBlockedBySafeLimit
               }
               onClick={() => void handleCreateBroadcast()}
-              className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1EBE5D] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs active:scale-[0.98]"
+              className="h-9 px-4 text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1EBE5D] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs active:scale-[0.98]"
             >
               {isSending ? (
                 <>
@@ -508,14 +507,14 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
       <div className="space-y-4">
         {/* Top Segmented Tabs */}
         <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-zinc-100">
-          <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-xl border border-zinc-200/80 items-center overflow-x-auto max-w-full">
+          <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 items-center overflow-x-auto max-w-full">
             <button
               type="button"
               onClick={() => setActiveTab('compose')}
-              className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${
+              className={`h-full px-3 text-sm font-semibold rounded-full transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${
                 activeTab === 'compose'
-                  ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                  : 'text-zinc-500 hover:text-zinc-900'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-zinc-500 hover:text-zinc-950'
               }`}
             >
               <GoogleIcon name="chat" size={14} />
@@ -526,11 +525,11 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
               type="button"
               disabled={!activeBatch}
               onClick={() => activeBatch && setActiveTab('queue')}
-              className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all inline-flex items-center gap-1.5 whitespace-nowrap ${
+              className={`h-full px-3 text-sm font-semibold rounded-full transition-all inline-flex items-center gap-1.5 whitespace-nowrap ${
                 activeTab === 'queue'
-                  ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)] cursor-pointer'
+                  ? 'bg-primary text-white shadow-xs cursor-pointer'
                   : activeBatch
-                  ? 'text-zinc-500 hover:text-zinc-900 cursor-pointer'
+                  ? 'text-zinc-500 hover:text-zinc-950 cursor-pointer'
                   : 'text-zinc-400 cursor-not-allowed'
               }`}
             >
@@ -538,8 +537,8 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
               <span>Antrean Kirim</span>
               {activeBatch && (
                 <span
-                  className={`px-1.5 py-0.5 rounded text-xs font-mono font-bold ${
-                    activeTab === 'queue' ? 'bg-primary text-white' : 'bg-zinc-200 text-zinc-700'
+                  className={`px-1.5 py-0.5 rounded-md text-xs font-mono font-bold ${
+                    activeTab === 'queue' ? 'bg-white/20 text-white' : 'bg-zinc-200 text-zinc-700'
                   }`}
                 >
                   {activeBatch.sentCount}/{activeBatch.totalRecipients}
@@ -550,10 +549,10 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('history')}
-              className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${
+              className={`h-full px-3 text-sm font-semibold rounded-full transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${
                 activeTab === 'history'
-                  ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                  : 'text-zinc-500 hover:text-zinc-900'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-zinc-500 hover:text-zinc-950'
               }`}
             >
               <GoogleIcon name="schedule" size={14} />
@@ -582,11 +581,11 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
             {/* Grid 1: Promo & Delivery Method */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+                <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
                   Kampanye Promo <span className="text-red-500">*</span>
                 </label>
                 {promos.length === 0 ? (
-                  <div className="h-10 sm:h-11 px-3.5 flex items-center text-xs text-rose-600 font-medium bg-rose-50 border border-rose-200 rounded-lg">
+                  <div className="h-10 px-3.5 flex items-center text-xs text-rose-600 font-medium bg-rose-50 border border-rose-200 rounded-xl">
                     Belum ada kampanye promo. Buat promo terlebih dahulu.
                   </div>
                 ) : (
@@ -606,7 +605,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+                <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
                   Metode Pengiriman (Mode Aman)
                 </label>
                 {gatewayConfig.gatewayConfigured ? (
@@ -630,7 +629,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                     ]}
                   />
                 ) : (
-                  <div className="h-10 sm:h-11 px-3.5 flex items-center justify-between gap-2 text-xs sm:text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg">
+                  <div className="h-10 px-3.5 flex items-center justify-between gap-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-xl">
                     <span className="inline-flex items-center gap-2 truncate">
                       <GoogleIcon name="chat" size={15} className="text-emerald-600 shrink-0" />
                       <span className="truncate">Antrean WA Web (wa.me)</span>
@@ -645,7 +644,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
 
             {gatewayConfig.gatewayConfigured && deliveryMode === 'gateway' && (
               <div>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+                <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
                   Interval Jeda Acak Gateway (Anti-Spam)
                 </label>
                 <CustomSelect
@@ -673,7 +672,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
             {/* Section 2: Target Audience */}
             <div className="pt-3 border-t border-gray-100 space-y-2.5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700">
+                <label className="block text-xs font-semibold text-zinc-700">
                   Target Pelanggan WhatsApp <span className="text-red-500">*</span>
                 </label>
                 <label className="inline-flex items-center gap-2 text-xs font-medium text-gray-600 cursor-pointer select-none">
@@ -698,7 +697,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs sm:text-sm font-semibold text-zinc-900">Semua Pelanggan</span>
+                    <span className="text-sm font-semibold text-zinc-900">Semua Pelanggan</span>
                     <GoogleIcon name="group" size={14} className={audienceMode === 'all' ? 'text-primary' : 'text-zinc-400'} />
                   </div>
                   <p className="text-xs text-zinc-500 mt-0.5 font-mono">{segmentCounts.total} nomor WA</p>
@@ -714,7 +713,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs sm:text-sm font-semibold text-zinc-900">Per Segmen</span>
+                    <span className="text-sm font-semibold text-zinc-900">Per Segmen</span>
                     <GoogleIcon name="group" size={14} className={audienceMode === 'segment' ? 'text-primary' : 'text-zinc-400'} />
                   </div>
                   <p className="text-xs text-zinc-500 mt-0.5">VIP, Reguler, Mitra</p>
@@ -730,7 +729,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs sm:text-sm font-semibold text-zinc-900">Pilih Beberapa</span>
+                    <span className="text-sm font-semibold text-zinc-900">Pilih Beberapa</span>
                     <GoogleIcon name="check_circle" size={14} className={audienceMode === 'selected' ? 'text-primary' : 'text-zinc-400'} />
                   </div>
                   <p className="text-xs text-zinc-500 mt-0.5 font-mono">
@@ -767,7 +766,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                         value={customerSearch}
                         onChange={e => setCustomerSearch(e.target.value)}
                         placeholder="Cari nama, kode member, atau nomor WA..."
-                        className="w-full h-9 pl-8 pr-3 text-xs sm:text-sm border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        className="w-full h-9 pl-8 pr-3 text-sm border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap shrink-0">
@@ -867,7 +866,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
             {/* Section 3: Message Template & Preview */}
             <div className="pt-3 border-t border-gray-100 space-y-2.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700">
+                <label className="block text-xs font-semibold text-zinc-700">
                   Template Pesan WhatsApp <span className="text-red-500">*</span>
                 </label>
                 <div className="flex items-center gap-3">
@@ -1050,11 +1049,11 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                   value={queueSearch}
                   onChange={e => setQueueSearch(e.target.value)}
                   placeholder="Cari penerima di antrean..."
-                  className="w-full h-9 pl-8 pr-3 text-xs sm:text-sm border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="w-full h-9 pl-8 pr-3 text-sm border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
 
-              <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-xl border border-zinc-200/80 items-center shrink-0">
+              <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 items-center shrink-0">
                 {(
                   [
                     { id: 'all', label: `Semua (${activeBatch.totalRecipients})` },
@@ -1069,10 +1068,10 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                     key={tab.id}
                     type="button"
                     onClick={() => setQueueFilter(tab.id)}
-                    className={`h-full px-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    className={`h-full px-3 text-xs font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center ${
                       queueFilter === tab.id
-                        ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                        : 'text-zinc-500 hover:text-zinc-900'
+                        ? 'bg-primary text-white shadow-xs'
+                        : 'text-zinc-500 hover:text-zinc-950'
                     }`}
                   >
                     {tab.label}
@@ -1123,7 +1122,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                     >
                       <div className="min-w-0 space-y-0.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs sm:text-sm font-bold text-gray-900">
+                          <span className="text-sm font-bold text-gray-900">
                             {rec.customerName}
                           </span>
                           <span className="font-mono text-xs bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">
@@ -1248,7 +1247,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                 >
                   <div className="min-w-0 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs sm:text-sm font-bold text-gray-900">{item.promoName}</span>
+                      <span className="text-sm font-bold text-gray-900">{item.promoName}</span>
                       <span className="px-2 py-0.5 text-xs font-mono font-bold rounded bg-amber-50 text-amber-800 border border-amber-200">
                         {item.promoCode}
                       </span>

@@ -394,9 +394,14 @@ ensureColumn('products', 'panjang', "REAL NOT NULL DEFAULT 0");
 ensureColumn('products', 'lebar', "REAL NOT NULL DEFAULT 0");
 ensureColumn('products', 'tinggi', "REAL NOT NULL DEFAULT 0");
 ensureColumn('products', 'status', "TEXT NOT NULL DEFAULT 'Aktif'");
+ensureColumn('products', 'createdAt', 'TEXT');
+ensureColumn('categories', 'createdAt', 'TEXT');
 ensureColumn('transactions', 'tenantId', "TEXT NOT NULL DEFAULT 'tenant-tms-001'");
 ensureColumn('buybacks', 'tenantId', "TEXT NOT NULL DEFAULT 'tenant-tms-001'");
 ensureColumn('promos', 'tenantId', "TEXT NOT NULL DEFAULT 'tenant-tms-001'");
+ensureColumn('promos', 'createdAt', 'TEXT');
+ensureColumn('tenants', 'logoUrl', "TEXT NOT NULL DEFAULT ''");
+ensureColumn('tenants', 'createdAt', 'TEXT');
 
 // Backfill buybacks.createdAt from invoiceNo (BB-YYYYMMDD-xxx) for historical rows
 const nullCreatedBuybacks = db
@@ -972,8 +977,8 @@ function buildRetailSeedTransactions(): Transaction[] {
         { productId: 7, qty: 1 },
         { productId: 24, qty: 1 },
       ],
-      paymentMethod: 'qris',
-      paymentDetails: { qrisNmid: 'ID102003928192', qrisRrn: 'RRN2611024410' },
+      paymentMethod: 'transfer',
+      paymentDetails: { transferBank: 'BCA', transferRef: 'TRF-261102-4410' },
     }),
     buildTx({
       id: 'TRX-20261103-001',
@@ -985,8 +990,8 @@ function buildRetailSeedTransactions(): Transaction[] {
         { productId: 1, qty: 1 },
         { productId: 32, qty: 1 },
       ],
-      paymentMethod: 'debit',
-      paymentDetails: { debitBank: 'Mandiri', debitCardLast4: '4419', debitApprovalCode: 'AUTH-774102' },
+      paymentMethod: 'transfer',
+      paymentDetails: { transferBank: 'Mandiri', transferRef: 'TRF-261103-4102' },
     }),
     buildTx({
       id: 'TRX-20261105-001',
@@ -998,8 +1003,8 @@ function buildRetailSeedTransactions(): Transaction[] {
         { productId: 14, qty: 1 },
         { productId: 15, qty: 2 },
       ],
-      paymentMethod: 'debit',
-      paymentDetails: { debitBank: 'BCA', debitCardLast4: '9032', debitApprovalCode: 'AUTH-612094' },
+      paymentMethod: 'cash',
+      paymentDetails: { cashReceived: 450000 },
     }),
     buildTx({
       id: 'TRX-20261106-001',
@@ -1050,8 +1055,8 @@ function buildRetailSeedTransactions(): Transaction[] {
         { productId: 29, qty: 1 },
         { productId: 30, qty: 1 },
       ],
-      paymentMethod: 'qris',
-      paymentDetails: { qrisNmid: 'ID102003928192', qrisRrn: 'RRN2611098821' },
+      paymentMethod: 'transfer',
+      paymentDetails: { transferBank: 'BRI', transferRef: 'TRF-261109-8821' },
     }),
     buildTx({
       id: 'TRX-20261110-001',
@@ -1076,8 +1081,8 @@ function buildRetailSeedTransactions(): Transaction[] {
         { productId: 4, qty: 1 },
         { productId: 16, qty: 1 },
       ],
-      paymentMethod: 'debit',
-      paymentDetails: { debitBank: 'BCA', debitCardLast4: '3107', debitApprovalCode: 'AUTH-904512' },
+      paymentMethod: 'cash',
+      paymentDetails: { cashReceived: 400000 },
     }),
     buildTx({
       id: 'TRX-20261111-001',
@@ -1102,8 +1107,8 @@ function buildRetailSeedTransactions(): Transaction[] {
         { productId: 9, qty: 1 },
         { productId: 17, qty: 1 },
       ],
-      paymentMethod: 'qris',
-      paymentDetails: { qrisNmid: 'ID102003928192', qrisRrn: 'RRN2611116194' },
+      paymentMethod: 'cash',
+      paymentDetails: { cashReceived: 350000 },
     }),
     buildTx({
       id: 'TRX-20261112-002',
@@ -1115,8 +1120,8 @@ function buildRetailSeedTransactions(): Transaction[] {
         { productId: 8, qty: 1 },
         { productId: 2, qty: 1 },
       ],
-      paymentMethod: 'debit',
-      paymentDetails: { debitBank: 'BCA', debitCardLast4: '8821', debitApprovalCode: 'AUTH-592814' },
+      paymentMethod: 'transfer',
+      paymentDetails: { transferBank: 'BCA', transferRef: 'TRF-261112-2814' },
     }),
     buildTx({
       id: 'TRX-20261112-003',
@@ -1154,8 +1159,8 @@ function buildRetailSeedTransactions(): Transaction[] {
         { productId: 6, qty: 1 },
         { productId: 12, qty: 1 },
       ],
-      paymentMethod: 'debit',
-      paymentDetails: { debitBank: 'BCA', debitCardLast4: '9032', debitApprovalCode: 'AUTH-849103' },
+      paymentMethod: 'transfer',
+      paymentDetails: { transferBank: 'BNI', transferRef: 'TRF-261112-9103' },
     }),
   ];
 }
@@ -1279,8 +1284,8 @@ function seedSecondaryOutletsIfNeeded(): void {
           sub0,
           tax0,
           sub0 + tax0,
-          'qris',
-          JSON.stringify({ qrisNmid: 'ID102003928192', qrisRrn: 'RRNPVJ001' })
+          'transfer',
+          JSON.stringify({ transferBank: 'BCA', transferRef: 'TRF-PVJ-001' })
         );
         insertTxItem.run(txId, tmjIds[0], p0.sku, p0.name, p0.berat, p0.harga, 1, sub0, p0.image);
       }
@@ -1440,6 +1445,38 @@ function migrateToGeneralRetailCatalogV1(): void {
   migrateTx();
 }
 
+function migratePaymentMethodsTwoOptionsV1(): void {
+  const alreadyMigrated = db
+    .prepare('SELECT value FROM settings WHERE key = ?')
+    .get('migrated_payment_methods_2opts_v1') as { value: string } | undefined;
+  if (alreadyMigrated?.value === '1') {
+    return;
+  }
+
+  const txRows = db
+    .prepare("SELECT id, paymentMethod, paymentDetailsJson FROM transactions WHERE paymentMethod IN ('debit', 'qris')")
+    .all() as Array<{ id: string; paymentMethod: string; paymentDetailsJson: string }>;
+
+  const migrateTx = db.transaction(() => {
+    const upd = db.prepare('UPDATE transactions SET paymentMethod = ?, paymentDetailsJson = ? WHERE id = ?');
+    for (const row of txRows) {
+      const details = safeJsonParse<PaymentDetails>(row.paymentDetailsJson, {});
+      const nextDetails: PaymentDetails = {
+        transferBank: details.transferBank || details.debitBank || 'BCA',
+        transferRef:
+          details.transferRef || details.debitApprovalCode || details.qrisRrn || undefined,
+      };
+      upd.run('transfer', JSON.stringify(nextDetails), row.id);
+    }
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(
+      'migrated_payment_methods_2opts_v1',
+      '1'
+    );
+  });
+
+  migrateTx();
+}
+
 export function seedInitialDataIfEmpty(): void {
   const seededV3Row = db.prepare('SELECT value FROM settings WHERE key = ?').get('seeded_v3') as
     | { value: string }
@@ -1451,6 +1488,7 @@ export function seedInitialDataIfEmpty(): void {
     migrateSimpleRetailReceiptV2();
     migrateReceiptHeaderLogoV3();
     migrateToGeneralRetailCatalogV1();
+    migratePaymentMethodsTwoOptionsV1();
     seedSecondaryOutletsIfNeeded();
     seedUsersIfNeeded();
     return;
@@ -1879,6 +1917,7 @@ export function getAllPromos(tenantId: string = getActiveTenantId()): PromoCampa
     isActive: number;
     minPurchase: number | null;
     description: string | null;
+    createdAt?: string | null;
   }>;
 
   return rows.map(r => ({
@@ -1893,19 +1932,37 @@ export function getAllPromos(tenantId: string = getActiveTenantId()): PromoCampa
     isActive: Boolean(r.isActive),
     minPurchase: r.minPurchase ?? undefined,
     description: r.description ?? undefined,
+    createdAt: r.createdAt ?? undefined,
   }));
 }
 
 export function getAllTenants(): Tenant[] {
-  const tenants = db.prepare('SELECT * FROM tenants ORDER BY rowid ASC').all() as Tenant[];
+  const tenants = db.prepare('SELECT * FROM tenants ORDER BY rowid ASC').all() as Array<
+    Tenant & { createdAt?: string | null }
+  >;
   const counts = db
     .prepare('SELECT tenantId, COUNT(*) as cnt FROM products GROUP BY tenantId')
     .all() as Array<{ tenantId: string; cnt: number }>;
   const countMap = new Map(counts.map(c => [c.tenantId, c.cnt]));
-  return tenants.map(t => ({
+  const mapped = tenants.map(t => ({
     ...t,
+    logoUrl: t.logoUrl || '',
     productCount: countMap.get(t.id) ?? 0,
+    createdAt: t.createdAt ?? undefined,
   }));
+
+  const now = Date.now();
+  const recentWindowMs = 5 * 60 * 1000;
+  const isFresh = (createdAt?: string) => {
+    if (!createdAt) return false;
+    const ms = Date.parse(createdAt);
+    return !Number.isNaN(ms) && now - ms < recentWindowMs && now - ms >= -60_000;
+  };
+  const fresh = mapped
+    .filter(t => isFresh(t.createdAt))
+    .sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || ''));
+  const older = mapped.filter(t => !isFresh(t.createdAt));
+  return [...fresh, ...older];
 }
 
 export function getActiveTenantId(): string {
@@ -1930,6 +1987,7 @@ export function getActivePromos(tenantId: string = getActiveTenantId()): PromoCa
     isActive: number;
     minPurchase: number | null;
     description: string | null;
+    createdAt?: string | null;
   }>;
 
   return rows.map(r => ({
@@ -1944,6 +2002,7 @@ export function getActivePromos(tenantId: string = getActiveTenantId()): PromoCa
     isActive: Boolean(r.isActive),
     minPurchase: r.minPurchase ?? undefined,
     description: r.description ?? undefined,
+    createdAt: r.createdAt ?? undefined,
   }));
 }
 
@@ -1988,6 +2047,7 @@ export function queryProducts(opts: {
   search?: string;
   category?: string;
   promoOnly?: boolean;
+  filterTab?: 'all' | 'active' | 'promo' | 'low_stock';
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
   tenantId?: string;
@@ -1997,7 +2057,8 @@ export function queryProducts(opts: {
   const pageSize = Math.min(200, Math.max(1, Math.floor(opts.pageSize ?? 10)));
   const search = (opts.search ?? '').trim().toLowerCase();
   const category = (opts.category ?? '').trim();
-  const promoOnly = Boolean(opts.promoOnly);
+  const filterTab = opts.filterTab ?? (opts.promoOnly ? 'promo' : 'all');
+  const promoOnly = Boolean(opts.promoOnly) || filterTab === 'promo';
   const sortDir = normalizeSortDir(opts.sortDir);
 
   let orderBySql = `id ${sortDir}`;
@@ -2047,6 +2108,12 @@ export function queryProducts(opts: {
     params.push(category);
   }
 
+  if (filterTab === 'active') {
+    conditions.push("COALESCE(status, 'Aktif') = 'Aktif'");
+  } else if (filterTab === 'low_stock') {
+    conditions.push('stok <= 5');
+  }
+
   if (promoOnly) {
     if (promoProductIds.length === 0) {
       conditions.push('1 = 0');
@@ -2076,6 +2143,7 @@ export function queryProducts(opts: {
               COALESCE(p.lebar, 0) AS lebar,
               COALESCE(p.tinggi, 0) AS tinggi,
               COALESCE(p.status, 'Aktif') AS status,
+              p.createdAt AS createdAt,
               COALESCE(si.cnt, 0) AS salesCount
        FROM products p
        LEFT JOIN (
@@ -2174,7 +2242,8 @@ export function lookupProductByCode(rawCode: string, tenantId: string = getActiv
     COALESCE(panjang, 0) AS panjang,
     COALESCE(lebar, 0) AS lebar,
     COALESCE(tinggi, 0) AS tinggi,
-    COALESCE(status, 'Aktif') AS status
+    COALESCE(status, 'Aktif') AS status,
+    createdAt
   `;
 
   let product = db
@@ -2207,8 +2276,107 @@ export function lookupProductByCode(rawCode: string, tenantId: string = getActiv
   return attachPromoFlags(product, buildActivePromoMap(tenantId));
 }
 
+const SKU_CATEGORY_PREFIX_MAP: Record<string, string> = {
+  parfum: 'PF',
+  skincare: 'SK',
+  'body care': 'BC',
+  'make up': 'MU',
+  makeup: 'MU',
+  'hair care': 'HC',
+  'paket bundling': 'PB',
+  aksesoris: 'AK',
+  minuman: 'MN',
+  makanan: 'MK',
+  elektronik: 'EL',
+  umum: 'UM',
+};
+
+export function checkProductSkuAvailability(
+  rawSku: string,
+  tenantId: string = getActiveTenantId(),
+  excludeId?: number
+): {
+  available: boolean;
+  sku: string;
+  conflictProduct?: { id: number; name: string; sku: string };
+} {
+  const cleanSku = rawSku.trim().toUpperCase();
+  if (!cleanSku) {
+    return { available: false, sku: '' };
+  }
+  const conflict =
+    excludeId !== undefined && Number.isInteger(excludeId)
+      ? (db
+          .prepare('SELECT id, name, sku FROM products WHERE tenantId = ? AND LOWER(sku) = LOWER(?) AND id != ? LIMIT 1')
+          .get(tenantId, cleanSku, excludeId) as { id: number; name: string; sku: string } | undefined)
+      : (db
+          .prepare('SELECT id, name, sku FROM products WHERE tenantId = ? AND LOWER(sku) = LOWER(?) LIMIT 1')
+          .get(tenantId, cleanSku) as { id: number; name: string; sku: string } | undefined);
+
+  return conflict
+    ? { available: false, sku: cleanSku, conflictProduct: conflict }
+    : { available: true, sku: cleanSku };
+}
+
+export function generateUniqueProductSku(
+  category: string,
+  tenantId: string = getActiveTenantId(),
+  currentSku?: string
+): string {
+  const normalizedCat = category.trim().toLowerCase();
+  let prefix = SKU_CATEGORY_PREFIX_MAP[normalizedCat];
+  if (!prefix) {
+    const alpha = normalizedCat.replace(/[^a-z]/g, '');
+    prefix = (alpha.slice(0, 2) || 'PR').toUpperCase();
+  }
+
+  const rows = db
+    .prepare('SELECT LOWER(sku) AS skuLower FROM products WHERE tenantId = ?')
+    .all(tenantId) as Array<{ skuLower: string }>;
+  const used = new Set(rows.map(r => r.skuLower));
+
+  const prefixRegex = new RegExp(`^${prefix.toLowerCase()}-(\\d+)$`);
+  let maxSeq = 0;
+  for (const s of used) {
+    const match = prefixRegex.exec(s);
+    if (match) {
+      const n = Number(match[1]);
+      if (Number.isFinite(n) && n > maxSeq) maxSeq = n;
+    }
+  }
+
+  const currentLower = currentSku?.trim().toLowerCase();
+  if (currentLower) used.add(currentLower);
+
+  let seq = maxSeq + 1;
+  for (let i = 0; i < 200; i++) {
+    const candidate = `${prefix}-${String(seq + i).padStart(3, '0')}`;
+    if (!used.has(candidate.toLowerCase())) {
+      return candidate;
+    }
+  }
+
+  for (let i = 0; i < 100; i++) {
+    const rnd = Math.floor(1000 + Math.random() * 9000);
+    const candidate = `${prefix}-${rnd}`;
+    if (!used.has(candidate.toLowerCase())) {
+      return candidate;
+    }
+  }
+
+  return `${prefix}-${Date.now().toString().slice(-6)}`;
+}
+
 export function getCategoriesWithStats(tenantId: string = getActiveTenantId()): CategoriesWithStatsResponse {
   const categories = getAllCategories();
+  const catMetaRows = db
+    .prepare('SELECT name, createdAt FROM categories')
+    .all() as Array<{ name: string; createdAt?: string | null }>;
+  const categoryCreatedAt: Record<string, string> = {};
+  for (const c of catMetaRows) {
+    if (c.createdAt) categoryCreatedAt[c.name] = c.createdAt;
+  }
+
   const rows = db
     .prepare(
       'SELECT category, COUNT(*) as count, COALESCE(SUM(stok), 0) as totalStok, COALESCE(SUM(berat * stok), 0) as totalGram FROM products WHERE tenantId = ? GROUP BY category'
@@ -2223,7 +2391,7 @@ export function getCategoriesWithStats(tenantId: string = getActiveTenantId()): 
       totalGram: r.totalGram,
     };
   }
-  return { categories, stats };
+  return { categories, stats, categoryCreatedAt };
 }
 
 export function queryTransactions(opts: {
@@ -2331,6 +2499,12 @@ export function queryTransactions(opts: {
     const itemRows = db
       .prepare(
         `SELECT ti.transactionId, ti.productId, ti.sku, ti.name, p.category AS category,
+                COALESCE(p.brand, 'No Brand') AS brand,
+                COALESCE(p.kondisi, 'Baru') AS kondisi,
+                COALESCE(p.hpp, 0) AS hpp,
+                COALESCE(p.panjang, 0) AS panjang,
+                COALESCE(p.lebar, 0) AS lebar,
+                COALESCE(p.tinggi, 0) AS tinggi,
                 ti.berat, ti.harga, ti.qty, ti.subtotal, COALESCE(ti.image, p.image) AS image
          FROM transaction_items ti
          LEFT JOIN products p ON p.id = ti.productId
@@ -2342,6 +2516,12 @@ export function queryTransactions(opts: {
       sku: string;
       name: string;
       category: string | null;
+      brand: string | null;
+      kondisi: string | null;
+      hpp: number;
+      panjang: number;
+      lebar: number;
+      tinggi: number;
       berat: number;
       harga: number;
       qty: number;
@@ -2356,6 +2536,12 @@ export function queryTransactions(opts: {
         sku: row.sku,
         name: row.name,
         category: row.category ?? undefined,
+        brand: row.brand ?? 'No Brand',
+        kondisi: row.kondisi === 'Bekas' ? 'Bekas' : 'Baru',
+        hpp: row.hpp ?? 0,
+        panjang: row.panjang ?? 0,
+        lebar: row.lebar ?? 0,
+        tinggi: row.tinggi ?? 0,
         berat: row.berat,
         harga: row.harga,
         qty: row.qty,
@@ -2452,6 +2638,12 @@ export function getTransactionById(id: string, tenantId?: string): Transaction |
   const itemRows = db
     .prepare(
       `SELECT ti.productId, ti.sku, ti.name, p.category AS category,
+              COALESCE(p.brand, 'No Brand') AS brand,
+              COALESCE(p.kondisi, 'Baru') AS kondisi,
+              COALESCE(p.hpp, 0) AS hpp,
+              COALESCE(p.panjang, 0) AS panjang,
+              COALESCE(p.lebar, 0) AS lebar,
+              COALESCE(p.tinggi, 0) AS tinggi,
               ti.berat, ti.harga, ti.qty, ti.subtotal, COALESCE(ti.image, p.image) AS image
        FROM transaction_items ti
        LEFT JOIN products p ON p.id = ti.productId
@@ -2462,6 +2654,12 @@ export function getTransactionById(id: string, tenantId?: string): Transaction |
     sku: string;
     name: string;
     category: string | null;
+    brand: string | null;
+    kondisi: string | null;
+    hpp: number;
+    panjang: number;
+    lebar: number;
+    tinggi: number;
     berat: number;
     harga: number;
     qty: number;
@@ -2486,6 +2684,12 @@ export function getTransactionById(id: string, tenantId?: string): Transaction |
       sku: r.sku,
       name: r.name,
       category: r.category ?? undefined,
+      brand: r.brand ?? 'No Brand',
+      kondisi: r.kondisi === 'Bekas' ? 'Bekas' : 'Baru',
+      hpp: r.hpp ?? 0,
+      panjang: r.panjang ?? 0,
+      lebar: r.lebar ?? 0,
+      tinggi: r.tinggi ?? 0,
       berat: r.berat,
       harga: r.harga,
       qty: r.qty,
@@ -2502,6 +2706,226 @@ export function getTransactionById(id: string, tenantId?: string): Transaction |
     status: tx.status === 'void' ? 'void' : 'completed',
     voidReason: tx.voidReason ?? undefined,
     voidedAt: tx.voidedAt ?? undefined,
+  };
+}
+
+function getTxLocalDateParts(dateTime: string, invoiceNo: string): { year: number; month: number; day: number; ymd: string } | null {
+  if (dateTime) {
+    const d = new Date(dateTime);
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const day = d.getDate();
+      const ymd = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      return { year, month, day, ymd };
+    }
+  }
+  const m = /^TRX-(\d{4})(\d{2})(\d{2})-/.exec(invoiceNo || '');
+  if (m) {
+    const year = parseInt(m[1], 10);
+    const month = parseInt(m[2], 10);
+    const day = parseInt(m[3], 10);
+    return { year, month, day, ymd: `${m[1]}-${m[2]}-${m[3]}` };
+  }
+  return null;
+}
+
+export function queryTransactionsForExport(opts: {
+  period?: 'monthly' | 'daily' | 'custom' | 'yearly' | 'all';
+  month?: number;
+  year?: number;
+  date?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  method?: string;
+  statusFilter?: 'completed' | 'all' | 'void';
+  search?: string;
+  tenantId?: string;
+}): { transactions: Transaction[]; tenant: Tenant | null } {
+  const tenantId = opts.tenantId ?? getActiveTenantId();
+  const period = opts.period ?? 'monthly';
+  const method = (opts.method ?? 'semua').trim();
+  const statusFilter = opts.statusFilter ?? 'completed';
+  const search = (opts.search ?? '').trim().toLowerCase();
+
+  const conditions: string[] = ['t.tenantId = ?'];
+  const params: Array<string | number> = [tenantId];
+
+  if (search) {
+    const like = `%${search}%`;
+    conditions.push(
+      `(LOWER(t.invoiceNo) LIKE ? OR LOWER(t.customerName) LIKE ? OR LOWER(t.cashier) LIKE ? OR EXISTS (SELECT 1 FROM transaction_items ti WHERE ti.transactionId = t.id AND (LOWER(ti.name) LIKE ? OR LOWER(ti.sku) LIKE ?)))`
+    );
+    params.push(like, like, like, like, like);
+  }
+
+  if (method && method !== 'semua') {
+    conditions.push('t.paymentMethod = ?');
+    params.push(method);
+  }
+
+  if (statusFilter === 'completed') {
+    conditions.push("COALESCE(t.status, 'completed') != 'void'");
+  } else if (statusFilter === 'void') {
+    conditions.push("COALESCE(t.status, 'completed') = 'void'");
+  }
+
+  const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const txRows = db
+    .prepare(
+      `SELECT t.id, t.invoiceNo, t.dateTime, t.dateStr, t.timeStr, t.cashier, t.customerId,
+              c.memberCode AS customerMemberCode, t.customerName,
+              c.phone AS customerPhone, c.address AS customerAddress,
+              t.totalQty, t.totalBerat, t.subtotal, t.tax, t.grandTotal, t.paymentMethod, t.paymentDetailsJson,
+              COALESCE(t.status, 'completed') AS status, t.voidReason, t.voidedAt
+       FROM transactions t
+       LEFT JOIN customers c ON c.id = t.customerId
+       ${whereSql} ORDER BY t.dateTime DESC, t.rowid DESC`
+    )
+    .all(...params) as Array<{
+    id: string;
+    invoiceNo: string;
+    dateTime: string;
+    dateStr: string;
+    timeStr: string;
+    cashier: string;
+    customerId: string | null;
+    customerMemberCode: string | null;
+    customerName: string;
+    customerPhone: string | null;
+    customerAddress: string | null;
+    totalQty: number;
+    totalBerat: number;
+    subtotal: number;
+    tax: number;
+    grandTotal: number;
+    paymentMethod: 'cash' | 'debit' | 'transfer' | 'qris';
+    paymentDetailsJson: string;
+    status: 'completed' | 'void';
+    voidReason: string | null;
+    voidedAt: string | null;
+  }>;
+
+  const now = new Date();
+  const targetYear = opts.year || now.getFullYear();
+  const targetMonth = opts.month || now.getMonth() + 1;
+  const targetDate = (opts.date || '').trim() || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const rawFrom = (opts.dateFrom || '').trim() || targetDate;
+  const rawTo = (opts.dateTo || '').trim() || rawFrom;
+  const [dateFrom, dateTo] = rawFrom <= rawTo ? [rawFrom, rawTo] : [rawTo, rawFrom];
+
+  const filteredTxRows = txRows.filter(tx => {
+    if (period === 'all') return true;
+    const parts = getTxLocalDateParts(tx.dateTime, tx.invoiceNo);
+    if (!parts) return false;
+    switch (period) {
+      case 'monthly':
+        return parts.year === targetYear && parts.month === targetMonth;
+      case 'daily':
+        return parts.ymd === targetDate;
+      case 'custom':
+        return parts.ymd >= dateFrom && parts.ymd <= dateTo;
+      case 'yearly':
+        return parts.year === targetYear;
+      default:
+        return true;
+    }
+  });
+
+  const itemsByTx = new Map<string, TransactionItem[]>();
+  if (filteredTxRows.length > 0) {
+    const ids = filteredTxRows.map(t => t.id);
+    // Chunk IN queries to stay safely below SQLite's parameter limit
+    const CHUNK_SIZE = 400;
+    for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+      const chunk = ids.slice(i, i + CHUNK_SIZE);
+      const placeholders = chunk.map(() => '?').join(', ');
+      const itemRows = db
+        .prepare(
+          `SELECT ti.transactionId, ti.productId, ti.sku, ti.name, p.category AS category,
+                  COALESCE(p.brand, 'No Brand') AS brand,
+                  COALESCE(p.kondisi, 'Baru') AS kondisi,
+                  COALESCE(p.hpp, 0) AS hpp,
+                  COALESCE(p.panjang, 0) AS panjang,
+                  COALESCE(p.lebar, 0) AS lebar,
+                  COALESCE(p.tinggi, 0) AS tinggi,
+                  ti.berat, ti.harga, ti.qty, ti.subtotal, COALESCE(ti.image, p.image) AS image
+           FROM transaction_items ti
+           LEFT JOIN products p ON p.id = ti.productId
+           WHERE ti.transactionId IN (${placeholders}) ORDER BY ti.id ASC`
+        )
+        .all(...chunk) as Array<{
+        transactionId: string;
+        productId: number;
+        sku: string;
+        name: string;
+        category: string | null;
+        brand: string | null;
+        kondisi: string | null;
+        hpp: number;
+        panjang: number;
+        lebar: number;
+        tinggi: number;
+        berat: number;
+        harga: number;
+        qty: number;
+        subtotal: number;
+        image: string | null;
+      }>;
+
+      for (const row of itemRows) {
+        const list = itemsByTx.get(row.transactionId) ?? [];
+        list.push({
+          id: row.productId,
+          sku: row.sku,
+          name: row.name,
+          category: row.category ?? undefined,
+          brand: row.brand ?? 'No Brand',
+          kondisi: row.kondisi === 'Bekas' ? 'Bekas' : 'Baru',
+          hpp: row.hpp ?? 0,
+          panjang: row.panjang ?? 0,
+          lebar: row.lebar ?? 0,
+          tinggi: row.tinggi ?? 0,
+          berat: row.berat,
+          harga: row.harga,
+          qty: row.qty,
+          subtotal: row.subtotal,
+          image: row.image ?? undefined,
+        });
+        itemsByTx.set(row.transactionId, list);
+      }
+    }
+  }
+
+  const tenantRow = db.prepare('SELECT * FROM tenants WHERE id = ?').get(tenantId) as Tenant | undefined;
+  const tenant = tenantRow ? { ...tenantRow, logoUrl: tenantRow.logoUrl || '' } : null;
+
+  return {
+    tenant,
+    transactions: filteredTxRows.map(tx => ({
+      id: tx.id,
+      invoiceNo: tx.invoiceNo,
+      dateTime: tx.dateTime,
+      dateStr: tx.dateStr,
+      timeStr: tx.timeStr,
+      cashier: tx.cashier,
+      customerId: tx.customerId ?? undefined,
+      customerMemberCode: tx.customerMemberCode ?? undefined,
+      customerName: tx.customerName,
+      customerPhone: tx.customerPhone ?? undefined,
+      customerAddress: tx.customerAddress ?? undefined,
+      items: itemsByTx.get(tx.id) ?? [],
+      totalQty: tx.totalQty,
+      totalBerat: tx.totalBerat,
+      subtotal: tx.subtotal,
+      tax: tx.tax,
+      grandTotal: tx.grandTotal,
+      paymentMethod: tx.paymentMethod,
+      paymentDetails: safeJsonParse<PaymentDetails>(tx.paymentDetailsJson, {}),
+      status: tx.status === 'void' ? 'void' : 'completed',
+      voidReason: tx.voidReason ?? undefined,
+      voidedAt: tx.voidedAt ?? undefined,
+    })),
   };
 }
 
@@ -2931,6 +3355,7 @@ export function queryPromos(opts: {
     isActive: number;
     minPurchase: number | null;
     description: string | null;
+    createdAt?: string | null;
   }>;
 
   const allActive = getActivePromos(tenantId);
@@ -2957,6 +3382,7 @@ export function queryPromos(opts: {
       isActive: Boolean(r.isActive),
       minPurchase: r.minPurchase ?? undefined,
       description: r.description ?? undefined,
+      createdAt: r.createdAt ?? undefined,
     })),
     total,
     page: safePage,

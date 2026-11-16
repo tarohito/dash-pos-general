@@ -53,8 +53,7 @@ export const CustomerServiceModal: React.FC<CustomerServiceModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size="md"
-      title="Hubungi Customer Service"
-      subtitle="Konsultasi paket & aktivasi berlangganan LogicPOS"
+      title="Customer Service"
       footer={
         <div className={MODAL_FOOTER_END_CLASS}>
           <button
@@ -83,12 +82,12 @@ export const CustomerServiceModal: React.FC<CustomerServiceModalProps> = ({
       }
     >
       <div className="space-y-4">
-        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+        <p className="text-sm text-zinc-600 leading-relaxed">
           Tim Customer Service kami siap membantu aktivasi paket berlangganan, penambahan cabang outlet, serta pendampingan penggunaan sistem LogicPOS.
         </p>
 
         {activeTenant && (
-          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200/80 text-xs sm:text-sm">
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200/80 text-sm">
             <GoogleIcon name="storefront" size={16} className="text-zinc-700 shrink-0" />
             <div className="min-w-0">
               <span className="text-zinc-500">Outlet terdaftar: </span>

@@ -81,8 +81,7 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({ product, o
         isOpen={Boolean(product)}
         onClose={onClose}
         size="xl"
-        title="Cetak Label Barcode"
-        subtitle={`${product.name} (${product.sku})`}
+        title="Cetak Barcode"
         footer={
           <div className={MODAL_FOOTER_END_CLASS}>
             <button
@@ -99,7 +98,7 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({ product, o
         <div className="space-y-5">
             {/* Format Selector */}
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-xs font-semibold text-zinc-700 mb-2">
                 Pilih Standar Format Label
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -130,7 +129,7 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({ product, o
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs sm:text-sm font-bold text-zinc-950 leading-tight">
+                        <p className="text-sm font-bold text-zinc-950 leading-tight">
                           {opt.label}
                         </p>
                         <p className="text-xs text-zinc-500 mt-0.5 leading-snug">{opt.desc}</p>
@@ -153,7 +152,7 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({ product, o
                   min={1}
                   max={60}
                   suffix="pcs"
-                  className="w-full px-3 py-1.5 text-sm font-bold font-mono bg-white border border-zinc-300 rounded-lg outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  className="w-full h-10 px-3.5 text-sm font-bold font-mono bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
 
@@ -179,7 +178,7 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({ product, o
 
             {/* Live Preview */}
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              <p className="text-xs font-bold text-zinc-800 uppercase tracking-wider mb-2">
                 Pratinjau Label (Siap Scan Code 128 / QR)
               </p>
               <div className="bg-gray-100 border border-dashed border-gray-300 rounded-lg p-5 flex items-center justify-center">

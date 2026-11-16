@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { GoogleIcon } from '../common/GoogleIcon';
 import { Transaction, TransactionStatsSummary } from '../../types';
 import { formatIDR } from '../../utils/formatters';
 import { PaginationControls } from '../common/PaginationControls';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { TransactionDetailModal } from './TransactionDetailModal';
+import { ExportTransactionsModal } from './ExportTransactionsModal';
 import { ActionDropdownMenu } from '../common/ActionDropdownMenu';
 import { posApi } from '../../services/api';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -13,6 +14,8 @@ import { ErrorBanner } from '../common/ErrorBanner';
 import { useToast } from '../../contexts/ToastContext';
 import { MoneyAmount } from '../common/MoneyAmount';
 import { KpiCard } from '../common/KpiCard';
+import { NewBadge } from '../common/NewBadge';
+import { isRecentlyCreated, useNewBadgeClock } from '../../utils/newBadge';
 import {
   SortableTh,
   SortDirection,
@@ -23,7 +26,7 @@ interface DailyTransactionsViewProps {
   refreshTrigger: number;
   onSelectReceipt: (tx: Transaction) => void;
   onVoidTransaction: (id: string, reason: string, restoreStock: boolean) => Promise<void>;
-  onNavigateToPos: () => void;
+  onNavigateToPos?: () => void;
   canVoid?: boolean;
 }
 
@@ -59,7 +62,10 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
 
   const [voidingTx, setVoidingTx] = useState<Transaction | null>(null);
   const [isVoiding, setIsVoiding] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
+  const txTimestamps = useMemo(() => items.map(tx => tx.dateTime), [items]);
+  const nowMs = useNewBadgeClock(txTimestamps);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -169,35 +175,18 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
         badgeClass: 'bg-red-50 text-red-700 border border-red-200/80',
       };
     }
-    switch (tx.paymentMethod) {
-      case 'cash':
-        return {
-          label: 'Tunai',
-          badgeClass: 'bg-emerald-50 text-emerald-700 border border-emerald-200/80',
-        };
-      case 'debit':
-        return {
-          label: tx.paymentDetails.debitBank ? `Debit (${tx.paymentDetails.debitBank})` : 'Debit EDC',
-          badgeClass: 'bg-indigo-50 text-indigo-700 border border-indigo-200/80',
-        };
-      case 'transfer':
-        return {
-          label: tx.paymentDetails.transferBank
-            ? `Transfer (${tx.paymentDetails.transferBank})`
-            : 'Transfer Bank',
-          badgeClass: 'bg-blue-50 text-blue-700 border border-blue-200/80',
-        };
-      case 'qris':
-        return {
-          label: 'QRIS GPN',
-          badgeClass: 'bg-zinc-100 text-zinc-800 border border-zinc-200/80',
-        };
-      default:
-        return {
-          label: tx.paymentMethod,
-          badgeClass: 'bg-gray-100 text-gray-700 border border-gray-200',
-        };
+    if (tx.paymentMethod === 'cash') {
+      return {
+        label: 'Tunai',
+        badgeClass: 'bg-emerald-50 text-emerald-700 border border-emerald-200/80',
+      };
     }
+    return {
+      label: tx.paymentDetails.transferBank
+        ? `Transfer (${tx.paymentDetails.transferBank})`
+        : 'Transfer Bank',
+      badgeClass: 'bg-blue-50 text-blue-700 border border-blue-200/80',
+    };
   };
 
   return (
@@ -216,11 +205,11 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
             type="button"
-            onClick={onNavigateToPos}
+            onClick={() => setIsExportModalOpen(true)}
             className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-full inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-[0.98]"
           >
-            <GoogleIcon name="add" size={16} />
-            <span>Transaksi Penjualan Baru</span>
+            <GoogleIcon name="download" size={16} />
+            <span>Export Laporan</span>
           </button>
         </div>
       </div>
@@ -247,7 +236,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
         />
 
         <KpiCard
-          title="Total Netto Produk"
+          title="Total Berat Terjual"
           accent="secondary"
           icon={<GoogleIcon name="balance" size={16} />}
           value={
@@ -257,7 +246,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
           }
           footer={
             <p className="text-xs text-zinc-500 mt-1 truncate">
-              Akumulasi netto item terjual
+              Akumulasi berat produk terjual
             </p>
           }
         />
@@ -308,22 +297,20 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
           />
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-            <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-full border border-zinc-200 items-center overflow-x-auto max-w-full">
+            <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 items-center overflow-x-auto max-w-full">
               {[
                 { id: 'semua', label: 'Semua' },
                 { id: 'cash', label: 'Tunai' },
-                { id: 'debit', label: 'Debit EDC' },
-                { id: 'transfer', label: 'Transfer Bank' },
-                { id: 'qris', label: 'QRIS' },
+                { id: 'transfer', label: 'Transfer' },
               ].map(tab => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setTxFilterMethod(tab.id)}
-                  className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
+                  className={`h-full px-3.5 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                     txFilterMethod === tab.id
-                      ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                      : 'text-zinc-500 hover:text-zinc-900'
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'text-zinc-500 hover:text-zinc-950'
                   }`}
                 >
                   {tab.label}
@@ -389,33 +376,59 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                             <span className="font-mono font-bold text-gray-900 text-xs">
                               {tx.invoiceNo}
                             </span>
+                            {isRecentlyCreated(tx.dateTime, nowMs) && <NewBadge />}
                             {isVoid && (
-                              <span className="px-1.5 py-0.5 text-xs font-bold uppercase bg-red-100 text-red-700 border border-red-200 rounded">
+                              <span className="px-1.5 py-0.5 text-[11px] font-bold uppercase bg-red-100 text-red-700 border border-red-200 rounded-md">
                                 VOID
                               </span>
                             )}
                           </div>
-                          <span className="text-xs text-gray-500 block mt-0.5 tabular-nums">
+                          <span className="text-xs text-zinc-500 block mt-0.5 tabular-nums">
                             {tx.dateStr} &bull; {tx.timeStr}
                           </span>
                         </div>
-                        <span className={`px-2 py-0.5 text-xs font-semibold rounded shrink-0 ${badge.badgeClass}`}>
+                        <span className={`px-2 py-0.5 text-xs font-semibold rounded-md shrink-0 ${badge.badgeClass}`}>
                           {badge.label}
                         </span>
                       </div>
 
-                      <div className="text-xs space-y-1">
+                      <div className="text-xs space-y-1.5">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-bold text-gray-900 truncate">{tx.customerName}</span>
-                          <span className="text-gray-500 shrink-0">Kasir: {tx.cashier}</span>
+                          <span className="font-bold text-zinc-950 truncate">{tx.customerName}</span>
+                          <span className="text-zinc-500 shrink-0">Kasir: {tx.cashier}</span>
                         </div>
-                        <div className="flex items-center justify-between gap-2 text-gray-600">
-                          <span className="truncate">
-                            {firstItem ? firstItem.name : '-'}
-                            {remainingItems > 0 ? ` (+${remainingItems} lain)` : ''}
-                          </span>
-                          <span className="font-mono font-bold text-gray-800 shrink-0">
-                            {tx.totalQty} pcs &bull; {Number(tx.totalBerat.toFixed(2))} gr
+                        <div className="flex items-start justify-between gap-2 text-zinc-600">
+                          <div className="min-w-0 flex-1 space-y-0.5">
+                            <span className="font-semibold text-zinc-900 block truncate">
+                              {firstItem ? firstItem.name : '-'}
+                              {remainingItems > 0 ? ` (+${remainingItems} item)` : ''}
+                            </span>
+                            {firstItem && (
+                              <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-zinc-500">
+                                {firstItem.category && (
+                                  <span className="font-medium text-zinc-600">{firstItem.category}</span>
+                                )}
+                                {firstItem.brand && firstItem.brand !== 'No Brand' && (
+                                  <span className="px-1.5 py-0.2 text-[10px] font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200 rounded-md">
+                                    {firstItem.brand}
+                                  </span>
+                                )}
+                                {firstItem.kondisi && (
+                                  <span
+                                    className={`px-1.5 py-0.2 text-[10px] font-semibold rounded-md border ${
+                                      firstItem.kondisi === 'Bekas'
+                                        ? 'bg-zinc-100 text-zinc-700 border-zinc-300'
+                                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                                    }`}
+                                  >
+                                    {firstItem.kondisi}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <span className="font-mono font-bold text-zinc-800 shrink-0 tabular-nums text-right">
+                            {tx.totalQty} pcs
                           </span>
                         </div>
                       </div>
@@ -477,7 +490,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                         currentSortBy={sortBy}
                         currentSortDir={sortDir}
                         onSort={key => handleHeaderSort(key, 'desc')}
-                        className="py-3 px-4 w-[185px]"
+                        className="py-3 px-3.5 w-[175px]"
                       />
                       <SortableTh
                         label="Pelanggan"
@@ -485,24 +498,22 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                         currentSortBy={sortBy}
                         currentSortDir={sortDir}
                         onSort={key => handleHeaderSort(key, 'asc')}
-                        className="py-3 px-4 min-w-[165px]"
+                        className="py-3 px-3.5 w-[170px]"
                       />
+                      <th className="py-3 px-3.5 min-w-[240px] text-xs font-semibold uppercase tracking-wider text-zinc-500 whitespace-nowrap">
+                        Nama Produk
+                      </th>
+                      <th className="py-3 px-3 w-[84px] text-center text-xs font-semibold uppercase tracking-wider text-zinc-500 whitespace-nowrap">
+                        Qty
+                      </th>
                       <SortableTh
-                        label="Daftar Produk"
+                        label="Pembayaran"
                         sortKey="paymentMethod"
                         currentSortBy={sortBy}
                         currentSortDir={sortDir}
                         onSort={key => handleHeaderSort(key, 'asc')}
-                        className="py-3 px-4 min-w-[220px]"
-                      />
-                      <SortableTh
-                        label="Netto"
-                        sortKey="totalBerat"
-                        currentSortBy={sortBy}
-                        currentSortDir={sortDir}
-                        onSort={key => handleHeaderSort(key, 'desc')}
-                        align="right"
-                        className="py-3 px-4 w-[110px]"
+                        align="center"
+                        className="py-3 px-3.5 w-[140px]"
                       />
                       <SortableTh
                         label="Total Bayar"
@@ -511,9 +522,9 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                         currentSortDir={sortDir}
                         onSort={key => handleHeaderSort(key, 'desc')}
                         align="right"
-                        className="py-3 px-4 w-[175px]"
+                        className="py-3 px-3.5 w-[150px]"
                       />
-                      <th className="py-3 px-3 text-center w-[72px]">Aksi</th>
+                      <th className="py-3 px-3 text-center w-[64px]">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-200/70 font-medium text-zinc-700">
@@ -529,83 +540,114 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                             isVoid ? 'bg-red-50/20 opacity-80' : 'hover:bg-zinc-100/60'
                           }`}
                         >
-                          <td className="py-3.5 px-4 whitespace-nowrap align-middle">
+                          <td className="py-3.5 px-3.5 whitespace-nowrap align-middle">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-mono font-bold text-gray-900 text-xs sm:text-sm">
+                              <span className="font-mono font-bold text-zinc-950 text-xs sm:text-sm">
                                 {tx.invoiceNo}
                               </span>
+                              {isRecentlyCreated(tx.dateTime, nowMs) && <NewBadge />}
                               {isVoid && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-bold uppercase bg-red-100 text-red-700 border border-red-200 rounded">
+                                <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold uppercase bg-red-100 text-red-700 border border-red-200 rounded-md">
                                   VOID
                                 </span>
                               )}
                             </div>
-                            <span className="text-xs text-gray-500 block mt-0.5 tabular-nums">
+                            <span className="text-xs text-zinc-500 block mt-0.5 tabular-nums">
                               {tx.dateStr} &bull; {tx.timeStr}
                             </span>
                           </td>
 
-                          <td className="py-3.5 px-4 align-middle max-w-[210px]">
+                          <td className="py-3.5 px-3.5 align-middle max-w-[175px]">
                             <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="font-bold text-gray-900 truncate text-xs sm:text-sm">
+                              <span className="font-bold text-zinc-950 truncate text-xs sm:text-sm">
                                 {tx.customerName}
                               </span>
                               {tx.customerMemberCode && (
-                                <span className="font-mono text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold shrink-0">
+                                <span className="font-mono text-[10px] bg-zinc-100 text-zinc-600 px-1.5 py-0.5 rounded-md font-semibold shrink-0">
                                   {tx.customerMemberCode}
                                 </span>
                               )}
                             </div>
-                            <span className="text-xs text-gray-500 block mt-0.5 truncate">
+                            <span className="text-xs text-zinc-500 block mt-0.5 truncate">
                               Kasir: {tx.cashier}
                             </span>
                           </td>
 
-                          <td className="py-3.5 px-4 align-middle max-w-[280px]">
+                          <td className="py-3.5 px-3.5 align-middle max-w-[290px]">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span
-                                className="font-semibold text-gray-900 text-xs sm:text-sm truncate"
-                                title={firstItem?.name}
+                                className="font-bold text-zinc-950 text-xs sm:text-sm truncate"
+                                title={tx.items.map(i => `${i.name} (${i.qty} pcs)`).join(', ')}
                               >
                                 {firstItem ? firstItem.name : '-'}
                               </span>
-                              <span className="text-xs bg-zinc-100 text-zinc-800 font-bold px-1.5 py-0.5 rounded-md border border-zinc-200/80 font-mono shrink-0">
-                                {tx.totalQty} pcs
-                              </span>
+                              {remainingItems > 0 && (
+                                <span className="text-[11px] bg-zinc-100 text-zinc-700 font-semibold px-1.5 py-0.5 rounded-md border border-zinc-200/80 shrink-0">
+                                  +{remainingItems} item
+                                </span>
+                              )}
                             </div>
+                            {isVoid && tx.voidReason ? (
+                              <span
+                                className="text-xs block mt-0.5 truncate text-red-600"
+                                title={tx.voidReason}
+                              >
+                                Alasan: {tx.voidReason}
+                              </span>
+                            ) : firstItem ? (
+                              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                {firstItem.category && (
+                                  <span className="text-[11px] text-zinc-500 font-medium">
+                                    {firstItem.category}
+                                  </span>
+                                )}
+                                {firstItem.brand && firstItem.brand !== 'No Brand' && (
+                                  <span className="px-1.5 py-0.2 rounded-md text-[10px] font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200/80">
+                                    {firstItem.brand}
+                                  </span>
+                                )}
+                                {firstItem.kondisi && (
+                                  <span
+                                    className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold uppercase border ${
+                                      firstItem.kondisi === 'Bekas'
+                                        ? 'bg-zinc-100 text-zinc-700 border-zinc-300'
+                                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                                    }`}
+                                  >
+                                    {firstItem.kondisi}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-zinc-400 block mt-0.5">-</span>
+                            )}
+                          </td>
+
+                          <td className="py-3.5 px-3 text-center whitespace-nowrap align-middle font-mono font-semibold text-zinc-800 text-xs sm:text-sm tabular-nums">
+                            {tx.totalQty} pcs
+                          </td>
+
+                          <td className="py-3.5 px-3.5 text-center whitespace-nowrap align-middle">
                             <span
-                              className={`text-xs block mt-0.5 truncate ${
-                                isVoid && tx.voidReason ? 'text-red-600' : 'text-gray-500 font-mono'
-                              }`}
-                              title={isVoid && tx.voidReason ? tx.voidReason : undefined}
+                              className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-md ${badge.badgeClass}`}
                             >
-                              {isVoid && tx.voidReason
-                                ? `Alasan: ${tx.voidReason}`
-                                : remainingItems > 0 && firstItem
-                                ? `SKU: ${firstItem.sku} (+${remainingItems} item lain)`
-                                : firstItem
-                                ? `SKU: ${firstItem.sku}`
-                                : '-'}
+                              {badge.label}
                             </span>
                           </td>
 
-                          <td className="py-3.5 px-4 text-right whitespace-nowrap align-middle font-mono font-bold text-gray-900 text-xs sm:text-sm tabular-nums">
-                            {Number(tx.totalBerat.toFixed(2))} gr
-                          </td>
-
-                          <td className="py-3.5 px-4 text-right whitespace-nowrap align-middle">
+                          <td className="py-3.5 px-3.5 text-right whitespace-nowrap align-middle">
                             <span
                               className={`font-mono font-bold text-sm block tabular-nums ${
-                                isVoid ? 'line-through text-gray-400' : 'text-gray-900'
+                                isVoid ? 'line-through text-zinc-400' : 'text-zinc-950'
                               }`}
                             >
                               {formatIDR(tx.grandTotal)}
                             </span>
-                            <span
-                              className={`inline-block mt-0.5 text-xs font-semibold px-2 py-0.5 rounded ${badge.badgeClass}`}
-                            >
-                              {badge.label}
-                            </span>
+                            {tx.tax > 0 && (
+                              <span className="text-[11px] font-mono text-zinc-400 block mt-0.5 tabular-nums">
+                                + PPN {formatIDR(tx.tax)}
+                              </span>
+                            )}
                           </td>
 
                           <td className="py-3.5 px-3 text-center whitespace-nowrap align-middle">
@@ -676,7 +718,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
       <ConfirmModal
         isOpen={!!voidingTx}
         variant="void"
-        title="Void / Batalkan Transaksi"
+        title="Batalkan Transaksi"
         description={
           voidingTx
             ? `Transaksi ${voidingTx.invoiceNo} atas nama "${voidingTx.customerName}" senilai ${formatIDR(voidingTx.grandTotal)} akan ditandai sebagai VOID agar tetap tercatat dalam jejak audit kasir.`
@@ -692,6 +734,11 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
         isLoading={isVoiding}
         onCancel={() => setVoidingTx(null)}
         onConfirm={handleConfirmVoid}
+      />
+
+      <ExportTransactionsModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
       />
     </div>
   );

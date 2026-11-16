@@ -185,7 +185,7 @@ export const PosView: React.FC<PosViewProps> = ({
   );
 
   return (
-    <div className="flex flex-col lg:flex-row flex-1 min-h-0 w-full gap-2 sm:gap-3 relative overflow-hidden">
+    <div className="flex flex-col lg:flex-row flex-1 min-h-0 w-full gap-2 sm:gap-3 lg:gap-0 relative overflow-hidden">
       {/* Mobile/Tablet Segmented View Switcher */}
       <div className="lg:hidden flex items-center p-1 bg-zinc-200/70 border border-zinc-200 rounded-full shrink-0">
         <button
@@ -198,7 +198,7 @@ export const PosView: React.FC<PosViewProps> = ({
           }`}
         >
           <span>Katalog Produk</span>
-          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+          <span className={`text-xs px-2 py-0.5 rounded-md font-semibold ${
             mobileTab === 'catalog' ? 'bg-white/20 text-white' : 'bg-zinc-100'
           }`}>
             {totalFiltered}
@@ -215,7 +215,7 @@ export const PosView: React.FC<PosViewProps> = ({
         >
           <span>Keranjang</span>
           {totalCartQty > 0 && (
-            <span className="text-xs px-2 py-0.5 bg-accent text-white rounded-full font-bold font-mono">
+            <span className="text-xs px-2 py-0.5 bg-accent text-white rounded-md font-bold font-mono">
               {totalCartQty}
             </span>
           )}
@@ -224,7 +224,7 @@ export const PosView: React.FC<PosViewProps> = ({
 
       {/* Catalog Panel */}
       <div
-        className={`flex-1 min-h-0 flex flex-col min-w-0 ${
+        className={`flex-1 min-h-0 flex flex-col min-w-0 lg:pl-6 lg:pr-5 lg:pt-6 ${
           mobileTab === 'cart' ? 'hidden lg:flex' : 'flex'
         }`}
       >
@@ -237,7 +237,7 @@ export const PosView: React.FC<PosViewProps> = ({
               onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
               aria-haspopup="listbox"
               aria-expanded={isCategoryDropdownOpen}
-              className={`h-9 px-3 rounded-full border text-xs sm:text-sm font-semibold inline-flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+              className={`h-9 px-3 rounded-full border text-sm font-semibold inline-flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
                 isCategoryDropdownOpen
                   ? 'bg-primary-soft border-primary text-primary-text'
                   : selectedCategory !== 'Semua'
@@ -262,13 +262,13 @@ export const PosView: React.FC<PosViewProps> = ({
               />
             </button>
 
-            {/* Dropdown Menu Kategori */}
+            {/* Dropdown Menu Kategori (2 Kolom) */}
             {isCategoryDropdownOpen && (
               <div
                 role="listbox"
-                className="absolute left-0 mt-1.5 w-56 bg-white rounded-xl border border-zinc-200 shadow-lg p-1.5 z-40 animate-in fade-in zoom-in-95 duration-100"
+                className="absolute left-0 mt-1.5 w-[min(25rem,calc(100vw-1.5rem))] sm:w-[420px] bg-white rounded-xl border border-zinc-200 shadow-lg p-2 z-40 animate-in fade-in zoom-in-95 duration-100"
               >
-                <div className="px-2.5 py-1.5 mb-1 text-xs font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-100 flex items-center justify-between">
+                <div className="px-2 py-1.5 mb-1.5 text-xs font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-100 flex items-center justify-between">
                   <span>Pilih Kategori</span>
                   {selectedCategory !== 'Semua' && (
                     <button
@@ -283,7 +283,7 @@ export const PosView: React.FC<PosViewProps> = ({
                     </button>
                   )}
                 </div>
-                <div className="max-h-56 overflow-y-auto space-y-0.5">
+                <div className="max-h-72 overflow-y-auto grid grid-cols-2 gap-1">
                   {availableCategories.map(cat => {
                     const count = categoryCounts[cat] ?? 0;
                     const isSelected = selectedCategory === cat;
@@ -298,7 +298,7 @@ export const PosView: React.FC<PosViewProps> = ({
                           setSelectedCategory(cat);
                           setIsCategoryDropdownOpen(false);
                         }}
-                        className={`w-full px-2.5 py-2 rounded-lg text-xs sm:text-sm flex items-center justify-between gap-2 text-left transition-colors cursor-pointer ${
+                        className={`w-full px-2.5 py-2 rounded-lg text-sm flex items-center justify-between gap-2 text-left transition-colors cursor-pointer ${
                           isSelected
                             ? 'bg-primary-soft text-primary-text font-bold'
                             : 'text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 font-medium'
@@ -401,7 +401,7 @@ export const PosView: React.FC<PosViewProps> = ({
         {/* Product Grid */}
         <div
           className={`flex-1 min-h-0 overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3.5 auto-rows-max ${
-            totalCartQty > 0 ? 'pb-20 lg:pb-3.5' : ''
+            totalCartQty > 0 ? 'pb-20 lg:pb-5' : 'lg:pb-5'
           }`}
         >
           {/* Card Promo */}
@@ -447,7 +447,11 @@ export const PosView: React.FC<PosViewProps> = ({
       </div>
 
       {/* Cart Panel */}
-      <div className={`min-h-0 ${mobileTab === 'catalog' ? 'hidden lg:flex lg:shrink-0 lg:h-full' : 'flex-1 min-h-0 flex flex-col'}`}>
+      <div
+        className={`min-h-0 lg:border-l lg:border-zinc-200/90 lg:pl-5 lg:pr-6 lg:pt-6 lg:pb-4 ${
+          mobileTab === 'catalog' ? 'hidden lg:flex lg:shrink-0 lg:h-full' : 'flex-1 min-h-0 flex flex-col'
+        }`}
+      >
         <CartPanel
           cart={cart}
           onUpdateQty={onUpdateQty}
@@ -491,7 +495,7 @@ export const PosView: React.FC<PosViewProps> = ({
 
       <ConfirmModal
         isOpen={!!pendingRemoveItem}
-        title="Hapus Item dari Keranjang"
+        title="Hapus Item"
         description={
           pendingRemoveItem
             ? `Apakah Anda yakin ingin menghapus "${pendingRemoveItem.name}" (${pendingRemoveItem.qty} pcs) dari keranjang pesanan?`
@@ -509,7 +513,7 @@ export const PosView: React.FC<PosViewProps> = ({
 
       <ConfirmModal
         isOpen={isConfirmClearCart}
-        title="Kosongkan Keranjang Pesanan"
+        title="Kosongkan Keranjang"
         description={`Apakah Anda yakin ingin menghapus seluruh ${totalCartQty} item dari keranjang pesanan?`}
         confirmLabel="Ya, Kosongkan"
         onCancel={() => setIsConfirmClearCart(false)}

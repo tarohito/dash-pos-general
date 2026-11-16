@@ -14,6 +14,9 @@ import { ErrorBanner } from '../common/ErrorBanner';
 import { useToast } from '../../contexts/ToastContext';
 import { MoneyAmount } from '../common/MoneyAmount';
 import { KpiCard } from '../common/KpiCard';
+import { StatusToggle } from '../common/StatusToggle';
+import { NewBadge } from '../common/NewBadge';
+import { isRecentlyCreated, useNewBadgeClock } from '../../utils/newBadge';
 import {
   SortableTh,
   SortDirection,
@@ -38,6 +41,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 220);
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
+  const [filterTab, setFilterTab] = useState<'all' | 'active' | 'promo' | 'low_stock'>('all');
   const [sortBy, setSortBy] = useState<string>('newest');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
 
@@ -46,6 +50,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
   const [items, setItems] = useState<Product[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [totalAllProducts, setTotalAllProducts] = useState(0);
+  const [promoCount, setPromoCount] = useState(0);
   const [totalStockQty, setTotalStockQty] = useState(0);
   const [totalWeightGrams, setTotalWeightGrams] = useState(0);
   const [totalInventoryValue, setTotalInventoryValue] = useState(0);
@@ -59,10 +64,12 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [printingBarcodeProduct, setPrintingBarcodeProduct] = useState<Product | null>(null);
+  const productTimestamps = useMemo(() => items.map(p => p.createdAt), [items]);
+  const nowMs = useNewBadgeClock(productTimestamps);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, selectedCategory, sortBy, sortDir]);
+  }, [debouncedSearch, selectedCategory, filterTab, sortBy, sortDir]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -76,6 +83,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
           pageSize,
           search: debouncedSearch,
           category: selectedCategory !== 'Semua' ? selectedCategory : undefined,
+          filterTab,
           sortBy,
           sortDir,
         },
@@ -85,6 +93,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
         setItems(res.items);
         setTotalItems(res.total);
         setTotalAllProducts(res.totalAllProducts);
+        setPromoCount(res.promoCount ?? 0);
         setTotalStockQty(res.totalStockQty ?? 0);
         setTotalWeightGrams(res.totalWeightGrams ?? 0);
         setTotalInventoryValue(res.totalInventoryValue ?? 0);
@@ -103,7 +112,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
       });
 
     return () => controller.abort();
-  }, [currentPage, pageSize, debouncedSearch, selectedCategory, sortBy, sortDir, refreshTrigger, retryCount, showToast]);
+  }, [currentPage, pageSize, debouncedSearch, selectedCategory, filterTab, sortBy, sortDir, refreshTrigger, retryCount, showToast]);
 
   const handleHeaderSort = (key: string, defaultDir: SortDirection = 'desc') => {
     const next = getNextColumnSort(key, sortBy, sortDir, defaultDir);
@@ -168,7 +177,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
       {/* Page Header (Unboxed, Tanpa Card) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg sm:text-xl font-bold text-zinc-950 leading-tight">
+          <h3 className="text-lg sm:text-xl font-bold text-zinc-950 leading-tight tracking-tight">
             Inventaris &amp; Daftar Produk
           </h3>
           <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
@@ -225,7 +234,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
         />
 
         <KpiCard
-          title="Total Netto / Berat"
+          title="Total Berat Stok"
           accent="accent"
           icon={<GoogleIcon name="balance" size={16} />}
           value={
@@ -235,7 +244,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
           }
           footer={
             <p className="text-xs text-zinc-400 mt-1 truncate">
-              Akumulasi netto stok
+              Akumulasi berat stok produk
             </p>
           }
         />
@@ -262,23 +271,50 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
 
       {/* Table Workspace (Unboxed, Tanpa Card Pembungkus) */}
       <div className="space-y-3.5">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           <SearchInput
             value={search}
             onChange={setSearch}
-            placeholder="Cari kode barcode, nama produk, atau kategori..."
+            placeholder="Cari kode barcode, nama produk, merek, atau kategori..."
           />
 
-          <div className="w-full md:w-64 shrink-0">
-            <CustomSelect
-              value={selectedCategory}
-              onChange={setSelectedCategory}
-              options={categoryOptions}
-              placeholder="Pilih Kategori"
-              ariaLabel="Filter kategori barang"
-              icon={<GoogleIcon name="filter_list" size={14} />}
-              className="!h-9 sm:!h-9 !rounded-xl !text-xs sm:!text-sm !border-zinc-200 hover:!border-zinc-300"
-            />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+            <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 items-center overflow-x-auto max-w-full no-scrollbar">
+              {(
+                [
+                  { id: 'all', label: `Semua (${totalAllProducts})` },
+                  { id: 'active', label: 'Aktif' },
+                  { id: 'promo', label: `Promo (${promoCount})` },
+                  { id: 'low_stock', label: 'Stok Menipis' },
+                ] as const
+              ).map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setFilterTab(tab.id)}
+                  className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
+                    filterTab === tab.id
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'text-zinc-500 hover:text-zinc-950'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="w-full sm:w-56 shrink-0">
+              <CustomSelect
+                value={selectedCategory}
+                onChange={setSelectedCategory}
+                options={categoryOptions}
+                placeholder="Pilih Kategori"
+                ariaLabel="Filter kategori barang"
+                icon={<GoogleIcon name="filter_list" size={14} />}
+                columns={2}
+                className="!h-9 sm:!h-9 !rounded-xl !border-zinc-200 hover:!border-zinc-300"
+              />
+            </div>
           </div>
         </div>
 
@@ -349,7 +385,10 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                               {p.kondisi ?? 'Baru'}
                             </span>
                           </div>
-                          <h4 className="text-sm font-bold text-zinc-900 truncate mt-0.5">{p.name}</h4>
+                          <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                            <h4 className="text-sm font-bold text-zinc-900 truncate">{p.name}</h4>
+                            {isRecentlyCreated(p.createdAt, nowMs) && <NewBadge />}
+                          </div>
                           <div className="flex items-center gap-2 mt-1 text-xs text-zinc-500 flex-wrap">
                             <span>
                               Berat: <strong className="text-zinc-800 font-mono">{Number(p.berat.toFixed(2))} gr</strong>
@@ -359,7 +398,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                               {p.salesCount ?? 0} terjual
                             </span>
                             {p.isPromo && p.promoLabel && (
-                              <span className="text-xs font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full inline-flex items-center gap-1 shadow-2xs">
+                              <span className="text-xs font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-md inline-flex items-center gap-1 shadow-2xs">
                                 <GoogleIcon name="sell" size={11} className="text-amber-600" />
                                 {p.promoLabel}
                               </span>
@@ -380,30 +419,20 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                         >
                           {p.stok} pcs
                         </span>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            role="switch"
-                            disabled={!canManageInventory}
-                            aria-checked={(p.status ?? 'Aktif') === 'Aktif'}
-                            onClick={() => handleToggleProductStatus(p)}
-                            className={`relative inline-flex h-4.5 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${
-                              (p.status ?? 'Aktif') === 'Aktif' ? 'bg-emerald-500' : 'bg-zinc-300'
-                            }`}
-                          >
-                            <span
-                              aria-hidden="true"
-                              className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                                (p.status ?? 'Aktif') === 'Aktif' ? 'translate-x-3.5' : 'translate-x-0'
-                              }`}
-                            />
-                          </button>
-                          <span className={`text-[10px] font-bold ${
-                            (p.status ?? 'Aktif') === 'Aktif' ? 'text-emerald-700' : 'text-zinc-500'
-                          }`}>
-                            {p.status ?? 'Aktif'}
-                          </span>
-                        </div>
+                        <StatusToggle
+                          checked={(p.status ?? 'Aktif') === 'Aktif'}
+                          disabled={!canManageInventory}
+                          onChange={() => void handleToggleProductStatus(p)}
+                          label={p.status ?? 'Aktif'}
+                          ariaLabel={`Status produk ${p.name}`}
+                          tooltip={
+                            !canManageInventory
+                              ? 'Hanya Owner atau Kepala Cabang yang dapat mengubah status produk'
+                              : (p.status ?? 'Aktif') === 'Aktif'
+                              ? 'Aktif — klik untuk nonaktifkan'
+                              : 'Nonaktif — klik untuk aktifkan'
+                          }
+                        />
                       </div>
                     </div>
 
@@ -529,9 +558,12 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                               className="w-10 h-10 aspect-square rounded-xl object-cover border border-zinc-200 shrink-0"
                             />
                             <div className="min-w-0">
-                              <span className="font-bold text-zinc-950 text-xs sm:text-sm block truncate" title={p.name}>
-                                {p.name}
-                              </span>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="font-bold text-zinc-950 text-xs sm:text-sm truncate" title={p.name}>
+                                  {p.name}
+                                </span>
+                                {isRecentlyCreated(p.createdAt, nowMs) && <NewBadge />}
+                              </div>
                               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                 <span className="text-[11px] text-zinc-500 font-medium">{p.category}</span>
                                 {p.brand && p.brand !== 'No Brand' && (
@@ -547,7 +579,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                                   {p.kondisi ?? 'Baru'}
                                 </span>
                                 {p.isPromo && p.promoLabel && (
-                                  <span className="text-[10px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded-full inline-flex items-center gap-1 shadow-2xs">
+                                  <span className="text-[10px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded-md inline-flex items-center gap-1 shadow-2xs">
                                     <GoogleIcon name="sell" size={10} className="text-amber-600" />
                                     {p.promoLabel}
                                   </span>
@@ -593,26 +625,21 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                           {Number(p.berat.toFixed(2))} gr
                         </td>
                         <td className="py-3.5 px-3 text-center whitespace-nowrap align-middle">
-                          <button
-                            type="button"
-                            role="switch"
-                            disabled={!canManageInventory}
-                            aria-checked={(p.status ?? 'Aktif') === 'Aktif'}
-                            onClick={() => handleToggleProductStatus(p)}
-                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60 ${
-                              (p.status ?? 'Aktif') === 'Aktif' ? 'bg-emerald-500' : 'bg-zinc-300'
-                            }`}
-                            title={`Status: ${p.status ?? 'Aktif'}. Klik untuk ${
-                              (p.status ?? 'Aktif') === 'Aktif' ? 'nonaktifkan' : 'aktifkan'
-                            }`}
-                          >
-                            <span
-                              aria-hidden="true"
-                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                                (p.status ?? 'Aktif') === 'Aktif' ? 'translate-x-4' : 'translate-x-0'
-                              }`}
+                          <div className="inline-flex justify-center">
+                            <StatusToggle
+                              checked={(p.status ?? 'Aktif') === 'Aktif'}
+                              disabled={!canManageInventory}
+                              onChange={() => void handleToggleProductStatus(p)}
+                              ariaLabel={`Status produk ${p.name}`}
+                              tooltip={
+                                !canManageInventory
+                                  ? 'Hanya Owner atau Kepala Cabang yang dapat mengubah status produk'
+                                  : (p.status ?? 'Aktif') === 'Aktif'
+                                  ? 'Aktif — klik untuk nonaktifkan'
+                                  : 'Nonaktif — klik untuk aktifkan'
+                              }
                             />
-                          </button>
+                          </div>
                         </td>
                         <td className="py-3.5 px-3 text-center whitespace-nowrap align-middle">
                           <ActionDropdownMenu
@@ -674,7 +701,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
 
       <ConfirmModal
         isOpen={!!deletingProduct}
-        title="Hapus Barang Inventaris"
+        title="Hapus Produk"
         description={
           deletingProduct
             ? `Apakah Anda yakin ingin menghapus "${deletingProduct.name}" (${deletingProduct.sku}) dari database? Tindakan ini tidak dapat dibatalkan.`

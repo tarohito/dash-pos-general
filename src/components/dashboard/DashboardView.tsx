@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleIcon } from '../common/GoogleIcon';
-import { DashboardSummaryResponse, Tenant } from '../../types';
+import { DashboardSummaryResponse, Tenant, UserAccount } from '../../types';
 import { CustomerServiceModal } from './CustomerServiceModal';
 import { SalesVolumeChart } from './SalesVolumeChart';
 import { posApi } from '../../services/api';
@@ -12,6 +12,7 @@ import { KpiCard } from '../common/KpiCard';
 interface DashboardViewProps {
   refreshTrigger: number;
   activeTenant?: Tenant;
+  currentUser?: UserAccount | null;
   onNavigateTo: (menu: string) => void;
   onOpenRegisterTenant: () => void;
 }
@@ -32,6 +33,7 @@ const EMPTY_SUMMARY: DashboardSummaryResponse = {
 export const DashboardView: React.FC<DashboardViewProps> = ({
   refreshTrigger,
   activeTenant,
+  currentUser,
   onNavigateTo,
 }) => {
   const [period, setPeriod] = useState<'HARI' | 'BULAN'>('HARI');
@@ -77,17 +79,61 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     trxData,
   } = summary;
 
+  const displayName = currentUser?.fullName?.trim() || currentUser?.username || 'Pengguna';
+
   return (
     <div className="space-y-4 pb-6">
+      {/* User Welcome Banner */}
+      <div className="relative overflow-hidden rounded-2xl border border-primary-border bg-gradient-to-r from-primary-soft/85 via-white to-secondary-soft/65 p-4 sm:p-6">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-10 -top-10 w-44 h-44 rounded-full bg-primary/10"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute right-24 -bottom-14 w-32 h-32 rounded-full bg-secondary/10"
+        />
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-950 leading-tight tracking-tight">
+              Halo, <span className="text-primary">{displayName}</span>!
+            </h2>
+            <p className="text-xs sm:text-sm text-zinc-600 mt-1 leading-relaxed max-w-2xl">
+              Selamat datang kembali di dashboard LogicPOS. Pantau performa penjualan, pergerakan stok, dan aktivitas transaksi hari ini dengan cepat.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => onNavigateTo('Kasir POS (Penjualan)')}
+              className="h-9 px-4 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer active:scale-[0.98]"
+            >
+              <GoogleIcon name="shopping_cart" size={16} />
+              <span>Buka Kasir POS</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigateTo('Transaksi')}
+              className="h-9 px-3.5 bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-200 font-semibold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer active:scale-[0.98]"
+            >
+              <GoogleIcon name="receipt_long" size={16} className="text-zinc-500" />
+              <span>Lihat Transaksi</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Page Header (Unboxed, Tanpa Card) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h3 className="text-lg sm:text-xl font-bold text-zinc-950 leading-tight">
+            <h3 className="text-lg sm:text-xl font-bold text-zinc-950 leading-tight tracking-tight">
               Ringkasan Penjualan {period === 'HARI' ? 'Harian' : 'Bulanan'}
             </h3>
             <span className="text-xs text-zinc-400" aria-hidden="true">&middot;</span>
-            <span className="text-xs sm:text-sm font-medium text-secondary-text">
+            <span className="text-xs sm:text-sm font-semibold text-primary">
               {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
             {isLoading && <GoogleIcon name="progress_activity" size={14} className="animate-spin text-primary" />}
@@ -99,14 +145,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
 
-        <div className="inline-flex h-9 p-0.5 bg-white/90 rounded-full border border-zinc-200 self-start sm:self-auto items-center shrink-0 shadow-2xs">
+        <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 self-start sm:self-auto items-center shrink-0">
           <button
             type="button"
             onClick={() => setPeriod('HARI')}
             className={`h-full px-3.5 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center ${
               period === 'HARI'
-                ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                : 'text-zinc-500 hover:text-zinc-900'
+                ? 'bg-primary text-white shadow-xs'
+                : 'text-zinc-500 hover:text-zinc-950'
             }`}
           >
             HARI
@@ -116,8 +162,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={() => setPeriod('BULAN')}
             className={`h-full px-3.5 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center ${
               period === 'BULAN'
-                ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
-                : 'text-zinc-500 hover:text-zinc-900'
+                ? 'bg-primary text-white shadow-xs'
+                : 'text-zinc-500 hover:text-zinc-950'
             }`}
           >
             BULAN
