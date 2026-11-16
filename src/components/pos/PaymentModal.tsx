@@ -133,7 +133,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      size="md"
+      size="xl"
       title="Pembayaran"
       disableEscapeClose={isSubmitting}
       footer={

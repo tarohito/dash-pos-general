@@ -34,7 +34,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
     <ModalShell
       isOpen={isOpen && Boolean(transaction)}
       onClose={onClose}
-      size="xl"
+      size="3xl"
       title="Detail Transaksi"
       footer={
         <div className={MODAL_FOOTER_END_CLASS}>
