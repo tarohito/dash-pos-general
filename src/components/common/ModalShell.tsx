@@ -2,7 +2,7 @@ import React, { useEffect, useId, useRef } from 'react';
 import { GoogleIcon } from './GoogleIcon';
 import Tooltip from '../Tooltip';
 
-export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
 
 export const MODAL_FOOTER_END_CLASS =
   'flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2';
@@ -18,7 +18,8 @@ const SIZE_CLASSES: Record<ModalSize, string> = {
   md: 'max-w-lg',
   lg: 'max-w-xl',
   xl: 'max-w-2xl',
-  '2xl': 'max-w-4xl',
+  '2xl': 'max-w-3xl',
+  '3xl': 'max-w-5xl',
 };
 
 // Track stacked open modals so Escape only closes the topmost modal.

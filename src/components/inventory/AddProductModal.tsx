@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { GoogleIcon } from '../common/GoogleIcon';
 import { Product, ProductCondition, ProductStatus } from '../../types';
 import { CustomSelect } from '../common/CustomSelect';
@@ -6,6 +6,10 @@ import { NumericInput } from '../common/NumericInput';
 import { generateJewelrySku, isValidCode128 } from '../../utils/barcode';
 import { JewelryBarcodeTag } from '../common/JewelryBarcodeTag';
 import { useToast } from '../../contexts/ToastContext';
+import {
+  compressAndCropSquareToWebP,
+  formatBytes,
+} from '../../utils/imageCompressor';
 import {
   ModalShell,
   MODAL_FOOTER_END_CLASS,
@@ -47,11 +51,19 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   });
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [compressionInfo, setCompressionInfo] = useState<{
+    sizeBytes: number;
+    originalSizeBytes: number;
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
       setErrorMsg(null);
+      setCompressionInfo(null);
       const defaultCategory = categories[0] || 'Parfum';
       if (editingProduct) {
         setFormData({
@@ -105,6 +117,51 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     showToast('error', msg, 'Validasi Form Produk');
   };
 
+  const handleProcessFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      failValidation('Silakan pilih file gambar yang valid (JPG, PNG, atau WebP).');
+      return;
+    }
+    setErrorMsg(null);
+    setIsCompressing(true);
+    try {
+      const result = await compressAndCropSquareToWebP(file, { targetSize: 600, quality: 0.82 });
+      setFormData(prev => ({ ...prev, image: result.dataUrl }));
+      setCompressionInfo({
+        sizeBytes: result.sizeBytes,
+        originalSizeBytes: result.originalSizeBytes,
+      });
+      showToast(
+        'success',
+        `Foto berhasil dipotong 1:1 dan dikompres ke WebP (${formatBytes(result.sizeBytes)})`,
+        'Kompresi Gambar'
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Gagal memproses gambar.';
+      failValidation(msg);
+    } finally {
+      setIsCompressing(false);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      void handleProcessFile(file);
+    }
+    // Reset file input value so selecting the same file again triggers change
+    e.target.value = '';
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      void handleProcessFile(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -155,7 +212,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       cleanImage &&
       !/^(https?:\/\/|data:image\/|\/)/i.test(cleanImage)
     ) {
-      failValidation('URL foto produk tidak valid. Gunakan awalan http:// atau https://.');
+      failValidation('URL foto produk tidak valid.');
       return;
     }
 
@@ -199,7 +256,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      size="xl"
+      size="2xl"
       title={editingProduct ? 'Edit Data Produk' : 'Tambah Produk Baru'}
       subtitle={
         editingProduct
@@ -237,7 +294,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
         )}
 
         {/* SECTION 1: INFORMASI PRODUK */}
-        <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-2xl p-4 sm:p-4.5 space-y-3.5">
+        <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-2xl p-4 sm:p-5 space-y-3.5">
           <div className="flex items-center gap-2 pb-2.5 border-b border-zinc-200/70">
             <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <GoogleIcon name="inventory_2" size={15} />
@@ -346,7 +403,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
         </div>
 
         {/* SECTION 2: HARGA, STOK & IDENTITAS BARCODE */}
-        <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-2xl p-4 sm:p-4.5 space-y-3.5">
+        <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-2xl p-4 sm:p-5 space-y-3.5">
           <div className="flex items-center justify-between pb-2.5 border-b border-zinc-200/70">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -459,7 +516,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
         </div>
 
         {/* SECTION 3: PENGIRIMAN & SPESIFIKASI LOGISTIK */}
-        <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-2xl p-4 sm:p-4.5 space-y-3.5">
+        <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-2xl p-4 sm:p-5 space-y-3.5">
           <div className="flex items-center justify-between pb-2.5 border-b border-zinc-200/70">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -532,60 +589,156 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           </div>
         </div>
 
-        {/* SECTION 4: MEDIA & PRATINJAU BARCODE */}
+        {/* SECTION 4: UPLOAD FOTO 1:1 (AUTO KOMPRES WEBP) & PRATINJAU BARCODE */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
-          {/* Foto Produk */}
-          <div className="lg:col-span-7 bg-zinc-50/70 border border-zinc-200/80 rounded-2xl p-4 sm:p-4.5 space-y-3">
-            <div className="flex items-center gap-2 pb-2 border-b border-zinc-200/70">
-              <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <GoogleIcon name="image" size={15} />
+          {/* Upload Foto 1:1 Auto Kompres WebP */}
+          <div className="lg:col-span-7 bg-zinc-50/70 border border-zinc-200/80 rounded-2xl p-4 sm:p-5 space-y-3.5">
+            <div className="flex items-center justify-between pb-2.5 border-b border-zinc-200/70">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <GoogleIcon name="add_a_photo" size={15} />
+                </div>
+                <h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
+                  4. Foto Produk 1:1 (WebP)
+                </h4>
               </div>
-              <h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
-                Foto Produk
-              </h4>
+              <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                Auto Kompres WebP
+              </span>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
-                Pilihan Foto Cepat (Preset Gambar)
-              </label>
-              <div className="grid grid-cols-5 gap-1.5 mb-2.5">
-                {[
-                  { label: 'Parfum', img: '/assets/products/parfum.jpg' },
-                  { label: 'Serum', img: '/assets/products/serum.jpg' },
-                  { label: 'Krim', img: '/assets/products/cream.jpg' },
-                  { label: 'Body Care', img: '/assets/products/bodycare.jpg' },
-                  { label: 'Make Up', img: '/assets/products/makeup.jpg' },
-                ].map((p, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, image: p.img })}
-                    className={`p-1.5 border rounded-xl flex flex-col items-center gap-1 cursor-pointer transition-all ${
-                      formData.image === p.img
-                        ? 'border-primary bg-primary-soft ring-2 ring-primary/20'
-                        : 'border-zinc-200 bg-white hover:border-zinc-300'
-                    }`}
-                  >
-                    <img src={p.img} alt={p.label} className="w-8 h-8 sm:w-9 sm:h-9 object-cover rounded-lg" />
-                    <span className="text-[10px] font-semibold text-zinc-700">{p.label}</span>
-                  </button>
-                ))}
+            {/* Hidden Native File Input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/jpg"
+              onChange={handleFileInputChange}
+              className="hidden"
+            />
+
+            {/* Upload Area / Image Preview */}
+            <div className="space-y-3">
+              <div
+                onDragOver={e => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                className={`relative rounded-2xl border-2 border-dashed transition-all p-3 sm:p-4 ${
+                  isDragging
+                    ? 'border-primary bg-primary-soft/40 ring-4 ring-primary/10'
+                    : 'border-zinc-200 bg-white hover:border-zinc-300'
+                }`}
+              >
+                {isCompressing ? (
+                  <div className="py-8 flex flex-col items-center justify-center gap-2 text-primary">
+                    <GoogleIcon name="progress_activity" size={28} className="animate-spin" />
+                    <span className="text-xs font-bold">Memotong 1:1 &amp; Mengompres ke WebP...</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    {/* 1:1 Square Thumbnail */}
+                    <div className="relative w-24 h-24 sm:w-28 sm:h-28 aspect-square rounded-xl overflow-hidden bg-zinc-100 border border-zinc-200 shrink-0 shadow-2xs group">
+                      <img
+                        src={formData.image || '/assets/products/parfum.jpg'}
+                        alt="Preview Foto Produk 1:1"
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute top-1 left-1 bg-zinc-950/70 text-white text-[9px] font-mono font-bold px-1.5 py-0.5 rounded shadow-xs">
+                        1:1
+                      </span>
+                      {formData.image.startsWith('data:image/webp') && (
+                        <span className="absolute bottom-1 right-1 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs">
+                          WebP
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Upload Controls & Details */}
+                    <div className="flex-1 text-center sm:text-left min-w-0">
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1.5">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="h-8 px-3 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                        >
+                          <GoogleIcon name="upload" size={14} />
+                          <span>Pilih Foto Baru</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, image: '/assets/products/parfum.jpg' }));
+                            setCompressionInfo(null);
+                          }}
+                          className="h-8 px-2.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-medium inline-flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <GoogleIcon name="refresh" size={13} />
+                          <span>Reset</span>
+                        </button>
+                      </div>
+
+                      <p className="text-xs text-zinc-600 font-medium leading-relaxed">
+                        Tarik file foto ke sini atau klik tombol di atas.
+                      </p>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                        Foto otomatis dipotong simetris 1:1 &amp; dikompres ke WebP (600x600 px).
+                      </p>
+
+                      {compressionInfo && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                          <GoogleIcon name="check_circle" size={12} className="text-emerald-600" />
+                          <span>
+                            Dikompresi: {formatBytes(compressionInfo.sizeBytes)} (dari {formatBytes(compressionInfo.originalSizeBytes)})
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-              <input
-                type="url"
-                value={formData.image}
-                onChange={e => setFormData({ ...formData, image: e.target.value })}
-                placeholder="Atau masukkan URL foto eksternal (https://...)"
-                className="w-full px-3 py-1.5 text-xs bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-zinc-600 font-medium transition-colors"
-              />
+
+              {/* Preset Foto Cepat */}
+              <div>
+                <label className="block text-[11px] font-semibold text-zinc-500 mb-1.5">
+                  Atau pilih cepat dari preset gambar retail:
+                </label>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {[
+                    { label: 'Parfum', img: '/assets/products/parfum.jpg' },
+                    { label: 'Serum', img: '/assets/products/serum.jpg' },
+                    { label: 'Krim', img: '/assets/products/cream.jpg' },
+                    { label: 'Body Care', img: '/assets/products/bodycare.jpg' },
+                    { label: 'Make Up', img: '/assets/products/makeup.jpg' },
+                  ].map((p, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, image: p.img });
+                        setCompressionInfo(null);
+                      }}
+                      className={`p-1.5 border rounded-xl flex flex-col items-center gap-1 cursor-pointer transition-all ${
+                        formData.image === p.img
+                          ? 'border-primary bg-primary-soft ring-2 ring-primary/20'
+                          : 'border-zinc-200 bg-white hover:border-zinc-300'
+                      }`}
+                    >
+                      <img src={p.img} alt={p.label} className="w-8 h-8 object-cover rounded-lg aspect-square" />
+                      <span className="text-[10px] font-semibold text-zinc-700">{p.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Pratinjau Barcode Tag */}
-          <div className="lg:col-span-5 bg-zinc-50/70 border border-zinc-200/80 rounded-2xl p-4 sm:p-4.5 flex flex-col justify-between">
+          <div className="lg:col-span-5 bg-zinc-50/70 border border-zinc-200/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
             <div>
-              <div className="flex items-center justify-between pb-2 border-b border-zinc-200/70 mb-3">
+              <div className="flex items-center justify-between pb-2.5 border-b border-zinc-200/70 mb-3">
                 <div className="flex items-center gap-1.5">
                   <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <GoogleIcon name="barcode_scanner" size={15} />
@@ -600,7 +753,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               </div>
 
               {formData.sku.trim() ? (
-                <div className="flex justify-center items-center py-1">
+                <div className="flex justify-center items-center py-2">
                   <JewelryBarcodeTag
                     compact
                     format="hybrid"
@@ -614,13 +767,13 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                   />
                 </div>
               ) : (
-                <div className="py-6 text-center text-xs text-zinc-400">
+                <div className="py-8 text-center text-xs text-zinc-400">
                   Masukkan SKU untuk melihat pratinjau barcode
                 </div>
               )}
             </div>
 
-            <p className="text-[10px] text-zinc-400 text-center mt-2">
+            <p className="text-[10px] text-zinc-400 text-center mt-3 pt-2 border-t border-zinc-200/60">
               Standar Code 128 &amp; QR Code (Kompatibel Semua Scanner POS)
             </p>
           </div>
