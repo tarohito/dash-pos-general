@@ -130,7 +130,7 @@ const RegisterTenantModal = lazy(() =>
 
 const ViewLoadingFallback: React.FC = () => (
   <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-xl border border-zinc-200 p-8 text-zinc-500 min-h-[280px]">
-    <GoogleIcon name="progress_activity" size={24} className="animate-spin text-zinc-900 mb-2" />
+    <GoogleIcon name="progress_activity" size={24} className="animate-spin text-primary mb-2" />
     <p className="text-xs font-medium text-zinc-500">Memuat tampilan...</p>
   </div>
 );
@@ -160,7 +160,6 @@ const App: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState('Kasir POS (Penjualan)');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isProdukExpanded, setIsProdukExpanded] = useState(true);
-  const [hasNotification, setHasNotification] = useState(true);
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
   const mainScrollRef = useRef<HTMLDivElement>(null);
 
@@ -177,14 +176,13 @@ const App: React.FC = () => {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [activeTenantId, setActiveTenantId] = useState<string>('tenant-tms-001');
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
-  const [previewAppTheme, setPreviewAppTheme] = useState<AppThemeId | null>(null);
   const [receiptPaperSize, setReceiptPaperSize] = useState<ReceiptPaperSize>('a5');
 
-  const effectiveAppTheme = previewAppTheme ?? storeSettings.appTheme ?? 'zinc_classic';
-
   useEffect(() => {
-    document.documentElement.setAttribute('data-app-theme', effectiveAppTheme);
-  }, [effectiveAppTheme]);
+    document.documentElement.classList.remove('dark');
+    document.documentElement.removeAttribute('data-theme');
+    document.documentElement.removeAttribute('data-app-theme');
+  }, []);
 
   useEffect(() => {
     if (storeSettings.updatedAt) {
@@ -274,6 +272,22 @@ const App: React.FC = () => {
     void fetchBootstrapData();
   }, [fetchBootstrapData]);
 
+  // Preload secondary views in background after login during idle time for instant tab switching
+  useEffect(() => {
+    if (!currentUser) return;
+    const idleTimer = window.setTimeout(() => {
+      void import('./components/inventory/ProductListView');
+      void import('./components/transactions/DailyTransactionsView');
+      void import('./components/users/UserManagementView');
+      void import('./components/inventory/CategoryListView');
+      void import('./components/promo/PromoManagementView');
+      void import('./components/settings/StoreSettingsView');
+      void import('./components/dashboard/DashboardView');
+      void import('./components/tenant/TenantManagementView');
+    }, 400);
+    return () => window.clearTimeout(idleTimer);
+  }, [currentUser]);
+
   const handleLoginSuccess = useCallback(
     async (auth: AuthLoginResponse) => {
       setCurrentUser(auth.user);
@@ -282,9 +296,20 @@ const App: React.FC = () => {
       setActiveMenu('Kasir POS (Penjualan)');
       setCart([]);
       setCustomerName('Pelanggan Umum');
-      await fetchBootstrapData();
+      // Fetch fresh categories and settings silently in background without full-screen loading flash
+      try {
+        const data = await posApi.bootstrap();
+        setCategories(data.categories);
+        setTenants(data.tenants);
+        setActiveTenantId(data.activeTenantId);
+        if (data.storeSettings) {
+          setStoreSettings(data.storeSettings);
+        }
+      } catch {
+        // Fallback silently if bootstrap background fetch fails
+      }
     },
-    [fetchBootstrapData]
+    []
   );
 
   const handleLogout = useCallback(async () => {
@@ -320,7 +345,6 @@ const App: React.FC = () => {
     setActiveTenantId(tenantId);
     try {
       await posApi.setActiveTenant(tenantId);
-      setPreviewAppTheme(null);
       setCart([]);
       setCustomerName('Pelanggan Umum');
       refreshActiveOutletViews();
@@ -746,7 +770,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-zinc-100 flex flex-col items-center justify-center p-6 font-sans">
         <div className="bg-white rounded-xl border border-zinc-200 px-8 py-6 flex flex-col items-center">
-          <GoogleIcon name="progress_activity" size={28} className="animate-spin text-zinc-900 mb-3" />
+          <GoogleIcon name="progress_activity" size={28} className="animate-spin text-primary mb-3" />
           <p className="text-sm font-semibold text-zinc-700">Memeriksa sesi login...</p>
         </div>
       </div>
@@ -765,19 +789,12 @@ const App: React.FC = () => {
       showToast('warning', 'Menu tersebut hanya dapat diakses oleh Owner atau Kepala Cabang.');
       return;
     }
-    if (menu !== 'Pengaturan') {
-      setPreviewAppTheme(null);
-    }
     setActiveMenu(menu);
   };
 
   return (
     <TooltipProvider delayDuration={120}>
-      <div
-        className={`flex flex-col h-full h-[100dvh] font-sans text-zinc-800 overflow-hidden ${
-          effectiveAppTheme === 'indigo_night' ? 'bg-[#1E1B4B]' : 'bg-white'
-        }`}
-      >
+      <div className="flex flex-col h-full h-[100dvh] font-sans overflow-hidden bg-white text-zinc-800">
         {/* Main Horizontal Shell: Full-height Sidebar + Inset Rounded Content Container */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* Sidebar */}
@@ -800,66 +817,40 @@ const App: React.FC = () => {
             onSelectTenant={handleSelectTenant}
             onOpenRegisterModal={() => setIsRegisterTenantOpen(true)}
             userRole={currentUser.role}
-            isDarkSidebar={effectiveAppTheme === 'indigo_night'}
+            currentUser={currentUser}
+            onLogout={handleLogout}
           />
 
-          {/* Right Outer Frame Padding + Flush-Bottom Top-Rounded Content Container */}
-          <div className="flex-1 min-h-0 min-w-0 flex flex-col px-2 pt-2 pb-0 sm:px-3 sm:pt-3 sm:pb-0 lg:pl-0 overflow-hidden">
-            <div className="flex-1 min-h-0 flex flex-col rounded-t-2xl sm:rounded-t-[22px] rounded-b-none bg-zinc-50 border-t border-x border-b-0 border-zinc-200/60 overflow-hidden relative">
+          {/* Right Outer Frame: Selalu fixed & overflow-hidden agar background kontainer tidak ikut discroll */}
+          <div className="flex-1 min-h-0 min-w-0 flex flex-col px-2 pt-2 pb-0 sm:px-3 sm:pt-3 sm:pb-0 lg:pl-0 lg:pr-3 lg:pt-3 overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col rounded-t-2xl sm:rounded-t-[22px] rounded-b-none border-t border-x border-b-0 overflow-hidden relative bg-zinc-50 border-zinc-200/60 shadow-sm">
+              {/* Background Gradient: Terkunci fix di atas, tidak bisa di-scroll */}
               <div
+                aria-hidden="true"
+                className="main-container-top-gradient pointer-events-none absolute inset-x-0 top-0 h-52 sm:h-64 z-0 rounded-t-2xl sm:rounded-t-[22px]"
+              />
+
+              {/* Mobile Drawer Top Header: Terkunci di atas */}
+              <Header
+                onSelectMenu={handleGuardedSelectMenu}
+                isSidebarCollapsed={isSidebarCollapsed}
+                onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              />
+
+              {/* Main Content Area: Hanya konten di dalam sini yang bergulir */}
+              <main
                 ref={mainScrollRef}
-                className={
+                className={`relative z-10 flex-1 min-h-0 flex flex-col px-3.5 sm:px-5 lg:px-6 pt-4 sm:pt-5 lg:pt-6 ${
                   !isLoadingData &&
                   !loadError &&
                   (activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS')
-                    ? 'flex-1 min-h-0 flex flex-col relative overflow-hidden'
-                    : 'flex-1 min-h-0 overflow-y-auto overflow-x-hidden'
-                }
+                    ? 'pb-2.5 sm:pb-3.5 lg:pb-4 overflow-hidden'
+                    : 'pb-20 sm:pb-8 overflow-y-auto overflow-x-hidden'
+                }`}
               >
-                <div
-                  className={
-                    !isLoadingData &&
-                    !loadError &&
-                    (activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS')
-                      ? 'flex-1 min-h-0 flex flex-col relative'
-                      : 'min-h-full flex flex-col relative'
-                  }
-                >
-                  {/* Top Soft Aqua-to-Lavender Gradient Backdrop (scrolls with page) */}
-                  <div
-                    aria-hidden="true"
-                    className="main-container-top-gradient pointer-events-none absolute inset-x-0 top-0 h-52 sm:h-64 z-0"
-                  />
-
-                  {/* Compact Top Header inside Inset Container */}
-                  <Header
-                    activeMenu={activeMenu}
-                    onSelectMenu={handleGuardedSelectMenu}
-                    isSidebarCollapsed={isSidebarCollapsed}
-                    onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                    hasNotification={hasNotification}
-                    onToggleNotification={() => setHasNotification(!hasNotification)}
-                    isAdminMenuOpen={isAdminMenuOpen}
-                    onToggleAdminMenu={() => setIsAdminMenuOpen(prev => !prev)}
-                    onCloseAdminMenu={() => setIsAdminMenuOpen(false)}
-                    currentUser={currentUser}
-                    activeTenant={activeTenant}
-                    onLogout={handleLogout}
-                  />
-
-                  {/* Main Content Area */}
-                  <main
-                    className={`relative z-10 flex-1 flex flex-col ${
-                      !isLoadingData &&
-                      !loadError &&
-                      (activeMenu === 'Kasir POS (Penjualan)' || activeMenu === 'Kasir POS')
-                        ? 'min-h-0 px-2.5 pb-2.5 pt-0.5 sm:px-3.5 sm:pb-3.5 sm:pt-1 overflow-hidden'
-                        : 'px-2.5 pb-20 pt-0.5 sm:px-4 sm:pb-4 sm:pt-1'
-                    }`}
-                  >
                 {isLoadingData ? (
                   <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-xl border border-zinc-200 p-8 text-zinc-500">
-                    <GoogleIcon name="progress_activity" size={28} className="animate-spin text-zinc-900 mb-3" />
+                    <GoogleIcon name="progress_activity" size={28} className="animate-spin text-primary mb-3" />
                     <p className="text-sm font-semibold text-zinc-700">Memuat data dari database SQLite...</p>
                   </div>
                 ) : loadError ? (
@@ -870,7 +861,7 @@ const App: React.FC = () => {
                     <button
                       type="button"
                       onClick={fetchBootstrapData}
-                      className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold rounded-lg cursor-pointer"
+                      className="h-9 px-4 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-full cursor-pointer transition-colors"
                     >
                       Coba Muat Ulang
                     </button>
@@ -962,17 +953,19 @@ const App: React.FC = () => {
                         canCreateOutlet={isOwner}
                       />
                     ) : activeMenu === 'Manajemen User' && isOwner ? (
-                      <UserManagementView currentUser={currentUser} tenants={tenants} />
+                      <UserManagementView
+                        currentUser={currentUser}
+                        tenants={tenants}
+                        onUpdateCurrentUser={setCurrentUser}
+                      />
                     ) : activeMenu === 'Pengaturan' && canManageOperations ? (
                       <StoreSettingsView
                         activeTenant={activeTenant}
                         storeSettings={storeSettings}
                         userRole={currentUser.role}
-                        onPreviewAppTheme={setPreviewAppTheme}
                         onSettingsSaved={({ tenant, storeSettings: saved }) => {
                           setTenants(prev => prev.map(t => (t.id === tenant.id ? tenant : t)));
                           setStoreSettings(saved);
-                          setPreviewAppTheme(null);
                         }}
                       />
                     ) : (
@@ -981,14 +974,12 @@ const App: React.FC = () => {
                   </Suspense>
                 )}
                   </main>
-                </div>
-              </div>
             </div>
           </div>
         </div>
 
         {/* Bottom Navigation for Tablet & Mobile (lg:hidden) */}
-        <nav className="lg:hidden shrink-0 bg-white border-t border-zinc-200 px-1.5 sm:px-3 py-0.5 flex items-center justify-around z-30 min-h-[48px]">
+        <nav className="lg:hidden shrink-0 border-t px-1.5 sm:px-3 py-0.5 flex items-center justify-around z-30 min-h-[48px] bg-white border-zinc-200 text-zinc-700">
           <button
             type="button"
             onClick={() => setActiveMenu('Kasir POS (Penjualan)')}

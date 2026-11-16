@@ -181,9 +181,9 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         onClick={() => {
           if (!disabled) setIsOpen(prev => !prev);
         }}
-        className={`w-full bg-white border rounded-lg flex items-center justify-between transition-colors cursor-pointer focus:outline-none focus-visible:border-zinc-900 ${triggerSizeClass} ${
+        className={`w-full bg-white border rounded-lg flex items-center justify-between transition-colors cursor-pointer focus:outline-none focus-visible:border-primary ${triggerSizeClass} ${
           disabled ? 'opacity-50 cursor-not-allowed bg-zinc-100' : ''
-        } ${isOpen ? '!border-zinc-900 bg-zinc-50/70' : ''} ${className}`}
+        } ${isOpen ? '!border-primary bg-primary-soft/30 ring-1 ring-primary/20' : ''} ${className}`}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
@@ -238,7 +238,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                     size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-xs sm:text-sm'
                   } ${
                     isSelected
-                      ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                      ? 'bg-primary-soft text-primary-text font-semibold'
                       : 'text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 font-medium'
                   }`}
                 >
@@ -257,7 +257,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                         {opt.badge}
                       </span>
                     )}
-                    {isSelected && <GoogleIcon name="check" size={14} className="text-zinc-900 shrink-0" />}
+                    {isSelected && <GoogleIcon name="check" size={14} className="text-primary shrink-0" />}
                   </div>
                 </button>
               );

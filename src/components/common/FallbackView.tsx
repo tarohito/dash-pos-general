@@ -10,8 +10,8 @@ export const FallbackView: React.FC<FallbackViewProps> = ({ title, onBackToPos }
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[60vh]">
       <div className="bg-white p-12 rounded-2xl border border-zinc-200 flex flex-col items-center text-center max-w-md">
-        <div className="w-20 h-20 bg-zinc-100 border border-zinc-200/80 rounded-full flex items-center justify-center mb-6">
-          <GoogleIcon name="tune" size={32} className="text-zinc-800" />
+        <div className="w-20 h-20 bg-primary-soft border border-primary-border rounded-full flex items-center justify-center mb-6">
+          <GoogleIcon name="tune" size={32} className="text-primary" />
         </div>
         <h2 className="text-base sm:text-lg font-bold text-zinc-950 leading-tight mb-2">{title}</h2>
         <p className="text-zinc-500 text-sm">
@@ -21,7 +21,7 @@ export const FallbackView: React.FC<FallbackViewProps> = ({ title, onBackToPos }
         <button
           type="button"
           onClick={onBackToPos}
-          className="mt-8 px-6 py-2.5 bg-zinc-900 text-white font-semibold rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
+          className="mt-8 px-6 py-2.5 bg-primary text-white font-semibold rounded-full hover:bg-primary-hover transition-colors cursor-pointer"
         >
           Kembali ke Kasir POS (Penjualan)
         </button>

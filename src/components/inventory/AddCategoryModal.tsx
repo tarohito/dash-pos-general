@@ -114,7 +114,7 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
             value={categoryName}
             onChange={e => setCategoryName(e.target.value)}
             placeholder="Cth: Parfum, Skincare, Body Care, Make Up..."
-            className="w-full px-4 py-2.5 text-sm font-medium bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:bg-white"
+            className="w-full px-4 py-2.5 text-sm font-medium bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white transition-colors"
           />
           <p className="text-xs text-gray-500 mt-1.5">
             {editingCategory

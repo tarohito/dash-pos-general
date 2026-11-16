@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { GoogleIcon, GoogleIconName } from '../common/GoogleIcon';
 import Tooltip from '../Tooltip';
 import { BrandLogo } from '../common/BrandLogo';
-import { Tenant, UserRole } from '../../types';
+import { Tenant, UserAccount, UserRole } from '../../types';
 
 interface SidebarProps {
   activeMenu: string;
@@ -17,6 +17,21 @@ interface SidebarProps {
   onOpenRegisterModal?: () => void;
   userRole?: UserRole;
   isDarkSidebar?: boolean;
+  currentUser?: UserAccount;
+  onLogout?: () => void;
+}
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  owner: 'Owner',
+  branch_manager: 'Kepala Cabang',
+  cashier: 'Kasir',
+};
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'US';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -32,28 +47,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenRegisterModal,
   userRole = 'owner',
   isDarkSidebar = false,
+  currentUser,
+  onLogout,
 }) => {
-  const [isStoreMenuOpen, setIsStoreMenuOpen] = useState(false);
-  const storeMenuRef = useRef<HTMLDivElement>(null);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   const activeTenant = tenants.find(t => t.id === activeTenantId) || tenants[0];
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (storeMenuRef.current && !storeMenuRef.current.contains(e.target as Node)) {
-        setIsStoreMenuOpen(false);
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setIsProfileMenuOpen(false);
       }
     };
-    if (isStoreMenuOpen) {
+    if (isProfileMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isStoreMenuOpen]);
+  }, [isProfileMenuOpen]);
 
   useEffect(() => {
-    setIsStoreMenuOpen(false);
+    setIsProfileMenuOpen(false);
   }, [isSidebarCollapsed]);
 
   const allMenuItems = [
@@ -103,11 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside
-        className={`flex flex-col flex-shrink-0 z-40 transition-all duration-300 fixed inset-y-0 left-0 lg:static lg:h-auto ${
-          isDarkSidebar
-            ? 'bg-[#1E1B4B] text-indigo-100'
-            : 'bg-white text-zinc-700'
-        } ${
+        className={`flex flex-col flex-shrink-0 z-40 transition-all duration-300 fixed inset-y-0 left-0 lg:static lg:h-auto bg-white lg:bg-transparent text-zinc-800 border-r border-zinc-200 lg:border-none ${
           isSidebarCollapsed
             ? '-translate-x-full lg:translate-x-0 lg:w-16'
             : 'translate-x-0 w-72 lg:w-60'
@@ -124,7 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               type="button"
               onClick={() => handleItemSelect('Kasir POS (Penjualan)')}
               className={`flex items-center cursor-pointer select-none rounded-lg px-1 py-1 transition-colors ${
-                isDarkSidebar ? 'hover:bg-indigo-900/55' : 'hover:bg-zinc-100'
+                isDarkSidebar ? 'hover:bg-zinc-800/60' : 'hover:bg-zinc-100'
               }`}
               aria-label="LogicPOS Beranda"
             >
@@ -136,10 +149,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               type="button"
               onClick={onToggleSidebar}
               className={`flex items-center justify-center transition-colors cursor-pointer outline-none focus:outline-none shrink-0 ${
-                isSidebarCollapsed ? 'w-10 h-10 rounded-xl' : 'w-8 h-8 rounded-lg'
+                isSidebarCollapsed ? 'w-10 h-10 aspect-square rounded-full' : 'w-8 h-8 aspect-square rounded-full'
               } ${
                 isDarkSidebar
-                  ? 'text-indigo-200 hover:text-white hover:bg-indigo-900/70'
+                  ? 'text-zinc-400 hover:text-white hover:bg-zinc-800/70'
                   : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
               }`}
               aria-label={isSidebarCollapsed ? 'Buka Menu' : 'Ciutkan Menu'}
@@ -157,7 +170,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div
           className={`flex lg:hidden items-center justify-between px-4 h-14 border-b ${
             isDarkSidebar
-              ? 'border-indigo-900/80 bg-[#1E1B4B] text-white'
+              ? 'border-zinc-800/80 bg-[#0e0e11] text-white'
               : 'border-zinc-200 bg-white text-zinc-900'
           }`}
         >
@@ -165,9 +178,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={onToggleSidebar}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer outline-none focus:outline-none ${
+            className={`w-8 h-8 aspect-square flex items-center justify-center rounded-full transition-colors cursor-pointer outline-none focus:outline-none ${
               isDarkSidebar
-                ? 'text-indigo-200 hover:text-white hover:bg-indigo-900/70'
+                ? 'text-zinc-400 hover:text-white hover:bg-zinc-800/70'
                 : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/60'
             }`}
             aria-label="Tutup Menu"
@@ -194,7 +207,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {showGroupDivider && (
                   <div
                     className={`my-2 mx-1.5 border-t ${
-                      isDarkSidebar ? 'border-indigo-900/80' : 'border-zinc-200/80'
+                      isDarkSidebar ? 'border-zinc-800/80' : 'border-zinc-200/80'
                     }`}
                     aria-hidden="true"
                   />
@@ -212,15 +225,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     }}
                     className={`relative flex items-center text-left text-sm group cursor-pointer transition-colors duration-150 ${
                       isSidebarCollapsed
-                        ? 'w-10 h-10 mx-auto justify-center p-0 rounded-xl shrink-0'
+                        ? 'w-10 h-10 aspect-square mx-auto justify-center p-0 rounded-full shrink-0'
                         : 'px-3 py-2 rounded-lg w-full min-h-[38px]'
                     } ${
                       isDarkSidebar
                         ? isParentActive
-                          ? 'bg-primary/25 text-white font-semibold z-20'
+                          ? 'bg-primary/20 text-white font-semibold z-20 shadow-xs'
                           : isAnySubActive
-                          ? 'bg-indigo-900/60 text-white font-semibold z-10'
-                          : 'text-indigo-100/85 hover:bg-indigo-900/55 hover:text-white font-medium z-10'
+                          ? 'bg-zinc-800/80 text-white font-semibold z-10'
+                          : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-white font-medium z-10'
                         : isParentActive
                         ? 'bg-primary/12 text-primary font-semibold z-20'
                         : isAnySubActive
@@ -236,7 +249,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         isDarkSidebar
                           ? isParentActive || isAnySubActive
                             ? 'text-white'
-                            : 'text-indigo-300 group-hover:text-white'
+                            : 'text-zinc-400 group-hover:text-white'
                           : isParentActive || isAnySubActive
                           ? 'text-primary'
                           : 'text-zinc-500 group-hover:text-zinc-900'
@@ -259,7 +272,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           isDarkSidebar
                             ? isProdukExpanded
                               ? 'rotate-180 text-white'
-                              : 'text-indigo-300'
+                              : 'text-zinc-400'
                             : isProdukExpanded
                             ? 'rotate-180 text-primary'
                             : 'text-zinc-400'
@@ -288,8 +301,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             } ${
                               isDarkSidebar
                                 ? isSubActive
-                                  ? 'bg-primary/25 text-white font-semibold'
-                                  : 'text-indigo-200/85 hover:bg-indigo-900/55 hover:text-white font-medium'
+                                  ? 'bg-primary/20 text-white font-semibold'
+                                  : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-white font-medium'
                                 : isSubActive
                                 ? 'bg-primary/12 text-primary font-semibold'
                                 : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 font-medium'
@@ -303,7 +316,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 isDarkSidebar
                                   ? isSubActive
                                     ? 'text-white'
-                                    : 'text-indigo-300 group-hover:text-white'
+                                    : 'text-zinc-400 group-hover:text-white'
                                   : isSubActive
                                   ? 'text-primary'
                                   : 'text-zinc-500 group-hover:text-zinc-900'
@@ -329,163 +342,174 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </div>
 
-        {/* BOTTOM SECTION: MENGATUR TOKO / MULTI-OUTLET */}
-        <div
-          className={`p-2.5 border-t shrink-0 relative ${
-            isDarkSidebar ? 'border-indigo-900/80' : 'border-zinc-200/80'
-          }`}
-          ref={storeMenuRef}
-        >
-          {isSidebarCollapsed ? (
-            <Tooltip
-              content={`Toko: ${activeTenant?.name || 'Toko'} (${activeTenant?.branchName || 'Cabang'})`}
-              side="right"
-              sideOffset={14}
-              disabled={isStoreMenuOpen}
-            >
-              <button
-                type="button"
-                onClick={() => setIsStoreMenuOpen(!isStoreMenuOpen)}
-                className={`w-10 h-10 mx-auto rounded-xl border flex items-center justify-center font-bold text-xs sm:text-sm cursor-pointer transition-colors ${
-                  isDarkSidebar
-                    ? `bg-indigo-950/80 hover:bg-indigo-900/80 border-indigo-800/80 text-white ${
-                        isStoreMenuOpen ? 'ring-2 ring-indigo-400/40 border-indigo-400' : ''
-                      }`
-                    : `bg-primary-soft hover:bg-primary-soft/80 border-primary-border text-primary ${
-                        isStoreMenuOpen ? 'ring-2 ring-primary/20 border-primary' : ''
-                      }`
-                }`}
-                aria-label="Atur Toko"
-                aria-expanded={isStoreMenuOpen}
-              >
-                <GoogleIcon name="storefront" size={18} className={isDarkSidebar ? 'text-indigo-200' : 'text-primary'} />
-              </button>
-            </Tooltip>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setIsStoreMenuOpen(!isStoreMenuOpen)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border text-left transition-colors cursor-pointer group outline-none ${
-                isDarkSidebar
-                  ? `bg-indigo-950/75 hover:bg-indigo-900/75 border-indigo-800/80 ${
-                      isStoreMenuOpen ? 'ring-2 ring-indigo-400/30 border-indigo-400' : ''
-                    }`
-                  : `bg-zinc-50 hover:bg-primary-soft/40 border-zinc-200 hover:border-primary-border ${
-                      isStoreMenuOpen ? 'ring-2 ring-primary/15 border-primary' : ''
-                    }`
-              }`}
-              aria-label="Pengaturan Toko"
-              aria-expanded={isStoreMenuOpen}
-            >
-              <div
-                className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${
-                  isDarkSidebar
-                    ? 'bg-indigo-900/70 border-indigo-700/70'
-                    : 'bg-primary-soft border-primary-border'
-                }`}
-              >
-                <GoogleIcon name="storefront" size={16} className={isDarkSidebar ? 'text-indigo-200' : 'text-primary'} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p
-                  className={`text-xs sm:text-sm font-semibold truncate leading-tight ${
-                    isDarkSidebar ? 'text-white' : 'text-zinc-950'
-                  }`}
-                >
-                  {activeTenant?.name || 'Toko Utama'}
-                </p>
-                <p
-                  className={`text-xs truncate mt-0.5 font-medium ${
-                    isDarkSidebar ? 'text-indigo-200/80' : 'text-zinc-500'
-                  }`}
-                >
-                  {activeTenant?.branchName || 'Cabang Utama'}
-                </p>
-              </div>
-              <GoogleIcon name="keyboard_arrow_down" size={14}
-               
-                className={`transition-transform shrink-0 ${
-                  isDarkSidebar
-                    ? isStoreMenuOpen
-                      ? 'rotate-180 text-white'
-                      : 'text-indigo-300'
-                    : isStoreMenuOpen
-                    ? 'rotate-180 text-primary'
-                    : 'text-zinc-400'
-                }`}
-              />
-            </button>
-          )}
-
-          {/* Store Selector Popover */}
-          {isStoreMenuOpen && (
-            <div
-              className={`absolute bg-white text-zinc-900 rounded-xl border border-zinc-200 shadow-lg p-2 z-50 duration-150 ${
-                isSidebarCollapsed
-                  ? 'bottom-2 left-full ml-3 w-64 animate-in fade-in slide-in-from-left-2'
-                  : 'bottom-full left-2 sm:left-2.5 mb-2 w-64 animate-in fade-in slide-in-from-bottom-2'
-              }`}
-            >
-              <div className="px-2.5 py-1.5 border-b border-zinc-100 flex items-center justify-between">
-                <p className="text-xs font-bold text-zinc-900">Pilih Toko / Outlet</p>
-                <span className="text-xs text-secondary-text bg-secondary-soft px-1.5 py-0.5 rounded font-semibold">
-                  {tenants.length} Toko
-                </span>
-              </div>
-
-              <div className="max-h-48 overflow-y-auto space-y-1 my-1.5">
-                {tenants.map(t => {
-                  const isSelected = t.id === activeTenant?.id;
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => {
-                        onSelectTenant?.(t.id);
-                        setIsStoreMenuOpen(false);
-                      }}
-                      className={`w-full text-left p-2 rounded-lg flex items-center justify-between text-xs sm:text-sm transition-colors cursor-pointer ${
-                        isSelected
-                          ? 'bg-primary-soft text-primary-text font-semibold'
-                          : 'hover:bg-zinc-50 text-zinc-700 font-medium'
-                      }`}
-                    >
-                      <div className="min-w-0 flex-1 pr-2">
-                        <p className="truncate font-semibold leading-tight text-xs sm:text-sm">{t.name}</p>
-                        <p className="text-xs text-zinc-400 truncate mt-0.5">{t.branchName}</p>
-                      </div>
-                      {isSelected && <GoogleIcon name="check" size={14} className="text-primary shrink-0" />}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {(userRole === 'owner' || userRole === 'branch_manager') && (
-                <div className="pt-2 border-t border-zinc-100 space-y-1">
-                  {userRole === 'owner' && (
+        {/* BOTTOM SECTION: PROFIL */}
+        <div className="p-2.5 shrink-0 flex flex-col gap-2 relative">
+          {/* USER PROFILE SECTION */}
+          {currentUser && (
+            <div ref={profileMenuRef} className="relative">
+              {isSidebarCollapsed ? (
+                <div className="flex justify-center">
+                  <Tooltip
+                    content={`${currentUser.fullName} (${ROLE_LABELS[currentUser.role]})`}
+                    side="right"
+                    sideOffset={14}
+                    disabled={isProfileMenuOpen}
+                  >
                     <button
                       type="button"
                       onClick={() => {
-                        setIsStoreMenuOpen(false);
-                        onOpenRegisterModal?.();
+                        setIsProfileMenuOpen(!isProfileMenuOpen);
                       }}
-                      className="w-full py-2 px-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      className={`w-10 h-10 aspect-square rounded-full flex items-center justify-center font-bold text-xs cursor-pointer transition-colors shadow-xs outline-none ${
+                        isProfileMenuOpen ? 'ring-2 ring-primary/40 ring-offset-1' : ''
+                      } bg-primary text-white hover:bg-primary-hover`}
+                      aria-label="Profil Pengguna"
+                      aria-expanded={isProfileMenuOpen}
                     >
-                      <GoogleIcon name="add" size={14} className="shrink-0" />
-                      <span>Tambah Toko / Outlet Baru</span>
+                      {getInitials(currentUser.fullName)}
                     </button>
-                  )}
-
+                  </Tooltip>
+                </div>
+              ) : (
+                <div className="w-full">
+                  {/* Profile Card Button */}
                   <button
                     type="button"
                     onClick={() => {
-                      setIsStoreMenuOpen(false);
-                      onSelectMenu('Multi-Outlet');
+                      setIsProfileMenuOpen(!isProfileMenuOpen);
                     }}
-                    className="w-full py-1.5 px-2 text-zinc-700 hover:bg-zinc-100 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center cursor-pointer"
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg border text-left transition-colors cursor-pointer group outline-none ${
+                      isDarkSidebar
+                        ? `bg-zinc-900/90 hover:bg-zinc-800/90 border-zinc-800 ${
+                            isProfileMenuOpen ? 'ring-2 ring-primary/40 border-primary' : ''
+                          }`
+                        : `bg-zinc-50 hover:bg-zinc-100/80 border-zinc-200 ${
+                            isProfileMenuOpen ? 'ring-2 ring-primary/15 border-primary' : ''
+                          }`
+                    }`}
+                    aria-label="Menu Profil Pengguna"
+                    aria-expanded={isProfileMenuOpen}
                   >
-                    Kelola Multi-Outlet
+                    <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                      {getInitials(currentUser.fullName)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={`text-xs font-semibold truncate leading-tight ${
+                          isDarkSidebar ? 'text-white' : 'text-zinc-950'
+                        }`}
+                      >
+                        {currentUser.fullName}
+                      </p>
+                      <p
+                        className={`text-[11px] truncate mt-0.5 font-medium ${
+                          isDarkSidebar ? 'text-zinc-400' : 'text-zinc-500'
+                        }`}
+                      >
+                        {ROLE_LABELS[currentUser.role]}
+                      </p>
+                    </div>
+                    <GoogleIcon
+                      name="keyboard_arrow_down"
+                      size={14}
+                      className={`transition-transform shrink-0 ${
+                        isDarkSidebar
+                          ? isProfileMenuOpen ? 'rotate-180 text-white' : 'text-zinc-400'
+                          : isProfileMenuOpen ? 'rotate-180 text-primary' : 'text-zinc-400'
+                      }`}
+                    />
                   </button>
+                </div>
+              )}
+
+              {/* Profile Dropdown Popover */}
+              {isProfileMenuOpen && (
+                <div
+                  className={`absolute rounded-xl border shadow-2xl p-1.5 z-50 duration-150 ${
+                    isDarkSidebar
+                      ? 'bg-[#18181b] text-zinc-100 border-zinc-700/80 shadow-black/80'
+                      : 'bg-white text-zinc-900 border-zinc-200 shadow-xl'
+                  } ${
+                    isSidebarCollapsed
+                      ? 'bottom-0 left-full ml-3 w-64 animate-in fade-in slide-in-from-left-2'
+                      : 'bottom-full left-0 mb-2 w-64 animate-in fade-in slide-in-from-bottom-2'
+                  }`}
+                >
+                  {/* User Profile Header */}
+                  <div className="px-3 py-2.5 border-b border-zinc-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                        {getInitials(currentUser.fullName)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <p className="text-xs sm:text-sm font-bold text-zinc-950 truncate">
+                            {currentUser.fullName}
+                          </p>
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary-soft text-primary-text shrink-0">
+                            {ROLE_LABELS[currentUser.role]}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 truncate mt-0.5">
+                          {currentUser.shiftLabel}
+                        </p>
+                      </div>
+                    </div>
+
+                    {activeTenant && (
+                      <div className="mt-2 text-[11px] bg-zinc-50 border border-zinc-200/80 text-zinc-700 px-2 py-1 rounded-md">
+                        <span className="text-[10px] text-zinc-400 block leading-tight">Outlet Aktif:</span>
+                        <span className="font-semibold text-zinc-900 block truncate">
+                          {activeTenant.code} &bull; {activeTenant.name}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Menu Options */}
+                  <div className="p-1 space-y-0.5">
+                    {currentUser.role === 'owner' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectMenu('Manajemen User');
+                          setIsProfileMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 rounded-lg transition-colors text-left cursor-pointer"
+                      >
+                        <GoogleIcon name="manage_accounts" size={15} className="text-zinc-400 shrink-0" />
+                        <span>Manajemen User &amp; Akses</span>
+                      </button>
+                    )}
+
+                    {currentUser.role !== 'cashier' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectMenu('Pengaturan');
+                          setIsProfileMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 rounded-lg transition-colors text-left cursor-pointer"
+                      >
+                        <GoogleIcon name="settings" size={15} className="text-zinc-400 shrink-0" />
+                        <span>Pengaturan Toko</span>
+                      </button>
+                    )}
+
+                    <div className="my-1 border-t border-zinc-100" />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        onLogout?.();
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors text-left cursor-pointer"
+                    >
+                      <GoogleIcon name="logout" size={15} className="text-red-500 shrink-0" />
+                      <span>Keluar (Logout)</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

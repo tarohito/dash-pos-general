@@ -35,29 +35,28 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToC
               !isOutOfStock ? 'group-hover:scale-105' : 'grayscale-40'
             }`}
           />
-          {/* Category & Promo Badge */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
-            <span className="text-xs font-semibold px-2 py-0.5 bg-white text-zinc-700 rounded-md border border-zinc-200">
-              {product.category}
-            </span>
-            {product.isPromo && (
-              <span className="text-xs font-bold px-1.5 py-0.5 bg-accent text-white rounded-md">
+          {/* Promo Badge (jika ada promo aktif) */}
+          {product.isPromo && (
+            <div className="absolute top-2 left-2">
+              <span className="text-xs font-bold px-2.5 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full shadow-xs">
                 {product.promoLabel || 'PROMO'}
               </span>
-            )}
-          </div>
-          {/* Stock Badge */}
+            </div>
+          )}
+
+          {/* Stock Badge: Cukup angka saja */}
           <div className="absolute top-2 right-2">
             <span
-              className={`text-xs font-semibold px-2 py-0.5 rounded-md ${
+              className={`text-xs font-bold font-mono px-2 py-0.5 rounded-full shadow-2xs ${
                 isOutOfStock
                   ? 'bg-red-600 text-white'
                   : product.stok <= 5
                   ? 'bg-amber-500 text-white'
-                  : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-white/95 dark:bg-zinc-800/90 backdrop-blur-xs text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700'
               }`}
+              title={`Stok: ${product.stok}`}
             >
-              {isOutOfStock ? 'Habis' : `Stok: ${product.stok}`}
+              {product.stok}
             </span>
           </div>
         </div>
@@ -73,7 +72,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToC
             {product.name}
           </h3>
 
-          <div className="mt-1.5 sm:mt-2 flex flex-col gap-0.5">
+          <div className="mt-1.5 sm:mt-2">
             {/* Harga Langsung */}
             <div
               className={`text-sm sm:text-base font-bold font-mono tabular-nums tracking-tight leading-tight transition-colors ${
@@ -81,11 +80,6 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToC
               }`}
             >
               {formatIDR(product.harga)}
-            </div>
-
-            {/* Dibawahnya Netto / Berat */}
-            <div className="text-xs text-zinc-500 font-medium leading-tight">
-              Netto : <span className="font-semibold text-zinc-700 font-mono">{product.berat.toFixed(0)} g</span>
             </div>
           </div>
         </div>

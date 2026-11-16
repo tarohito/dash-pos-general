@@ -142,14 +142,14 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
 
   return (
     <div className="space-y-4 pb-8">
-      {/* Top Header Card */}
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Page Header (Unboxed, Tanpa Card) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-base sm:text-lg font-bold text-zinc-950 leading-tight">
-            Inventaris &amp; Daftar Barang
+          <h3 className="text-lg sm:text-xl font-bold text-zinc-950 leading-tight">
+            Inventaris &amp; Daftar Produk
           </h3>
           <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
-            Pantau stok fisik, netto kemasan, harga jual, dan cetak label barcode standar Code 128 &amp; QR.
+            Katalog produk standar Shopee Seller Centre &amp; POS: merek, kondisi, harga jual, stok fisik, dan cetak label barcode.
           </p>
         </div>
 
@@ -158,7 +158,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
             <button
               type="button"
               onClick={onOpenAddModal}
-              className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
+              className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-full inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
             >
               <GoogleIcon name="add" size={16} />
               <span>Tambah Barang</span>
@@ -237,9 +237,9 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
         />
       </div>
 
-      {/* Table Workspace Card */}
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 mb-4">
+      {/* Table Workspace (Unboxed, Tanpa Card Pembungkus) */}
+      <div className="space-y-3.5">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           <SearchInput
             value={search}
             onChange={setSearch}
@@ -267,11 +267,11 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
           />
         )}
 
-        {/* Inner Table & Mobile Cards Container */}
-        <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
+        {/* Table & Mobile Cards (Unboxed) */}
+        <div className="overflow-hidden">
           {isLoading && items.length === 0 ? (
             <div className="py-12 px-4 flex items-center justify-center gap-2 text-xs sm:text-sm text-zinc-400">
-              <GoogleIcon name="progress_activity" size={18} className="animate-spin text-zinc-900" />
+              <GoogleIcon name="progress_activity" size={18} className="animate-spin text-primary" />
               <span>Memuat data inventaris...</span>
             </div>
           ) : items.length === 0 ? (
@@ -297,7 +297,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
           ) : (
             <>
               {/* MOBILE LIST CARDS (md:hidden) */}
-              <div className="md:hidden divide-y divide-zinc-100">
+              <div className="md:hidden divide-y divide-zinc-200/80 border-t border-zinc-200">
                 {items.map(p => (
                   <div key={p.id} className="p-4 space-y-2.5 hover:bg-zinc-50/70 transition-colors">
                     <div className="flex items-start justify-between gap-2.5">
@@ -306,21 +306,38 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                           src={p.image}
                           alt={p.name}
                           loading="lazy"
-                          className="w-12 h-12 aspect-square rounded-lg object-cover border border-gray-200 shrink-0"
+                          className="w-12 h-12 aspect-square rounded-xl object-cover border border-zinc-200 shrink-0"
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-mono font-bold text-gray-900 text-xs">{p.sku}</span>
-                            <span className="text-gray-300">&bull;</span>
-                            <span className="text-xs text-gray-500 font-medium">{p.category}</span>
+                            <span className="font-mono font-bold text-zinc-900 text-xs">{p.sku}</span>
+                            <span className="text-zinc-300">&bull;</span>
+                            <span className="text-xs text-zinc-500 font-medium">{p.category}</span>
+                            {p.brand && p.brand !== 'No Brand' && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200/70">
+                                {p.brand}
+                              </span>
+                            )}
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                              p.kondisi === 'Bekas'
+                                ? 'bg-zinc-100 text-zinc-700 border-zinc-300'
+                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                            }`}>
+                              {p.kondisi ?? 'Baru'}
+                            </span>
                           </div>
-                          <h4 className="text-sm font-bold text-gray-900 truncate mt-0.5">{p.name}</h4>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                          <h4 className="text-sm font-bold text-zinc-900 truncate mt-0.5">{p.name}</h4>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-zinc-500 flex-wrap">
                             <span>
-                              Netto: <strong className="text-gray-800 font-mono">{Number(p.berat.toFixed(2))} gr</strong>
+                              Berat: <strong className="text-zinc-800 font-mono">{Number(p.berat.toFixed(2))} gr</strong>
+                            </span>
+                            <span className="text-zinc-300">&bull;</span>
+                            <span className="font-medium text-zinc-600">
+                              {p.salesCount ?? 0} terjual
                             </span>
                             {p.isPromo && p.promoLabel && (
-                              <span className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                              <span className="text-xs font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full inline-flex items-center gap-1 shadow-2xs">
+                                <GoogleIcon name="sell" size={11} className="text-amber-600" />
                                 {p.promoLabel}
                               </span>
                             )}
@@ -328,23 +345,39 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                         </div>
                       </div>
 
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded font-mono font-bold text-xs border shrink-0 ${
-                          p.stok > 5
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : p.stok > 0
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : 'bg-red-50 text-red-700 border-red-200'
-                        }`}
-                      >
-                        {p.stok} pcs
-                      </span>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded font-mono font-bold text-xs border ${
+                            p.stok > 5
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : p.stok > 0
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : 'bg-red-50 text-red-700 border-red-200'
+                          }`}
+                        >
+                          {p.stok} pcs
+                        </span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
+                          p.status === 'Nonaktif'
+                            ? 'bg-zinc-100 text-zinc-600 border-zinc-200'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        }`}>
+                          {p.status ?? 'Aktif'}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
-                      <span className="text-sm font-bold text-gray-900 font-mono tabular-nums">
-                        {formatIDR(p.harga)}
-                      </span>
+                    <div className="pt-2 border-t border-zinc-100 flex items-center justify-between gap-2">
+                      <div>
+                        <span className="text-sm font-bold text-zinc-900 font-mono tabular-nums">
+                          {formatIDR(p.harga)}
+                        </span>
+                        {p.hpp !== undefined && p.hpp > 0 && (
+                          <span className="block text-[11px] text-zinc-400 font-mono">
+                            HPP: {formatIDR(p.hpp)}
+                          </span>
+                        )}
+                      </div>
                       <ActionDropdownMenu
                         ariaLabel={`Aksi untuk ${p.name}`}
                         items={[
@@ -386,7 +419,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
               {/* DESKTOP TABLE (hidden md:block) */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-xs sm:text-sm text-left border-collapse">
-                  <thead className="bg-gray-50/80 text-gray-500 uppercase font-semibold text-xs border-b border-gray-200 tracking-wider">
+                  <thead className="text-zinc-500 uppercase font-semibold text-xs border-b border-zinc-200 tracking-wider">
                     <tr>
                       <SortableTh
                         label="Nama Produk"
@@ -394,33 +427,15 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                         currentSortBy={sortBy}
                         currentSortDir={sortDir}
                         onSort={key => handleHeaderSort(key, 'asc')}
-                        className="py-3 px-4 min-w-[230px]"
+                        className="py-3 px-4 min-w-[240px]"
                       />
                       <SortableTh
-                        label="Kode Barcode"
+                        label="SKU Barcode"
                         sortKey="sku"
                         currentSortBy={sortBy}
                         currentSortDir={sortDir}
                         onSort={key => handleHeaderSort(key, 'asc')}
-                        className="py-3 px-4 w-[160px]"
-                      />
-                      <SortableTh
-                        label="Netto (gr)"
-                        sortKey="berat"
-                        currentSortBy={sortBy}
-                        currentSortDir={sortDir}
-                        onSort={key => handleHeaderSort(key, 'desc')}
-                        align="right"
-                        className="py-3 px-4 w-[125px]"
-                      />
-                      <SortableTh
-                        label="Stok"
-                        sortKey="stok"
-                        currentSortBy={sortBy}
-                        currentSortDir={sortDir}
-                        onSort={key => handleHeaderSort(key, 'asc')}
-                        align="center"
-                        className="py-3 px-4 w-[110px]"
+                        className="py-3 px-4 w-[130px]"
                       />
                       <SortableTh
                         label="Harga Jual"
@@ -429,30 +444,71 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                         currentSortDir={sortDir}
                         onSort={key => handleHeaderSort(key, 'desc')}
                         align="right"
-                        className="py-3 px-4 w-[170px]"
+                        className="py-3 px-4 w-[150px]"
                       />
-                      <th className="py-3 px-3 text-center w-[72px]">Aksi</th>
+                      <SortableTh
+                        label="Stok"
+                        sortKey="stok"
+                        currentSortBy={sortBy}
+                        currentSortDir={sortDir}
+                        onSort={key => handleHeaderSort(key, 'asc')}
+                        align="center"
+                        className="py-3 px-4 w-[100px]"
+                      />
+                      <SortableTh
+                        label="Terjual"
+                        sortKey="sales"
+                        currentSortBy={sortBy}
+                        currentSortDir={sortDir}
+                        onSort={key => handleHeaderSort(key, 'desc')}
+                        align="center"
+                        className="py-3 px-4 w-[105px]"
+                      />
+                      <SortableTh
+                        label="Berat"
+                        sortKey="berat"
+                        currentSortBy={sortBy}
+                        currentSortDir={sortDir}
+                        onSort={key => handleHeaderSort(key, 'desc')}
+                        align="center"
+                        className="py-3 px-4 w-[95px]"
+                      />
+                      <th className="py-3 px-3 text-center w-[90px]">Status</th>
+                      <th className="py-3 px-3 text-center w-[60px]">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
+                  <tbody className="divide-y divide-zinc-200/70 font-medium text-zinc-700">
                     {items.map(p => (
-                      <tr key={p.id} className="hover:bg-zinc-50/80 transition-colors">
-                        <td className="py-3.5 px-4 align-middle max-w-[300px]">
+                      <tr key={p.id} className="hover:bg-zinc-100/60 transition-colors">
+                        <td className="py-3.5 px-4 align-middle max-w-[320px]">
                           <div className="flex items-center gap-3 min-w-0">
                             <img
                               src={p.image}
                               alt={p.name}
                               loading="lazy"
-                              className="w-10 h-10 aspect-square rounded-lg object-cover border border-gray-200 shrink-0"
+                              className="w-10 h-10 aspect-square rounded-xl object-cover border border-zinc-200 shrink-0"
                             />
                             <div className="min-w-0">
-                              <span className="font-bold text-gray-900 text-xs sm:text-sm block truncate">
+                              <span className="font-bold text-zinc-950 text-xs sm:text-sm block truncate" title={p.name}>
                                 {p.name}
                               </span>
                               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                <span className="text-xs text-gray-500 font-medium">{p.category}</span>
+                                <span className="text-[11px] text-zinc-500 font-medium">{p.category}</span>
+                                {p.brand && p.brand !== 'No Brand' && (
+                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200/80">
+                                    {p.brand}
+                                  </span>
+                                )}
+                                <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold uppercase border ${
+                                  p.kondisi === 'Bekas'
+                                    ? 'bg-zinc-100 text-zinc-700 border-zinc-300'
+                                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                                }`}>
+                                  {p.kondisi ?? 'Baru'}
+                                </span>
                                 {p.isPromo && p.promoLabel && (
-                                  <span className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                                  <span className="text-[10px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded-full inline-flex items-center gap-1 shadow-2xs">
+                                    <GoogleIcon name="sell" size={10} className="text-amber-600" />
                                     {p.promoLabel}
                                   </span>
                                 )}
@@ -461,12 +517,19 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                           </div>
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap align-middle">
-                          <span className="font-mono font-bold text-gray-900 text-xs sm:text-sm tracking-tight">
+                          <span className="font-mono font-bold text-zinc-900 text-xs sm:text-sm tracking-tight">
                             {p.sku}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-right font-bold text-gray-900 font-mono tabular-nums whitespace-nowrap align-middle text-xs sm:text-sm">
-                          {Number(p.berat.toFixed(2))} gr
+                        <td className="py-3.5 px-4 text-right align-middle whitespace-nowrap">
+                          <span className="font-bold text-sm text-zinc-950 font-mono tabular-nums block">
+                            {formatIDR(p.harga)}
+                          </span>
+                          {p.hpp !== undefined && p.hpp > 0 && (
+                            <span className="text-[11px] text-zinc-400 font-mono block">
+                              HPP: {formatIDR(p.hpp)}
+                            </span>
+                          )}
                         </td>
                         <td className="py-3.5 px-4 text-center whitespace-nowrap align-middle">
                           <span
@@ -481,8 +544,22 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                             {p.stok} pcs
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-right font-bold text-sm text-gray-900 font-mono tabular-nums whitespace-nowrap align-middle">
-                          {formatIDR(p.harga)}
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap align-middle">
+                          <span className="font-semibold text-zinc-700 text-xs tabular-nums">
+                            {p.salesCount ?? 0} terjual
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center font-bold text-zinc-800 font-mono tabular-nums whitespace-nowrap align-middle text-xs sm:text-sm">
+                          {Number(p.berat.toFixed(2))} gr
+                        </td>
+                        <td className="py-3.5 px-3 text-center whitespace-nowrap align-middle">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold border ${
+                            p.status === 'Nonaktif'
+                              ? 'bg-zinc-100 text-zinc-600 border-zinc-200'
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          }`}>
+                            {p.status ?? 'Aktif'}
+                          </span>
                         </td>
                         <td className="py-3.5 px-3 text-center whitespace-nowrap align-middle">
                           <ActionDropdownMenu

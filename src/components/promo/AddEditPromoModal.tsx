@@ -246,7 +246,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 placeholder="Contoh: Promo Akhir Pekan 10%"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
               />
             </div>
 
@@ -260,7 +260,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 placeholder="Contoh: WEEKEND10"
                 value={code}
                 onChange={e => setCode(e.target.value.toUpperCase())}
-                className="w-full px-3 py-2 text-sm font-mono font-bold rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none uppercase"
+                className="w-full px-3 py-2 text-sm font-mono font-bold rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none uppercase"
               />
             </div>
           </div>
@@ -282,7 +282,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 suffix="%"
                 placeholder="10"
                 required
-                className="w-full px-3 py-2 text-sm font-bold font-mono rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                className="w-full px-3 py-2 text-sm font-bold font-mono rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
               />
             </div>
 
@@ -295,7 +295,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 placeholder="Diskon 10%"
                 value={label}
                 onChange={e => setLabel(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
               />
             </div>
 
@@ -328,7 +328,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none font-mono"
+                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none font-mono"
               />
             </div>
 
@@ -340,7 +340,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 type="date"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none font-mono"
+                className="w-full px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none font-mono"
               />
             </div>
           </div>
@@ -354,7 +354,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
               <button
                 type="button"
                 onClick={handleSelectAllVisibleProducts}
-                className="text-xs sm:text-sm font-semibold text-zinc-900 hover:text-zinc-600 cursor-pointer underline underline-offset-2"
+                className="text-xs sm:text-sm font-semibold text-primary hover:text-primary-hover cursor-pointer underline underline-offset-2"
               >
                 {allVisibleSelected ? 'Batalkan Daftar Ini' : 'Pilih Semua di Daftar'}
               </button>
@@ -368,14 +368,14 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
                 value={productSearch}
                 onChange={e => setProductSearch(e.target.value)}
                 placeholder="Cari produk berdasarkan nama atau SKU..."
-                className="w-full pl-8 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none bg-white"
+                className="w-full pl-8 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none bg-white"
               />
             </div>
 
             <div className="max-h-52 overflow-y-auto border border-zinc-200 rounded-xl divide-y divide-zinc-100 bg-zinc-50/50">
               {isLoadingProducts ? (
                 <div className="py-8 flex items-center justify-center gap-2 text-xs text-zinc-500">
-                  <GoogleIcon name="progress_activity" size={16} className="animate-spin text-zinc-900" />
+                  <GoogleIcon name="progress_activity" size={16} className="animate-spin text-primary" />
                   <span>Memuat daftar produk...</span>
                 </div>
               ) : productLoadError ? (
@@ -452,7 +452,7 @@ export const AddEditPromoModal: React.FC<AddEditPromoModalProps> = ({
               placeholder="Deskripsi syarat & ketentuan promo produk..."
               value={description}
               onChange={e => setDescription(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none resize-none font-medium"
+              className="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none resize-none font-medium"
             />
           </div>
         </form>

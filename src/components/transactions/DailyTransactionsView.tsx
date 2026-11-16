@@ -202,10 +202,10 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
 
   return (
     <div className="space-y-4 pb-8">
-      {/* Top Header Card */}
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Page Header (Unboxed, Tanpa Card) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-base sm:text-lg font-bold text-zinc-950 leading-tight tracking-tight">
+          <h3 className="text-lg sm:text-xl font-bold text-zinc-950 leading-tight tracking-tight">
             Daftar Transaksi Penjualan (Kasir POS)
           </h3>
           <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
@@ -217,7 +217,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
           <button
             type="button"
             onClick={onNavigateToPos}
-            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-[0.98]"
+            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-full inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-[0.98]"
           >
             <GoogleIcon name="add" size={16} />
             <span>Transaksi Penjualan Baru</span>
@@ -298,9 +298,9 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
         />
       </div>
 
-      {/* Table Workspace Card */}
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 mb-4">
+      {/* Table Workspace (Unboxed, Tanpa Card Pembungkus) */}
+      <div className="space-y-3.5">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           <SearchInput
             value={txSearchQuery}
             onChange={setTxSearchQuery}
@@ -308,7 +308,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
           />
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-            <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-xl border border-zinc-200 items-center overflow-x-auto max-w-full">
+            <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-full border border-zinc-200 items-center overflow-x-auto max-w-full">
               {[
                 { id: 'semua', label: 'Semua' },
                 { id: 'cash', label: 'Tunai' },
@@ -320,7 +320,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                   key={tab.id}
                   type="button"
                   onClick={() => setTxFilterMethod(tab.id)}
-                  className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
+                  className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                     txFilterMethod === tab.id
                       ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                       : 'text-zinc-500 hover:text-zinc-900'
@@ -341,10 +341,10 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
           />
         )}
 
-        <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
+        <div className="overflow-hidden">
           {isLoading && items.length === 0 ? (
             <div className="py-12 px-4 flex items-center justify-center gap-2 text-xs sm:text-sm text-zinc-400">
-              <GoogleIcon name="progress_activity" size={18} className="animate-spin text-zinc-900" />
+              <GoogleIcon name="progress_activity" size={18} className="animate-spin text-primary" />
               <span>Memuat transaksi penjualan...</span>
             </div>
           ) : items.length === 0 ? (
@@ -360,7 +360,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                 <button
                   type="button"
                   onClick={onNavigateToPos}
-                  className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-zinc-900 bg-zinc-100 hover:bg-zinc-200 rounded-xl transition-colors cursor-pointer border border-zinc-200"
+                  className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-primary bg-primary-soft hover:bg-primary-soft/80 rounded-xl transition-colors cursor-pointer border border-primary-border"
                 >
                   <GoogleIcon name="add" size={14} />
                   <span>Buat Transaksi Penjualan Baru</span>
@@ -370,7 +370,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
           ) : (
             <>
               {/* MOBILE CARDS (md:hidden) */}
-              <div className="md:hidden divide-y divide-zinc-100">
+              <div className="md:hidden divide-y divide-zinc-200/80 border-t border-zinc-200">
                 {items.map(tx => {
                   const isVoid = tx.status === 'void';
                   const firstItem = tx.items[0];
@@ -469,7 +469,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
               {/* DESKTOP TABLE (hidden md:block) */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-xs sm:text-sm text-left border-collapse">
-                  <thead className="bg-gray-50/80 text-gray-500 uppercase font-semibold text-xs border-b border-gray-200 tracking-wider">
+                  <thead className="text-zinc-500 uppercase font-semibold text-xs border-b border-zinc-200 tracking-wider">
                     <tr>
                       <SortableTh
                         label="No. Transaksi"
@@ -516,7 +516,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                       <th className="py-3 px-3 text-center w-[72px]">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
+                  <tbody className="divide-y divide-zinc-200/70 font-medium text-zinc-700">
                     {items.map(tx => {
                       const isVoid = tx.status === 'void';
                       const firstItem = tx.items[0];
@@ -526,7 +526,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                         <tr
                           key={tx.id}
                           className={`transition-colors ${
-                            isVoid ? 'bg-red-50/20 opacity-80' : 'hover:bg-zinc-50/80'
+                            isVoid ? 'bg-red-50/20 opacity-80' : 'hover:bg-zinc-100/60'
                           }`}
                         >
                           <td className="py-3.5 px-4 whitespace-nowrap align-middle">

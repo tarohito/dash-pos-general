@@ -10,21 +10,6 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    {
-      name: 'disable-hmr-ws-client',
-      apply: 'serve',
-      enforce: 'post',
-      transform(code, id) {
-        if (id.replace(/\\/g, '/').endsWith('vite/dist/client/client.mjs')) {
-          return code
-            .replace('console.debug("[vite] connecting...");', '')
-            .replace(
-              'transport.connect(createHMRHandler(handleMessage));',
-              '/* HMR WebSocket disabled */'
-            );
-        }
-      },
-    },
   ],
   resolve: {
     alias: {
@@ -39,7 +24,6 @@ export default defineConfig({
       'react-dom/client',
       'react/jsx-runtime',
       'react/jsx-dev-runtime',
-      'lucide-react',
       'tippy.js',
     ],
   },
@@ -50,9 +34,6 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
             return 'vendor-react';
-          }
-          if (id.includes('node_modules/lucide-react/')) {
-            return 'vendor-icons';
           }
           if (
             id.includes('node_modules/@zxing/') ||
@@ -69,7 +50,5 @@ export default defineConfig({
     port: 3000,
     host: '0.0.0.0',
     allowedHosts: true,
-    hmr: false,
-    ws: false,
   },
 });

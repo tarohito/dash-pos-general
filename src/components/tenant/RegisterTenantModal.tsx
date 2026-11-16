@@ -221,7 +221,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                 placeholder="Cth: Toko Maju Abadi"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 focus:bg-white text-sm font-semibold"
+                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white text-sm font-semibold transition-colors"
               />
             </div>
 
@@ -236,7 +236,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                   placeholder="Cth: Cabang Mall Kelapa Gading"
                   value={branchName}
                   onChange={e => setBranchName(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 focus:bg-white text-sm font-medium"
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white text-sm font-medium transition-colors"
                 />
               </div>
 
@@ -247,7 +247,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                   placeholder="Cth: Jakarta Utara"
                   value={city}
                   onChange={e => setCity(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 focus:bg-white text-sm font-medium"
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white text-sm font-medium transition-colors"
                 />
               </div>
             </div>
@@ -259,7 +259,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                 placeholder="Cth: Jl. Boulevard Raya Blok M No. 8, Mall Kelapa Gading Lt. Dasar"
                 value={address}
                 onChange={e => setAddress(e.target.value)}
-                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 focus:bg-white text-sm font-medium"
+                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white text-sm font-medium transition-colors"
               />
             </div>
 
@@ -271,7 +271,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                   placeholder="Cth: Ibu Veronica"
                   value={ownerName}
                   onChange={e => setOwnerName(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 focus:bg-white text-sm font-medium"
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white text-sm font-medium transition-colors"
                 />
               </div>
 
@@ -282,7 +282,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                   placeholder="0812-xxxx-xxxx"
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 focus:bg-white text-sm font-mono"
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white text-sm font-mono transition-colors"
                 />
               </div>
 
@@ -293,7 +293,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                   placeholder="admin@tokobaru.id"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 focus:bg-white text-sm font-medium"
+                  className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white text-sm font-medium transition-colors"
                 />
               </div>
             </div>
@@ -319,7 +319,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                     key={item.id}
                     className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
                       plan === item.id
-                        ? 'border-zinc-900 ring-1 ring-zinc-900 bg-zinc-50 text-zinc-950 font-bold'
+                        ? 'border-primary ring-1 ring-primary bg-primary-soft text-primary-text font-bold'
                         : 'border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700'
                     }`}
                   >

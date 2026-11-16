@@ -33,13 +33,13 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         aria-label={ariaLabel || placeholder}
         className={`w-full h-9 pl-9 ${
           value ? 'pr-8' : 'pr-3'
-        } text-xs sm:text-sm bg-white border border-zinc-300 rounded-lg text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 transition-colors leading-normal`}
+        } text-xs sm:text-sm bg-white border border-zinc-300 rounded-full text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors leading-normal`}
       />
       {value && (
         <button
           type="button"
           onClick={() => onChange('')}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 aspect-square rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-zinc-100 cursor-pointer"
           aria-label="Hapus kata kunci"
         >
           <GoogleIcon name="close" size={14} />

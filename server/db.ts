@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import Database from './sqlite-adapter.ts';
 import crypto from 'node:crypto';
 import fs from 'fs';
 import path from 'path';
@@ -92,12 +92,21 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenantId TEXT NOT NULL DEFAULT 'tenant-tms-001',
     sku TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     berat REAL NOT NULL,
     harga INTEGER NOT NULL,
+    hpp INTEGER NOT NULL DEFAULT 0,
     stok INTEGER NOT NULL DEFAULT 0,
     category TEXT NOT NULL,
+    brand TEXT NOT NULL DEFAULT 'No Brand',
+    kondisi TEXT NOT NULL DEFAULT 'Baru',
+    deskripsi TEXT NOT NULL DEFAULT '',
+    panjang REAL NOT NULL DEFAULT 0,
+    lebar REAL NOT NULL DEFAULT 0,
+    tinggi REAL NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'Aktif',
     image TEXT NOT NULL
   );
 
@@ -358,6 +367,8 @@ function ensureColumn(table: string, column: string, definition: string): void {
   }
 }
 
+ensureColumn('users', 'themePreference', "TEXT NOT NULL DEFAULT 'system'");
+
 ensureColumn('transactions', 'status', "TEXT NOT NULL DEFAULT 'completed'");
 ensureColumn('transactions', 'voidReason', 'TEXT');
 ensureColumn('transactions', 'voidedAt', 'TEXT');
@@ -375,6 +386,14 @@ ensureColumn('customers', 'braceletSize', 'TEXT');
 ensureColumn('customers', 'birthDate', 'TEXT');
 
 ensureColumn('products', 'tenantId', "TEXT NOT NULL DEFAULT 'tenant-tms-001'");
+ensureColumn('products', 'brand', "TEXT NOT NULL DEFAULT 'No Brand'");
+ensureColumn('products', 'kondisi', "TEXT NOT NULL DEFAULT 'Baru'");
+ensureColumn('products', 'deskripsi', "TEXT NOT NULL DEFAULT ''");
+ensureColumn('products', 'hpp', "INTEGER NOT NULL DEFAULT 0");
+ensureColumn('products', 'panjang', "REAL NOT NULL DEFAULT 0");
+ensureColumn('products', 'lebar', "REAL NOT NULL DEFAULT 0");
+ensureColumn('products', 'tinggi', "REAL NOT NULL DEFAULT 0");
+ensureColumn('products', 'status', "TEXT NOT NULL DEFAULT 'Aktif'");
 ensureColumn('transactions', 'tenantId', "TEXT NOT NULL DEFAULT 'tenant-tms-001'");
 ensureColumn('buybacks', 'tenantId', "TEXT NOT NULL DEFAULT 'tenant-tms-001'");
 ensureColumn('promos', 'tenantId', "TEXT NOT NULL DEFAULT 'tenant-tms-001'");
@@ -1614,7 +1633,17 @@ export function seedInitialDataIfEmpty(): void {
 // Query Helpers
 export function getAllProducts(tenantId: string = getActiveTenantId()): Product[] {
   return db
-    .prepare('SELECT id, sku, name, berat, harga, stok, category, image FROM products WHERE tenantId = ? ORDER BY id DESC')
+    .prepare(
+      `SELECT id, sku, name, berat, harga, COALESCE(hpp, 0) AS hpp, stok, category, image,
+              COALESCE(brand, 'No Brand') AS brand,
+              COALESCE(kondisi, 'Baru') AS kondisi,
+              COALESCE(deskripsi, '') AS deskripsi,
+              COALESCE(panjang, 0) AS panjang,
+              COALESCE(lebar, 0) AS lebar,
+              COALESCE(tinggi, 0) AS tinggi,
+              COALESCE(status, 'Aktif') AS status
+       FROM products WHERE tenantId = ? ORDER BY id DESC`
+    )
     .all(tenantId) as Product[];
 }
 
@@ -1988,6 +2017,13 @@ export function queryProducts(opts: {
     case 'sku':
       orderBySql = `LOWER(sku) ${sortDir}, id DESC`;
       break;
+    case 'brand':
+      orderBySql = `LOWER(brand) ${sortDir}, id DESC`;
+      break;
+    case 'sales':
+    case 'salesCount':
+      orderBySql = `salesCount ${sortDir}, id DESC`;
+      break;
     case 'newest':
     default:
       orderBySql = `id ${sortDir}`;
@@ -2002,8 +2038,8 @@ export function queryProducts(opts: {
 
   if (search) {
     const like = `%${search}%`;
-    conditions.push('(LOWER(name) LIKE ? OR LOWER(sku) LIKE ? OR LOWER(category) LIKE ?)');
-    params.push(like, like, like);
+    conditions.push('(LOWER(name) LIKE ? OR LOWER(sku) LIKE ? OR LOWER(category) LIKE ? OR LOWER(COALESCE(brand, \'\')) LIKE ?)');
+    params.push(like, like, like, like);
   }
 
   if (category && category !== 'Semua') {
@@ -2032,6 +2068,14 @@ export function queryProducts(opts: {
   const rows = db
     .prepare(
       `SELECT p.id, p.sku, p.name, p.berat, p.harga, p.stok, p.category, p.image,
+              COALESCE(p.hpp, 0) AS hpp,
+              COALESCE(p.brand, 'No Brand') AS brand,
+              COALESCE(p.kondisi, 'Baru') AS kondisi,
+              COALESCE(p.deskripsi, '') AS deskripsi,
+              COALESCE(p.panjang, 0) AS panjang,
+              COALESCE(p.lebar, 0) AS lebar,
+              COALESCE(p.tinggi, 0) AS tinggi,
+              COALESCE(p.status, 'Aktif') AS status,
               COALESCE(si.cnt, 0) AS salesCount
        FROM products p
        LEFT JOIN (
@@ -2040,7 +2084,7 @@ export function queryProducts(opts: {
          GROUP BY productId
        ) si ON si.productId = p.id
        ${whereSql.replace(/\b(tenantId|name|sku|category|id)\b/g, 'p.$1')}
-       ORDER BY ${orderBySql.replace(/\b(harga|berat|stok|id)\b/g, 'p.$1').replace(/LOWER\((name|sku)\)/g, 'LOWER(p.$1)')}
+       ORDER BY ${orderBySql.replace(/\b(harga|berat|stok|id)\b/g, 'p.$1').replace(/LOWER\((name|sku|brand)\)/g, 'LOWER(p.$1)')}
        LIMIT ? OFFSET ?`
     )
     .all(...params, pageSize, offset) as Array<Product & { salesCount: number }>;
@@ -2122,19 +2166,30 @@ export function lookupProductByCode(rawCode: string, tenantId: string = getActiv
   const clean = normalizeBarcodePayload(rawCode);
   if (!clean) return null;
 
+  const productCols = `
+    id, sku, name, berat, harga, COALESCE(hpp, 0) AS hpp, stok, category, image,
+    COALESCE(brand, 'No Brand') AS brand,
+    COALESCE(kondisi, 'Baru') AS kondisi,
+    COALESCE(deskripsi, '') AS deskripsi,
+    COALESCE(panjang, 0) AS panjang,
+    COALESCE(lebar, 0) AS lebar,
+    COALESCE(tinggi, 0) AS tinggi,
+    COALESCE(status, 'Aktif') AS status
+  `;
+
   let product = db
-    .prepare('SELECT id, sku, name, berat, harga, stok, category, image FROM products WHERE tenantId = ? AND LOWER(sku) = ? LIMIT 1')
+    .prepare(`SELECT ${productCols} FROM products WHERE tenantId = ? AND LOWER(sku) = ? LIMIT 1`)
     .get(tenantId, clean) as Product | undefined;
 
   if (!product && /^\d+$/.test(clean)) {
     product = db
-      .prepare('SELECT id, sku, name, berat, harga, stok, category, image FROM products WHERE tenantId = ? AND id = ? LIMIT 1')
+      .prepare(`SELECT ${productCols} FROM products WHERE tenantId = ? AND id = ? LIMIT 1`)
       .get(tenantId, Number(clean)) as Product | undefined;
   }
 
   if (!product) {
     product = db
-      .prepare('SELECT id, sku, name, berat, harga, stok, category, image FROM products WHERE tenantId = ? AND LOWER(name) = ? LIMIT 1')
+      .prepare(`SELECT ${productCols} FROM products WHERE tenantId = ? AND LOWER(name) = ? LIMIT 1`)
       .get(tenantId, clean) as Product | undefined;
   }
 
@@ -2142,7 +2197,7 @@ export function lookupProductByCode(rawCode: string, tenantId: string = getActiv
     const alphaNum = clean.replace(/[^a-z0-9]/g, '');
     if (alphaNum.length >= 3) {
       const allSkus = db
-        .prepare('SELECT id, sku, name, berat, harga, stok, category, image FROM products WHERE tenantId = ?')
+        .prepare(`SELECT ${productCols} FROM products WHERE tenantId = ?`)
         .all(tenantId) as Product[];
       product = allSkus.find(p => p.sku.toLowerCase().replace(/[^a-z0-9]/g, '') === alphaNum);
     }
@@ -3036,6 +3091,7 @@ interface UserDbRow {
   allowedTenantIdsJson: string;
   defaultTenantId: string | null;
   isActive: number;
+  themePreference?: string | null;
   createdAt: string;
   lastLoginAt: string | null;
 }
@@ -3051,6 +3107,7 @@ function mapUserRow(row: UserDbRow): UserAccount {
     allowedTenantIds: safeJsonParse<string[]>(row.allowedTenantIdsJson, []),
     defaultTenantId: row.defaultTenantId ?? undefined,
     isActive: Boolean(row.isActive),
+    themePreference: (row.themePreference as any) || 'system',
     createdAt: row.createdAt,
     lastLoginAt: row.lastLoginAt ?? undefined,
   };
@@ -3372,12 +3429,13 @@ export function createUserAccount(payload: UserCreatePayload): UserAccount {
       ? payload.defaultTenantId
       : validAllowed[0] ?? 'tenant-tms-001';
 
+  const themePreference = payload.themePreference ?? 'system';
   const id = `USR-${Date.now().toString().slice(-6)}`;
   const createdAt = new Date().toISOString();
 
   db.prepare(
-    `INSERT INTO users (id, username, email, fullName, passwordHash, role, shiftLabel, allowedTenantIdsJson, defaultTenantId, isActive, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO users (id, username, email, fullName, passwordHash, role, shiftLabel, allowedTenantIdsJson, defaultTenantId, isActive, themePreference, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     username,
@@ -3389,6 +3447,7 @@ export function createUserAccount(payload: UserCreatePayload): UserAccount {
     JSON.stringify(validAllowed),
     defaultTenantId,
     isActive ? 1 : 0,
+    themePreference,
     createdAt
   );
 
@@ -3406,6 +3465,7 @@ export function updateUserAccount(id: string, payload: UserUpdatePayload, actorU
   const nextRole: UserRole = payload.role !== undefined ? payload.role : existingRow.role;
   const nextShift = payload.shiftLabel !== undefined ? payload.shiftLabel.trim() || existingRow.shiftLabel : existingRow.shiftLabel;
   const nextIsActive = payload.isActive !== undefined ? Boolean(payload.isActive) : Boolean(existingRow.isActive);
+  const nextThemePreference = payload.themePreference !== undefined ? payload.themePreference : (existingRow.themePreference || 'system');
 
   if (!nextEmail || !nextEmail.includes('@')) {
     throw new Error('Alamat email pengguna tidak valid.');
@@ -3469,7 +3529,7 @@ export function updateUserAccount(id: string, payload: UserUpdatePayload, actorU
 
   db.prepare(
     `UPDATE users
-     SET email = ?, fullName = ?, passwordHash = ?, role = ?, shiftLabel = ?, allowedTenantIdsJson = ?, defaultTenantId = ?, isActive = ?
+     SET email = ?, fullName = ?, passwordHash = ?, role = ?, shiftLabel = ?, allowedTenantIdsJson = ?, defaultTenantId = ?, isActive = ?, themePreference = ?
      WHERE id = ?`
   ).run(
     nextEmail,
@@ -3480,6 +3540,7 @@ export function updateUserAccount(id: string, payload: UserUpdatePayload, actorU
     JSON.stringify(validAllowed),
     nextDefaultTenantId,
     nextIsActive ? 1 : 0,
+    nextThemePreference,
     id
   );
 

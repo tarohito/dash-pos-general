@@ -1,3 +1,4 @@
+import http from 'http';
 import express from 'express';
 import compression from 'compression';
 import path from 'path';
@@ -321,7 +322,15 @@ app.post('/api/products', requireRoles('owner', 'branch_manager'), (req, res) =>
     const category = (body.category ?? '').trim() || 'Parfum';
     const berat = Number(body.berat);
     const harga = Math.round(Number(body.harga));
+    const hpp = body.hpp !== undefined && Number(body.hpp) >= 0 ? Math.round(Number(body.hpp)) : 0;
     const stok = Math.max(0, Math.round(Number(body.stok ?? 0)));
+    const brand = (body.brand ?? 'No Brand').trim() || 'No Brand';
+    const kondisi = body.kondisi === 'Bekas' ? 'Bekas' : 'Baru';
+    const deskripsi = (body.deskripsi ?? '').trim();
+    const panjang = Number(body.panjang) > 0 ? Number(body.panjang) : 0;
+    const lebar = Number(body.lebar) > 0 ? Number(body.lebar) : 0;
+    const tinggi = Number(body.tinggi) > 0 ? Number(body.tinggi) : 0;
+    const status = body.status === 'Nonaktif' ? 'Nonaktif' : 'Aktif';
     const image =
       (body.image ?? '').trim() ||
       '/assets/products/parfum.jpg';
@@ -350,10 +359,28 @@ app.post('/api/products', requireRoles('owner', 'branch_manager'), (req, res) =>
     const createTx = db.transaction(() => {
       db.prepare('INSERT OR IGNORE INTO categories (name, sortOrder) VALUES (?, 99)').run(category);
       const info = db
-        .prepare('INSERT INTO products (tenantId, sku, name, berat, harga, stok, category, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-        .run(tenantId, sku, name, berat, harga, stok, category, image);
+        .prepare(`
+          INSERT INTO products (
+            tenantId, sku, name, berat, harga, hpp, stok, category, image,
+            brand, kondisi, deskripsi, panjang, lebar, tinggi, status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `)
+        .run(
+          tenantId, sku, name, berat, harga, hpp, stok, category, image,
+          brand, kondisi, deskripsi, panjang, lebar, tinggi, status
+        );
       return db
-        .prepare('SELECT id, sku, name, berat, harga, stok, category, image FROM products WHERE id = ?')
+        .prepare(`
+          SELECT id, sku, name, berat, harga, COALESCE(hpp, 0) AS hpp, stok, category, image,
+                 COALESCE(brand, 'No Brand') AS brand,
+                 COALESCE(kondisi, 'Baru') AS kondisi,
+                 COALESCE(deskripsi, '') AS deskripsi,
+                 COALESCE(panjang, 0) AS panjang,
+                 COALESCE(lebar, 0) AS lebar,
+                 COALESCE(tinggi, 0) AS tinggi,
+                 COALESCE(status, 'Aktif') AS status
+          FROM products WHERE id = ?
+        `)
         .get(info.lastInsertRowid) as Product;
     });
 
@@ -386,7 +413,15 @@ app.put('/api/products/:id', requireRoles('owner', 'branch_manager'), (req, res)
     const category = (body.category ?? existing.category).trim() || existing.category;
     const berat = body.berat !== undefined ? Number(body.berat) : existing.berat;
     const harga = body.harga !== undefined ? Math.round(Number(body.harga)) : existing.harga;
+    const hpp = body.hpp !== undefined ? Math.max(0, Math.round(Number(body.hpp))) : (existing.hpp ?? 0);
     const stok = body.stok !== undefined ? Math.max(0, Math.round(Number(body.stok))) : existing.stok;
+    const brand = body.brand !== undefined ? (body.brand.trim() || 'No Brand') : (existing.brand ?? 'No Brand');
+    const kondisi = body.kondisi !== undefined ? (body.kondisi === 'Bekas' ? 'Bekas' : 'Baru') : (existing.kondisi ?? 'Baru');
+    const deskripsi = body.deskripsi !== undefined ? body.deskripsi.trim() : (existing.deskripsi ?? '');
+    const panjang = body.panjang !== undefined ? Math.max(0, Number(body.panjang)) : (existing.panjang ?? 0);
+    const lebar = body.lebar !== undefined ? Math.max(0, Number(body.lebar)) : (existing.lebar ?? 0);
+    const tinggi = body.tinggi !== undefined ? Math.max(0, Number(body.tinggi)) : (existing.tinggi ?? 0);
+    const status = body.status !== undefined ? (body.status === 'Nonaktif' ? 'Nonaktif' : 'Aktif') : (existing.status ?? 'Aktif');
     const image = (body.image ?? existing.image).trim() || existing.image;
 
     if (!sku || !name || !Number.isFinite(berat) || berat <= 0 || !Number.isFinite(harga) || harga <= 0) {
@@ -404,11 +439,28 @@ app.put('/api/products/:id', requireRoles('owner', 'branch_manager'), (req, res)
 
     const updateTx = db.transaction(() => {
       db.prepare('INSERT OR IGNORE INTO categories (name, sortOrder) VALUES (?, 99)').run(category);
-      db.prepare(
-        'UPDATE products SET sku = ?, name = ?, berat = ?, harga = ?, stok = ?, category = ?, image = ? WHERE id = ? AND tenantId = ?'
-      ).run(sku, name, berat, harga, stok, category, image, id, tenantId);
+      db.prepare(`
+        UPDATE products
+        SET sku = ?, name = ?, berat = ?, harga = ?, hpp = ?, stok = ?, category = ?, image = ?,
+            brand = ?, kondisi = ?, deskripsi = ?, panjang = ?, lebar = ?, tinggi = ?, status = ?
+        WHERE id = ? AND tenantId = ?
+      `).run(
+        sku, name, berat, harga, hpp, stok, category, image,
+        brand, kondisi, deskripsi, panjang, lebar, tinggi, status,
+        id, tenantId
+      );
       return db
-        .prepare('SELECT id, sku, name, berat, harga, stok, category, image FROM products WHERE id = ?')
+        .prepare(`
+          SELECT id, sku, name, berat, harga, COALESCE(hpp, 0) AS hpp, stok, category, image,
+                 COALESCE(brand, 'No Brand') AS brand,
+                 COALESCE(kondisi, 'Baru') AS kondisi,
+                 COALESCE(deskripsi, '') AS deskripsi,
+                 COALESCE(panjang, 0) AS panjang,
+                 COALESCE(lebar, 0) AS lebar,
+                 COALESCE(tinggi, 0) AS tinggi,
+                 COALESCE(status, 'Aktif') AS status
+          FROM products WHERE id = ?
+        `)
         .get(id) as Product;
     });
 
@@ -1826,11 +1878,17 @@ app.use('/api', (_req, res) => {
 
 async function startServer() {
   const PORT = Number(process.env.PORT) || 3000;
+  const httpServer = http.createServer(app);
 
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true, hmr: false, ws: false },
+      server: {
+        middlewareMode: true,
+        hmr: {
+          server: httpServer,
+        },
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -1842,7 +1900,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
   });
 }

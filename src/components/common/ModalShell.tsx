@@ -8,10 +8,10 @@ export const MODAL_FOOTER_END_CLASS =
   'flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2';
 
 export const MODAL_BTN_SECONDARY_CLASS =
-  'h-9 px-4 text-xs sm:text-sm font-semibold text-zinc-700 bg-white border border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.03)] disabled:opacity-50 disabled:cursor-not-allowed';
+  'h-9 px-4 text-xs sm:text-sm font-semibold text-zinc-700 bg-zinc-100 hover:bg-zinc-200/80 hover:text-zinc-950 rounded-full border border-zinc-200/90 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed';
 
 export const MODAL_BTN_PRIMARY_CLASS =
-  'h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.08)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed';
+  'h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-full transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.08)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed';
 
 const SIZE_CLASSES: Record<ModalSize, string> = {
   sm: 'max-w-md',
@@ -115,7 +115,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
                 onClick={onClose}
                 disabled={disableEscapeClose}
                 aria-label="Tutup modal"
-                className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-800 hover:bg-zinc-200/70 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-8 h-8 aspect-square inline-flex items-center justify-center rounded-full text-zinc-400 hover:text-zinc-800 hover:bg-zinc-200/70 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <GoogleIcon name="close" size={18} />
               </button>
@@ -128,7 +128,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
 
         {/* Unified Modal Footer */}
         {footer && (
-          <div className="px-4 sm:px-5 py-3.5 bg-zinc-50 border-t border-zinc-200 shrink-0">
+          <div className="px-4 sm:px-5 py-3.5 bg-zinc-100/70 border-t border-zinc-200 shrink-0">
             {footer}
           </div>
         )}

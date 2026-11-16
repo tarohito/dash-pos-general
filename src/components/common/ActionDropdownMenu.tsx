@@ -243,7 +243,7 @@ export const ActionDropdownMenu: React.FC<ActionDropdownMenuProps> = ({
           aria-label={ariaLabel}
           aria-haspopup="menu"
           aria-expanded={isOpen}
-          className={`w-8 h-8 rounded-lg bg-zinc-100/90 hover:bg-zinc-200/80 text-zinc-600 hover:text-zinc-950 border border-zinc-200/80 hover:border-zinc-300 inline-flex items-center justify-center transition-colors cursor-pointer active:scale-95 disabled:opacity-45 disabled:cursor-not-allowed ${
+          className={`w-8 h-8 aspect-square rounded-full bg-zinc-100/90 hover:bg-zinc-200/80 text-zinc-600 hover:text-zinc-950 border border-zinc-200/80 hover:border-zinc-300 inline-flex items-center justify-center transition-colors cursor-pointer active:scale-95 disabled:opacity-45 disabled:cursor-not-allowed ${
             isOpen ? 'bg-zinc-200/80 text-zinc-950 border-zinc-300' : ''
           } ${buttonClassName}`}
         >

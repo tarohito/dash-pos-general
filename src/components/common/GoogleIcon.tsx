@@ -1,29 +1,183 @@
 import React from 'react';
-import type { MaterialSymbol } from 'material-symbols';
+import {
+  Landmark,
+  Wallet,
+  Plus,
+  Building2,
+  ArrowDown,
+  ArrowUp,
+  Scale,
+  Barcode,
+  ScanLine,
+  CircleX,
+  LayoutGrid,
+  MessageCircle,
+  Check,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Copy,
+  CreditCard,
+  Moon,
+  LayoutDashboard,
+  Trash2,
+  Box,
+  Monitor,
+  Download,
+  Pencil,
+  FileEdit,
+  AlertCircle,
+  Filter,
+  Users,
+  Info,
+  Package,
+  ChevronDown,
+  ChevronUp,
+  ChevronsLeft,
+  ChevronsRight,
+  Tag,
+  Layers,
+  Sun,
+  MapPin,
+  LogIn,
+  LogOut,
+  Mail,
+  UserCog,
+  Menu,
+  MoreHorizontal,
+  MoreVertical,
+  ExternalLink,
+  Palette,
+  Banknote,
+  Percent,
+  User,
+  Camera,
+  Printer,
+  Loader2,
+  QrCode,
+  Receipt,
+  Minus,
+  Save,
+  Clock,
+  Search,
+  BadgePercent,
+  Send,
+  Settings,
+  ShoppingBag,
+  ShoppingCart,
+  CircleStop,
+  Store,
+  ArrowUpDown,
+  RotateCw,
+  TrendingDown,
+  TrendingUp,
+  SlidersHorizontal,
+  Undo2,
+  Upload,
+  BadgeCheck,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  VolumeX,
+  Volume2,
+  AlertTriangle,
+  CircleHelp,
+  LucideIcon as LucideIconType,
+  LucideProps,
+} from 'lucide-react';
 
-export type GoogleIconName = MaterialSymbol;
-
-const SIZE_CLASS_MAP: Record<number, string> = {
-  11: '!text-[11px] w-[11px] h-[11px]',
-  12: '!text-[12px] w-3 h-3',
-  13: '!text-[13px] w-[13px] h-[13px]',
-  14: '!text-[14px] w-3.5 h-3.5',
-  15: '!text-[15px] w-[15px] h-[15px]',
-  16: '!text-[16px] w-4 h-4',
-  17: '!text-[17px] w-[17px] h-[17px]',
-  18: '!text-[18px] w-[18px] h-[18px]',
-  20: '!text-[20px] w-5 h-5',
-  22: '!text-[22px] w-[22px] h-[22px]',
-  24: '!text-[24px] w-6 h-6',
-  28: '!text-[28px] w-7 h-7',
-  32: '!text-[32px] w-8 h-8',
-  36: '!text-[36px] w-9 h-9',
-  48: '!text-[48px] w-12 h-12',
+export const LUCIDE_ICON_MAP: Record<string, LucideIconType> = {
+  account_balance: Landmark,
+  account_balance_wallet: Wallet,
+  add: Plus,
+  apartment: Building2,
+  arrow_downward: ArrowDown,
+  arrow_upward: ArrowUp,
+  balance: Scale,
+  barcode: Barcode,
+  barcode_scanner: ScanLine,
+  cancel: CircleX,
+  category: LayoutGrid,
+  chat: MessageCircle,
+  check: Check,
+  check_circle: CheckCircle2,
+  chevron_left: ChevronLeft,
+  chevron_right: ChevronRight,
+  close: X,
+  content_copy: Copy,
+  credit_card: CreditCard,
+  dark_mode: Moon,
+  dashboard: LayoutDashboard,
+  delete: Trash2,
+  deployed_code: Box,
+  desktop_windows: Monitor,
+  download: Download,
+  edit: Pencil,
+  edit_document: FileEdit,
+  error: AlertCircle,
+  filter_list: Filter,
+  group: Users,
+  info: Info,
+  inventory_2: Package,
+  keyboard_arrow_down: ChevronDown,
+  keyboard_arrow_up: ChevronUp,
+  keyboard_double_arrow_left: ChevronsLeft,
+  keyboard_double_arrow_right: ChevronsRight,
+  label: Tag,
+  layers: Layers,
+  light_mode: Sun,
+  location_on: MapPin,
+  login: LogIn,
+  logout: LogOut,
+  mail: Mail,
+  manage_accounts: UserCog,
+  menu: Menu,
+  more_horiz: MoreHorizontal,
+  more_vert: MoreVertical,
+  open_in_new: ExternalLink,
+  palette: Palette,
+  payments: Banknote,
+  percent: Percent,
+  person: User,
+  photo_camera: Camera,
+  plan: ShieldCheck,
+  print: Printer,
+  progress_activity: Loader2,
+  qr_code_2: QrCode,
+  receipt_long: Receipt,
+  remove: Minus,
+  save: Save,
+  schedule: Clock,
+  search: Search,
+  sell: BadgePercent,
+  send: Send,
+  settings: Settings,
+  shopping_bag: ShoppingBag,
+  shopping_cart: ShoppingCart,
+  stop_circle: CircleStop,
+  storefront: Store,
+  swap_vert: ArrowUpDown,
+  sync: RotateCw,
+  trending_down: TrendingDown,
+  trending_up: TrendingUp,
+  tune: SlidersHorizontal,
+  undo: Undo2,
+  upload: Upload,
+  verified: BadgeCheck,
+  verified_user: ShieldCheck,
+  visibility: Eye,
+  visibility_off: EyeOff,
+  volume_off: VolumeX,
+  volume_up: Volume2,
+  warning: AlertTriangle,
 };
 
-export interface GoogleIconProps extends Omit<React.HTMLAttributes<HTMLSpanElement>, 'children'> {
+export type GoogleIconName = keyof typeof LUCIDE_ICON_MAP | (string & {});
+
+export interface GoogleIconProps extends Omit<LucideProps, 'ref'> {
   name: GoogleIconName;
-  size?: number;
+  size?: number | string;
   filled?: boolean;
   bold?: boolean;
 }
@@ -34,19 +188,26 @@ export const GoogleIcon: React.FC<GoogleIconProps> = ({
   filled = false,
   bold = false,
   className = '',
+  strokeWidth,
+  fill = 'none',
   ...rest
 }) => {
-  const sizeClass = SIZE_CLASS_MAP[size] || SIZE_CLASS_MAP[18];
+  const IconComponent = LUCIDE_ICON_MAP[name] || CircleHelp;
+  // Lucide is a 24px stroke-based icon system; avoid solid SVG fill which distorts outlines
+  const computedStrokeWidth = strokeWidth ?? (bold || filled ? 2.25 : 2);
 
   return (
-    <span
+    <IconComponent
+      size={size}
+      strokeWidth={computedStrokeWidth}
+      fill={fill}
+      className={`shrink-0 select-none ${className}`}
       aria-hidden="true"
-      className={`material-symbols-rounded select-none inline-flex items-center justify-center leading-none shrink-0 ${
-        filled ? 'icon-filled' : ''
-      } ${bold ? 'icon-bold' : ''} ${sizeClass} ${className}`}
       {...rest}
-    >
-      {name}
-    </span>
+    />
   );
 };
+
+export const AppIcon = GoogleIcon;
+export const LucideIcon = GoogleIcon;
+export default GoogleIcon;

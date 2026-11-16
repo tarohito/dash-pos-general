@@ -1,11 +1,22 @@
+export type ProductCondition = 'Baru' | 'Bekas';
+export type ProductStatus = 'Aktif' | 'Nonaktif';
+
 export interface Product {
   id: number;
   sku: string;
   name: string;
-  berat: number;
-  harga: number;
-  stok: number;
-  category: string;
+  berat: number; // Berat / Netto paket dalam gram (standar ongkir Shopee)
+  harga: number; // Harga Jual (Rp)
+  hpp?: number; // Harga Pokok Penjualan / Modal (Rp)
+  stok: number; // Stok persediaan barang (pcs)
+  category: string; // Kategori produk
+  brand?: string; // Merek / Brand (Standar Shopee: e.g. "No Brand" atau nama merek)
+  kondisi?: ProductCondition; // Kondisi produk (Standar Shopee: Baru / Bekas)
+  deskripsi?: string; // Deskripsi detail / spesifikasi produk
+  panjang?: number; // Dimensi paket P (cm)
+  lebar?: number; // Dimensi paket L (cm)
+  tinggi?: number; // Dimensi paket T (cm)
+  status?: ProductStatus; // Status katalog (Aktif / Nonaktif)
   image: string;
   isPromo?: boolean;
   promoDiscountPercent?: number;
@@ -270,6 +281,7 @@ export interface DashboardSummaryResponse {
 }
 
 export type UserRole = 'owner' | 'branch_manager' | 'cashier';
+export type ThemeMode = 'light' | 'dark' | 'system';
 
 export interface UserAccount {
   id: string;
@@ -281,6 +293,7 @@ export interface UserAccount {
   allowedTenantIds: string[];
   defaultTenantId?: string;
   isActive: boolean;
+  themePreference?: ThemeMode;
   createdAt: string;
   lastLoginAt?: string;
 }
@@ -295,6 +308,7 @@ export interface UserCreatePayload {
   allowedTenantIds: string[];
   defaultTenantId?: string;
   isActive: boolean;
+  themePreference?: ThemeMode;
 }
 
 export interface UserUpdatePayload {
@@ -306,6 +320,7 @@ export interface UserUpdatePayload {
   allowedTenantIds?: string[];
   defaultTenantId?: string;
   isActive?: boolean;
+  themePreference?: ThemeMode;
 }
 
 export interface UsersPageResponse extends PaginatedResponse<UserAccount> {

@@ -31,27 +31,27 @@ Aplikasi Point of Sale (POS) dan manajemen inventaris berbasis web untuk berbaga
 
 - **Frontend**: React 19, TypeScript
 - **Styling**: Tailwind CSS
-- **Backend**: Node.js, Express, SQLite (`better-sqlite3`)
-- **Icons & UI**: Lucide React, Tippy.js
-- **Tooling**: Vite, TypeScript (`tsx`)
+- **Backend & Runtime**: Bun, Express, SQLite (`bun:sqlite`)
+- **Icons & UI**: Material Symbols, Tippy.js
+- **Tooling**: Vite, TypeScript, Bun
 
 ---
 
 ## Memulai Proyek
 
 ### Prasyarat
-- [Node.js](https://nodejs.org/) (versi 18+)
+- [Bun](https://bun.sh/) (versi 1.1+) atau [Node.js](https://nodejs.org/) (versi 18+)
 
-### Instalasi & Menjalankan
+### Instalasi & Menjalankan (dengan Bun)
 
 1. Pasang dependensi:
    ```bash
-   npm install
+   bun install
    ```
 
 2. Jalankan server pengembangan lokal:
    ```bash
-   npm run dev
+   bun run dev
    ```
 
 3. Buka di peramban:
@@ -62,7 +62,7 @@ Aplikasi Point of Sale (POS) dan manajemen inventaris berbasis web untuk berbaga
 ### Build Produksi
 
 ```bash
-npm run build
+bun run build
 ```
 
 ---

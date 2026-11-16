@@ -539,7 +539,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
               {activeBatch && (
                 <span
                   className={`px-1.5 py-0.5 rounded text-xs font-mono font-bold ${
-                    activeTab === 'queue' ? 'bg-zinc-900 text-white' : 'bg-zinc-200 text-zinc-700'
+                    activeTab === 'queue' ? 'bg-primary text-white' : 'bg-zinc-200 text-zinc-700'
                   }`}
                 >
                   {activeBatch.sentCount}/{activeBatch.totalRecipients}
@@ -693,13 +693,13 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                   onClick={() => setAudienceMode('all')}
                   className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
                     audienceMode === 'all'
-                      ? 'bg-zinc-50 border-zinc-900 ring-1 ring-zinc-900'
+                      ? 'bg-primary-soft border-primary ring-1 ring-primary'
                       : 'bg-white border-zinc-200 hover:border-zinc-300'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs sm:text-sm font-semibold text-zinc-900">Semua Pelanggan</span>
-                    <GoogleIcon name="group" size={14} className={audienceMode === 'all' ? 'text-zinc-900' : 'text-zinc-400'} />
+                    <GoogleIcon name="group" size={14} className={audienceMode === 'all' ? 'text-primary' : 'text-zinc-400'} />
                   </div>
                   <p className="text-xs text-zinc-500 mt-0.5 font-mono">{segmentCounts.total} nomor WA</p>
                 </button>
@@ -709,13 +709,13 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                   onClick={() => setAudienceMode('segment')}
                   className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
                     audienceMode === 'segment'
-                      ? 'bg-zinc-50 border-zinc-900 ring-1 ring-zinc-900'
+                      ? 'bg-primary-soft border-primary ring-1 ring-primary'
                       : 'bg-white border-zinc-200 hover:border-zinc-300'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs sm:text-sm font-semibold text-zinc-900">Per Segmen</span>
-                    <GoogleIcon name="group" size={14} className={audienceMode === 'segment' ? 'text-zinc-900' : 'text-zinc-400'} />
+                    <GoogleIcon name="group" size={14} className={audienceMode === 'segment' ? 'text-primary' : 'text-zinc-400'} />
                   </div>
                   <p className="text-xs text-zinc-500 mt-0.5">VIP, Reguler, Mitra</p>
                 </button>
@@ -725,16 +725,13 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                   onClick={() => setAudienceMode('selected')}
                   className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
                     audienceMode === 'selected'
-                      ? 'bg-zinc-50 border-zinc-900 ring-1 ring-zinc-900'
+                      ? 'bg-primary-soft border-primary ring-1 ring-primary'
                       : 'bg-white border-zinc-200 hover:border-zinc-300'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs sm:text-sm font-semibold text-zinc-900">Pilih Beberapa</span>
-                    <GoogleIcon name="check_circle" size={14}
-                     
-                      className={audienceMode === 'selected' ? 'text-zinc-900' : 'text-zinc-400'}
-                    />
+                    <GoogleIcon name="check_circle" size={14} className={audienceMode === 'selected' ? 'text-primary' : 'text-zinc-400'} />
                   </div>
                   <p className="text-xs text-zinc-500 mt-0.5 font-mono">
                     {selectedCustomerIds.length} dipilih manual
@@ -770,7 +767,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                         value={customerSearch}
                         onChange={e => setCustomerSearch(e.target.value)}
                         placeholder="Cari nama, kode member, atau nomor WA..."
-                        className="w-full h-9 pl-8 pr-3 text-xs sm:text-sm border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                        className="w-full h-9 pl-8 pr-3 text-xs sm:text-sm border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap shrink-0">
@@ -919,7 +916,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                 rows={5}
                 value={messageTemplate}
                 onChange={e => setMessageTemplate(e.target.value)}
-                className="w-full p-3 text-sm text-zinc-800 bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 leading-relaxed"
+                className="w-full p-3 text-sm text-zinc-800 bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 leading-relaxed"
                 placeholder="Tulis pesan broadcast promo..."
               />
 
@@ -1053,7 +1050,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                   value={queueSearch}
                   onChange={e => setQueueSearch(e.target.value)}
                   placeholder="Cari penerima di antrean..."
-                  className="w-full h-9 pl-8 pr-3 text-xs sm:text-sm border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                  className="w-full h-9 pl-8 pr-3 text-xs sm:text-sm border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
 

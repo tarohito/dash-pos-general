@@ -31,17 +31,27 @@ export const SortableTh: React.FC<SortableThProps> = ({
       ? 'justify-center'
       : 'justify-start';
 
+  const textAlignClass =
+    align === 'right'
+      ? 'text-right'
+      : align === 'center'
+      ? 'text-center'
+      : 'text-left';
+
   return (
-    <th className={className} aria-sort={isActive ? (currentSortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+    <th
+      className={`${textAlignClass} ${className}`}
+      aria-sort={isActive ? (currentSortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className={`group w-full inline-flex items-center gap-1.5 ${justifyClass} uppercase font-semibold tracking-wider text-xs cursor-pointer transition-colors select-none ${
+        className={`group w-full inline-flex items-center gap-1.5 ${justifyClass} uppercase font-semibold tracking-wider text-xs cursor-pointer transition-colors select-none whitespace-nowrap ${
           isActive ? 'text-zinc-950' : 'text-zinc-500 hover:text-zinc-800'
         }`}
         title={`Urutkan berdasarkan ${label}`}
       >
-        <span>{label}</span>
+        <span className="whitespace-nowrap">{label}</span>
         {isActive ? (
           currentSortDir === 'asc' ? (
             <GoogleIcon name="arrow_upward" size={13} className="text-zinc-950 shrink-0" />

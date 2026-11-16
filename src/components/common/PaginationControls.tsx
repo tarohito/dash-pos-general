@@ -57,10 +57,10 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
   const visiblePages = getVisiblePages(safeCurrentPage, safeTotalPages);
 
   const navBtnClass =
-    'w-8 h-8 rounded-lg border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 hover:border-zinc-300 inline-flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40 disabled:bg-zinc-50 disabled:text-zinc-400 disabled:hover:bg-zinc-50 disabled:hover:text-zinc-400 disabled:hover:border-zinc-200 disabled:cursor-not-allowed active:scale-[0.97]';
+    'w-8 h-8 aspect-square rounded-full border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 hover:border-zinc-300 inline-flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40 disabled:bg-zinc-50 disabled:text-zinc-400 disabled:hover:bg-zinc-50 disabled:hover:text-zinc-400 disabled:hover:border-zinc-200 disabled:cursor-not-allowed active:scale-[0.97]';
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-gray-50/60 border-t border-gray-200 text-xs text-gray-600">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-1 sm:px-2 py-3 border-t border-zinc-200 text-xs text-zinc-600">
       {/* Left: Range Info & Page Size Selector */}
       <div className="flex items-center gap-2.5 flex-wrap justify-center sm:justify-start">
         <span className="text-gray-500">
@@ -118,7 +118,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
         </button>
 
         {/* Mobile Compact Page Indicator */}
-        <span className="sm:hidden h-8 px-3 inline-flex items-center justify-center rounded-lg bg-white border border-gray-200 font-mono font-bold text-gray-800 text-xs tabular-nums">
+        <span className="sm:hidden h-8 px-3 inline-flex items-center justify-center rounded-full bg-white border border-gray-200 font-mono font-bold text-gray-800 text-xs tabular-nums">
           {safeCurrentPage} / {safeTotalPages}
         </span>
 
@@ -130,7 +130,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
                 <span
                   key={token}
                   aria-hidden="true"
-                  className="w-7 h-8 inline-flex items-center justify-center text-gray-400 select-none"
+                  className="w-8 h-8 aspect-square inline-flex items-center justify-center text-gray-400 select-none"
                 >
                   <GoogleIcon name="more_horiz" size={14} />
                 </span>
@@ -148,9 +148,9 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
                 }}
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={`Halaman ${token}`}
-                className={`min-w-[32px] h-8 px-2 rounded-lg font-mono text-xs inline-flex items-center justify-center transition-colors tabular-nums disabled:opacity-60 ${
+                className={`w-8 h-8 aspect-square rounded-full font-mono text-xs inline-flex items-center justify-center transition-colors tabular-nums disabled:opacity-60 ${
                   isActive
-                    ? 'bg-zinc-900 text-white border border-zinc-900 font-bold shadow-[0_1px_2px_rgba(0,0,0,0.08)] cursor-default'
+                    ? 'bg-primary text-white border border-primary font-bold shadow-[0_1px_2px_rgba(0,0,0,0.08)] cursor-default'
                     : 'bg-white text-zinc-700 border border-zinc-200 hover:bg-zinc-100 hover:text-zinc-950 hover:border-zinc-300 font-semibold cursor-pointer active:scale-[0.97]'
                 }`}
               >

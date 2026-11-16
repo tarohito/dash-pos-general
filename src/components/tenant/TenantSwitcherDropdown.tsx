@@ -104,7 +104,7 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
                   setIsOpen(false);
                   onOpenRegisterModal();
                 }}
-                className="w-full py-1.5 px-2 text-xs font-bold text-zinc-900 hover:bg-zinc-100 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-1.5 px-2 text-xs font-bold text-primary hover:bg-primary-soft/50 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <GoogleIcon name="add" size={14} className="shrink-0" />
                 <span>Daftar Tenant Baru</span>

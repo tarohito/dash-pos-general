@@ -79,35 +79,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="space-y-4 pb-6">
-      {/* Hero Banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-primary-border bg-gradient-to-r from-primary-soft/80 via-white to-secondary-soft/60 p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="max-w-xl">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-accent-soft text-accent-text border border-accent-border text-xs font-bold uppercase tracking-wider mb-2">
-            Ringkasan Real-Time
-          </div>
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-950 leading-tight tracking-tight">
-            Kelola Penjualan dan Stok dalam Satu Sistem
-          </h2>
-          <p className="text-xs sm:text-sm text-zinc-600 mt-1.5 leading-relaxed">
-            Pantau transaksi kasir, manajemen inventaris, dan performa multi-outlet secara real-time dalam tampilan yang ringkas.
-          </p>
-        </div>
-        <div className="shrink-0">
-          <button
-            type="button"
-            onClick={() => setIsCsModalOpen(true)}
-            className="h-9 px-4 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-xl transition-all inline-flex items-center justify-center whitespace-nowrap cursor-pointer shadow-xs active:scale-[0.98]"
-          >
-            Berlangganan Sekarang
-          </button>
-        </div>
-      </div>
-
-      {/* Top Header Card */}
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Page Header (Unboxed, Tanpa Card) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h3 className="text-base sm:text-lg font-bold text-zinc-950 leading-tight">
+            <h3 className="text-lg sm:text-xl font-bold text-zinc-950 leading-tight">
               Ringkasan Penjualan {period === 'HARI' ? 'Harian' : 'Bulanan'}
             </h3>
             <span className="text-xs text-zinc-400" aria-hidden="true">&middot;</span>
@@ -123,11 +99,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
 
-        <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-xl border border-zinc-200/80 self-start sm:self-auto items-center shrink-0">
+        <div className="inline-flex h-9 p-0.5 bg-white/90 rounded-full border border-zinc-200 self-start sm:self-auto items-center shrink-0 shadow-2xs">
           <button
             type="button"
             onClick={() => setPeriod('HARI')}
-            className={`h-full px-3.5 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center ${
+            className={`h-full px-3.5 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center ${
               period === 'HARI'
                 ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                 : 'text-zinc-500 hover:text-zinc-900'
@@ -138,7 +114,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <button
             type="button"
             onClick={() => setPeriod('BULAN')}
-            className={`h-full px-3.5 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center ${
+            className={`h-full px-3.5 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center ${
               period === 'BULAN'
                 ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                 : 'text-zinc-500 hover:text-zinc-900'

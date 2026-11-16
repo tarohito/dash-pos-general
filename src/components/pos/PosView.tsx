@@ -187,27 +187,29 @@ export const PosView: React.FC<PosViewProps> = ({
   return (
     <div className="flex flex-col lg:flex-row flex-1 min-h-0 w-full gap-2 sm:gap-3 relative overflow-hidden">
       {/* Mobile/Tablet Segmented View Switcher */}
-      <div className="lg:hidden flex items-center p-1 bg-zinc-200/70 border border-zinc-200 rounded-xl shrink-0">
+      <div className="lg:hidden flex items-center p-1 bg-zinc-200/70 border border-zinc-200 rounded-full shrink-0">
         <button
           type="button"
           onClick={() => setMobileTab('catalog')}
-          className={`flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px] ${
+          className={`flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-full transition-colors flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px] ${
             mobileTab === 'catalog'
-              ? 'bg-white text-zinc-950'
+              ? 'bg-primary text-white shadow-sm'
               : 'text-zinc-600 hover:text-zinc-950'
           }`}
         >
           <span>Katalog Produk</span>
-          <span className="text-xs px-2 py-0.5 bg-zinc-100 rounded-full font-semibold">
+          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+            mobileTab === 'catalog' ? 'bg-white/20 text-white' : 'bg-zinc-100'
+          }`}>
             {totalFiltered}
           </span>
         </button>
         <button
           type="button"
           onClick={() => setMobileTab('cart')}
-          className={`flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px] ${
+          className={`flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-full transition-colors flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px] ${
             mobileTab === 'cart'
-              ? 'bg-white text-zinc-950'
+              ? 'bg-primary text-white shadow-sm'
               : 'text-zinc-600 hover:text-zinc-950'
           }`}
         >
@@ -222,12 +224,12 @@ export const PosView: React.FC<PosViewProps> = ({
 
       {/* Catalog Panel */}
       <div
-        className={`flex-1 min-h-0 flex flex-col min-w-0 bg-white rounded-xl border border-zinc-200 overflow-hidden ${
+        className={`flex-1 min-h-0 flex flex-col min-w-0 ${
           mobileTab === 'cart' ? 'hidden lg:flex' : 'flex'
         }`}
       >
         {/* Search & Action Bar */}
-        <div className="p-2.5 sm:p-3 border-b border-zinc-200 bg-zinc-50 flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <div className="pb-2.5 sm:pb-3 flex items-center gap-2 sm:gap-2.5 shrink-0">
           {/* Button Filter Kategori */}
           <div className="relative" ref={categoryDropdownRef}>
             <button
@@ -235,7 +237,7 @@ export const PosView: React.FC<PosViewProps> = ({
               onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
               aria-haspopup="listbox"
               aria-expanded={isCategoryDropdownOpen}
-              className={`h-9 px-3 rounded-lg border text-xs sm:text-sm font-semibold inline-flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+              className={`h-9 px-3 rounded-full border text-xs sm:text-sm font-semibold inline-flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
                 isCategoryDropdownOpen
                   ? 'bg-primary-soft border-primary text-primary-text'
                   : selectedCategory !== 'Semua'
@@ -340,7 +342,7 @@ export const PosView: React.FC<PosViewProps> = ({
           <button
             type="button"
             onClick={onOpenScanModal}
-            className="h-9 px-3.5 bg-secondary-soft/75 hover:bg-secondary-soft border border-secondary-border text-secondary-text rounded-lg text-xs sm:text-sm font-semibold inline-flex items-center justify-center transition-colors cursor-pointer shrink-0"
+            className="h-9 px-3.5 bg-secondary-soft/75 hover:bg-secondary-soft border border-secondary-border text-secondary-text rounded-full text-xs sm:text-sm font-semibold inline-flex items-center justify-center transition-colors cursor-pointer shrink-0"
             title="Buka Scanner Barcode"
           >
             <GoogleIcon name="barcode_scanner" size={16} className="mr-1.5 text-secondary shrink-0" />
@@ -351,7 +353,7 @@ export const PosView: React.FC<PosViewProps> = ({
 
         {/* Active Filters Banner */}
         {(selectedCategory !== 'Semua' || isPromoOnlyFilter) && (
-          <div className="bg-zinc-50 border-b border-zinc-200 px-3 py-2 flex items-center justify-between text-xs sm:text-sm text-zinc-800 shrink-0 flex-wrap gap-2">
+          <div className="pb-2.5 flex items-center justify-between text-xs sm:text-sm text-zinc-800 shrink-0 flex-wrap gap-2">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-zinc-500 font-medium">Filter Aktif:</span>
               {selectedCategory !== 'Semua' && (
@@ -360,7 +362,7 @@ export const PosView: React.FC<PosViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setSelectedCategory('Semua')}
-                    className="hover:text-red-600 ml-0.5 cursor-pointer"
+                    className="w-4 h-4 aspect-square rounded-full inline-flex items-center justify-center hover:bg-black/10 ml-0.5 cursor-pointer"
                     title="Hapus filter kategori"
                   >
                     <GoogleIcon name="close" size={12} />
@@ -368,12 +370,12 @@ export const PosView: React.FC<PosViewProps> = ({
                 </span>
               )}
               {isPromoOnlyFilter && (
-                <span className="inline-flex items-center gap-1 bg-accent text-white px-2 py-0.5 rounded-md text-xs font-semibold">
+                <span className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2.5 py-0.5 rounded-md text-xs font-semibold shadow-xs">
                   Khusus Promo ({promoCount} item)
                   <button
                     type="button"
                     onClick={() => setIsPromoOnlyFilter(false)}
-                    className="hover:text-white/80 ml-0.5 cursor-pointer"
+                    className="w-4 h-4 aspect-square rounded-full inline-flex items-center justify-center hover:bg-white/20 ml-0.5 cursor-pointer"
                     title="Hapus filter promo"
                   >
                     <GoogleIcon name="close" size={12} />
@@ -398,7 +400,7 @@ export const PosView: React.FC<PosViewProps> = ({
 
         {/* Product Grid */}
         <div
-          className={`flex-1 min-h-0 overflow-y-auto p-2.5 sm:p-3.5 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3.5 auto-rows-max ${
+          className={`flex-1 min-h-0 overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3.5 auto-rows-max ${
             totalCartQty > 0 ? 'pb-20 lg:pb-3.5' : ''
           }`}
         >
@@ -469,10 +471,10 @@ export const PosView: React.FC<PosViewProps> = ({
           <button
             type="button"
             onClick={() => setMobileTab('cart')}
-            className="w-full bg-primary hover:bg-primary-hover text-white p-3 rounded-xl shadow-[0_12px_28px_rgba(0,0,0,0.18)] flex items-center justify-between active:scale-[0.99] transition-all cursor-pointer"
+            className="w-full bg-primary hover:bg-primary-hover text-white p-3 rounded-full shadow-[0_12px_28px_rgba(0,0,0,0.18)] flex items-center justify-between active:scale-[0.99] transition-all cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-accent text-white flex items-center justify-center font-bold text-xs sm:text-sm font-mono">
+              <div className="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center font-bold text-xs sm:text-sm font-mono">
                 {totalCartQty}
               </div>
               <div className="text-left">
@@ -480,7 +482,7 @@ export const PosView: React.FC<PosViewProps> = ({
                 <p className="text-base font-bold font-mono tracking-tight mt-0.5">{formatIDR(grandTotal)}</p>
               </div>
             </div>
-            <div className="flex items-center text-xs sm:text-sm font-semibold bg-white text-primary px-3 py-1.5 rounded-lg">
+            <div className="flex items-center text-xs sm:text-sm font-semibold bg-white text-primary px-3 py-1.5 rounded-full">
               Buka Keranjang
             </div>
           </button>

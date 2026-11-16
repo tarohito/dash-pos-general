@@ -120,10 +120,10 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
 
   return (
     <div className="space-y-4 pb-8">
-      {/* Top Header Card */}
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Page Header (Unboxed, Tanpa Card) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">
             Kelola Multi-Outlet Bisnis
           </h3>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
@@ -136,7 +136,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
             <button
               type="button"
               onClick={onOpenRegisterModal}
-              className="h-9 px-4 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-xs shrink-0 active:scale-[0.98]"
+              className="h-9 px-4 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-full transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-xs shrink-0 active:scale-[0.98]"
             >
               <GoogleIcon name="add" size={16} />
               <span>Tambah Toko / Outlet Baru</span>
@@ -212,8 +212,8 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
         />
       </div>
 
-      {/* Search, Filter & Outlet Cards Workspace */}
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 space-y-4">
+      {/* Search, Filter & Outlet Cards Workspace (Unboxed, Tanpa Card Pembungkus) */}
+      <div className="space-y-4">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           <SearchInput
             value={searchQuery}
@@ -221,7 +221,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
             placeholder="Cari nama outlet, kode gerai, cabang, kota, atau kontak..."
           />
 
-          <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-xl border border-zinc-200 items-center self-start lg:self-auto overflow-x-auto max-w-full shrink-0">
+          <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-full border border-zinc-200 items-center self-start lg:self-auto overflow-x-auto max-w-full shrink-0">
             {[
               { id: 'all' as const, label: `Semua (${summary.totalTenants})` },
               { id: 'active' as const, label: `Aktif (${summary.activeCount})` },
@@ -232,7 +232,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => handleTabChange(tab.id)}
-                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
+                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   filterTab === tab.id
                     ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                     : 'text-zinc-600 hover:text-zinc-900'
@@ -246,7 +246,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
 
         {/* Outlet Card Grid or Empty State */}
         {visibleTenants.length === 0 ? (
-          <div className="border border-zinc-200/80 rounded-xl py-12 px-4 text-center text-gray-400 bg-zinc-50/50">
+          <div className="border border-zinc-200 rounded-2xl py-12 px-4 text-center text-gray-400 bg-white">
             <GoogleIcon name="storefront" size={36} className="mx-auto mb-2 text-gray-300" />
             <p className="text-sm font-semibold text-gray-600">Tidak ada outlet ditemukan</p>
             <p className="text-xs text-gray-400 mt-0.5 max-w-sm mx-auto">
@@ -468,7 +468,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                 ref={loadMoreRef}
                 className="col-span-full py-6 flex items-center justify-center text-xs text-gray-400 gap-2"
               >
-                <GoogleIcon name="progress_activity" size={16} className="animate-spin text-zinc-900" />
+                <GoogleIcon name="progress_activity" size={16} className="animate-spin text-primary" />
                 <span>
                   Memuat outlet lainnya ({visibleTenants.length} dari {filteredTenants.length})...
                 </span>

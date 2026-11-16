@@ -6,7 +6,6 @@ import '@fontsource/open-sans/400.css';
 import '@fontsource/open-sans/500.css';
 import '@fontsource/open-sans/600.css';
 import '@fontsource/open-sans/700.css';
-import 'material-symbols/rounded.css';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(

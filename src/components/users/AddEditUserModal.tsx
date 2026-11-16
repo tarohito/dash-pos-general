@@ -187,7 +187,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      size="lg"
+      size="xl"
       title={isEdit ? `Edit Akun: ${editingUser?.fullName}` : 'Tambah Pengguna & Hak Akses Baru'}
       subtitle="Atur identitas login, jabatan (role), jadwal shift, serta cabang outlet yang boleh diakses."
       disableEscapeClose={isSubmitting}
@@ -240,7 +240,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                 value={fullName}
                 onChange={e => setFullName(e.target.value)}
                 placeholder="Contoh: Siti Nurhaliza"
-                className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
@@ -254,7 +254,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                 disabled={isEdit}
                 onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
                 placeholder="contoh: kasir.sby"
-                className="w-full h-9 px-3 text-sm font-mono bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 disabled:bg-zinc-100 disabled:text-zinc-500"
+                className="w-full h-9 px-3 text-sm font-mono bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-zinc-100 disabled:text-zinc-500"
               />
             </div>
 
@@ -267,7 +267,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="nama@logicpos.id"
-                className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
@@ -282,13 +282,13 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder={isEdit ? 'Kosongkan jika tidak diubah' : 'Minimal 6 karakter'}
-                  className="w-full h-9 pl-3 pr-9 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                  className="w-full h-9 pl-3 pr-9 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
                 <button
                   type="button"
                   tabIndex={-1}
                   onClick={() => setShowPassword(p => !p)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 cursor-pointer"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 aspect-square rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-zinc-100 cursor-pointer"
                   aria-label="Toggle kata sandi"
                 >
                   {showPassword ? <GoogleIcon name="visibility_off" size={15} /> : <GoogleIcon name="visibility" size={15} />}
@@ -361,7 +361,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                     key={t.id}
                     className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-colors ${
                       checked
-                        ? 'bg-zinc-50 border-zinc-900 ring-1 ring-zinc-900 text-zinc-950'
+                        ? 'bg-primary-soft border-primary ring-1 ring-primary text-primary-text'
                         : 'bg-white border-zinc-200 hover:border-zinc-300 text-zinc-700'
                     }`}
                   >

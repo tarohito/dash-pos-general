@@ -163,11 +163,11 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
 
   return (
     <div className="space-y-4 pb-8">
-      {/* Top Header Card */}
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Page Header (Unboxed, Tanpa Card) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h3 className="text-base sm:text-lg font-bold text-zinc-950 leading-tight">
+            <h3 className="text-lg sm:text-xl font-bold text-zinc-950 leading-tight">
               Daftar Kategori Produk
             </h3>
             {isLoading && <GoogleIcon name="progress_activity" size={14} className="animate-spin text-primary" />}
@@ -181,7 +181,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
           <button
             type="button"
             onClick={onOpenAddCategoryModal}
-            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
+            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-full inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
           >
             <GoogleIcon name="add" size={16} />
             <span>Tambah Kategori</span>
@@ -189,16 +189,16 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
         </div>
       </div>
 
-      {/* Search, Filter & Table Workspace */}
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5">
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 mb-4">
+      {/* Search, Filter & Table Workspace (Unboxed, Tanpa Card Pembungkus) */}
+      <div className="space-y-3.5">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           <SearchInput
             value={search}
             onChange={handleSearchChange}
             placeholder="Cari nama kategori produk..."
           />
 
-          <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-xl border border-zinc-200 items-center overflow-x-auto max-w-full shrink-0">
+          <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-full border border-zinc-200 items-center overflow-x-auto max-w-full shrink-0">
             {[
               { id: 'all' as const, label: `Semua (${summary.totalCategories})` },
               { id: 'filled' as const, label: `Terisi (${summary.filledCount})` },
@@ -208,9 +208,9 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => handleStatusFilterChange(tab.id)}
-                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
+                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   statusFilter === tab.id
-                    ? 'bg-white text-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                    ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                     : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >
@@ -228,13 +228,13 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
           />
         )}
 
-        {/* Inner Table & Mobile Cards Container */}
-        <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+        {/* Table & Mobile Cards (Unboxed) */}
+        <div className="overflow-hidden">
           {/* MOBILE LIST CARDS (md:hidden) */}
-          <div className="md:hidden divide-y divide-zinc-100">
+          <div className="md:hidden divide-y divide-zinc-200/80 border-t border-zinc-200">
             {isLoading && rows.length === 0 ? (
               <div className="py-12 px-4 flex items-center justify-center gap-2 text-xs text-zinc-400">
-                <GoogleIcon name="progress_activity" size={18} className="animate-spin text-zinc-900" />
+                <GoogleIcon name="progress_activity" size={18} className="animate-spin text-primary" />
                 <span>Memuat daftar kategori...</span>
               </div>
             ) : paginatedItems.length === 0 ? (
@@ -337,7 +337,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
           {/* DESKTOP TABLE */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs sm:text-sm border-collapse">
-              <thead className="bg-gray-50/80 border-b border-gray-200 text-gray-500 uppercase font-semibold tracking-wider text-xs">
+              <thead className="border-b border-zinc-200 text-zinc-500 uppercase font-semibold tracking-wider text-xs">
                 <tr>
                   <SortableTh
                     label="Kategori Produk"
@@ -378,12 +378,12 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                   <th className="py-3 px-3 sm:px-4 text-center">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
+              <tbody className="divide-y divide-zinc-200/70 font-medium text-zinc-700">
                 {isLoading && rows.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-zinc-400">
                       <div className="inline-flex items-center gap-2">
-                        <GoogleIcon name="progress_activity" size={18} className="animate-spin text-zinc-900" />
+                        <GoogleIcon name="progress_activity" size={18} className="animate-spin text-primary" />
                         <span>Memuat daftar kategori...</span>
                       </div>
                     </td>
@@ -417,7 +417,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                     const sharePercent =
                       summary.totalSku > 0 ? Math.round((row.count / summary.totalSku) * 100) : 0;
                     return (
-                      <tr key={row.name} className="hover:bg-zinc-50/80 transition-colors">
+                      <tr key={row.name} className="hover:bg-zinc-100/60 transition-colors">
                         <td className="py-3.5 px-3.5 sm:px-4">
                           <div className="flex items-center gap-3">
                             <span className="w-9 h-9 rounded-lg bg-zinc-50 text-zinc-700 border border-zinc-200/80 flex items-center justify-center shrink-0">

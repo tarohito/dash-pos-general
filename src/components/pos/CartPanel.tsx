@@ -33,15 +33,15 @@ export const CartPanel: React.FC<CartPanelProps> = ({
   const totalQty = cart.reduce((acc, item) => acc + item.qty, 0);
 
   return (
-    <div className="w-full lg:w-[340px] xl:w-[370px] bg-white rounded-2xl border border-zinc-200 flex flex-col flex-1 min-h-0 overflow-hidden">
+    <div className="w-full lg:w-[340px] xl:w-[370px] flex flex-col flex-1 min-h-0">
       {/* Cart Header */}
-      <div className="p-3 sm:p-4 border-b border-zinc-200 flex items-center justify-between shrink-0 bg-zinc-50">
+      <div className="pb-2.5 sm:pb-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           {onBackToCatalog && (
             <button
               type="button"
               onClick={onBackToCatalog}
-              className="lg:hidden p-1.5 -ml-1 text-zinc-500 hover:text-zinc-950 rounded-lg min-w-[36px] min-h-[36px] flex items-center justify-center cursor-pointer"
+              className="lg:hidden w-9 h-9 aspect-square -ml-1 text-zinc-500 hover:text-zinc-950 rounded-full flex items-center justify-center cursor-pointer"
               title="Kembali ke Katalog"
             >
               <GoogleIcon name="chevron_left" size={20} />
@@ -57,7 +57,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
               <button
                 type="button"
                 onClick={onClearCart}
-                className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                className="w-8 h-8 aspect-square flex items-center justify-center text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
                 aria-label="Kosongkan Keranjang"
               >
                 <GoogleIcon name="delete" size={15} />
@@ -71,7 +71,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
       </div>
 
       {/* Cart Items */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-2.5 sm:p-3">
+      <div className="flex-1 min-h-0 overflow-y-auto pr-0.5 py-1">
         {cart.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-zinc-400">
             <GoogleIcon name="inventory_2" size={48} className="mb-3 opacity-20" />
@@ -82,7 +82,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
             {cart.map(item => (
               <div
                 key={item.id}
-                className="p-3 bg-zinc-50 hover:bg-zinc-100/80 border border-zinc-200 rounded-xl flex gap-3 group relative transition-colors"
+                className="p-3 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-xl flex gap-3 group relative transition-colors shadow-2xs"
               >
                 <div className="w-12 h-12 bg-white rounded-lg border border-zinc-200 flex items-center justify-center shrink-0">
                   <GoogleIcon name="deployed_code" size={20} className="text-zinc-400" />
@@ -102,13 +102,13 @@ export const CartPanel: React.FC<CartPanelProps> = ({
                         e.stopPropagation();
                         onRemoveItem(item.id);
                       }}
-                      className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center cursor-pointer"
+                      className="w-8 h-8 aspect-square text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors flex items-center justify-center cursor-pointer"
                       aria-label="Hapus item"
                     >
                       <GoogleIcon name="delete" size={16} />
                     </button>
                   </Tooltip>
-                  <div className="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-md p-1 mt-1.5">
+                  <div className="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-full p-1 mt-1.5">
                     <Tooltip content="Kurang" side="top" sideOffset={4}>
                       <button
                         type="button"
@@ -120,7 +120,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
                             onUpdateQty(item.id, -1);
                           }
                         }}
-                        className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-white rounded transition-all cursor-pointer active:scale-95"
+                        className="w-7 h-7 aspect-square flex items-center justify-center text-gray-600 hover:bg-zinc-100 rounded-full transition-all cursor-pointer active:scale-95"
                         aria-label="Kurang satu"
                       >
                         <GoogleIcon name="remove" size={13} />
@@ -134,7 +134,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
                           e.stopPropagation();
                           onUpdateQty(item.id, 1);
                         }}
-                        className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-white rounded transition-all cursor-pointer active:scale-95"
+                        className="w-7 h-7 aspect-square flex items-center justify-center text-gray-600 hover:bg-zinc-100 rounded-full transition-all cursor-pointer active:scale-95"
                         aria-label="Tambah satu"
                       >
                         <GoogleIcon name="add" size={13} />
@@ -149,7 +149,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
       </div>
 
       {/* Cart Totals */}
-      <div className="p-3 sm:p-4 bg-zinc-50 border-t border-zinc-200 shrink-0">
+      <div className="p-3 sm:p-4 bg-white border border-zinc-200 rounded-2xl shrink-0 mt-2 shadow-2xs">
         <div className="space-y-1 sm:space-y-1.5 mb-2.5 sm:mb-3">
           <div className="flex items-center justify-between gap-3 text-xs sm:text-sm">
             <span className="text-gray-600 font-medium shrink-0">Subtotal</span>
@@ -189,7 +189,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
           type="button"
           onClick={onOpenPaymentModal}
           disabled={cart.length === 0}
-          className="w-full h-11 bg-primary hover:bg-primary-hover disabled:bg-zinc-200 disabled:text-zinc-400 text-white font-semibold rounded-xl transition-all inline-flex justify-center items-center cursor-pointer disabled:cursor-not-allowed text-sm active:scale-[0.99] shadow-xs"
+          className="w-full h-11 bg-primary hover:bg-primary-hover disabled:bg-zinc-200 disabled:text-zinc-400 text-white font-semibold rounded-full transition-all inline-flex justify-center items-center cursor-pointer disabled:cursor-not-allowed text-sm active:scale-[0.99] shadow-xs"
         >
           <GoogleIcon name="credit_card" size={17} className="mr-2 shrink-0" />
           <span>Proses Pembayaran ({totalQty} Item)</span>

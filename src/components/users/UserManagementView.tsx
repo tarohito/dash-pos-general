@@ -26,6 +26,7 @@ import {
 interface UserManagementViewProps {
   currentUser: UserAccount;
   tenants: Tenant[];
+  onUpdateCurrentUser?: (user: UserAccount) => void;
 }
 
 const ROLE_META: Record<UserRole, { label: string; badgeClass: string }> = {
@@ -46,6 +47,7 @@ const ROLE_META: Record<UserRole, { label: string; badgeClass: string }> = {
 export const UserManagementView: React.FC<UserManagementViewProps> = ({
   currentUser,
   tenants,
+  onUpdateCurrentUser,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 220);
@@ -132,6 +134,9 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       if (editId) {
         const updated = await posApi.updateUser(editId, payload as UserUpdatePayload);
         showToast('success', `Akun "${updated.fullName}" berhasil diperbarui.`);
+        if (editId === currentUser.id) {
+          onUpdateCurrentUser?.(updated);
+        }
       } else {
         const created = await posApi.createUser(payload as UserCreatePayload);
         showToast('success', `Akun "${created.fullName}" berhasil dibuat.`);
@@ -191,14 +196,14 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
   return (
     <div className="space-y-4 pb-8">
-      {/* 1. HEADER SECTION */}
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* 1. HEADER SECTION (Unboxed, Tanpa Card) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">
               Manajemen Pengguna &amp; Hak Akses
             </h3>
-            {isLoading && <GoogleIcon name="progress_activity" size={14} className="animate-spin text-zinc-900" />}
+            {isLoading && <GoogleIcon name="progress_activity" size={14} className="animate-spin text-primary" />}
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
             Kelola akun staf kasir, kepala cabang, jadwal shift, dan pembatasan akses per outlet toko.
@@ -212,7 +217,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
               setEditingUser(null);
               setIsModalOpen(true);
             }}
-            className="h-9 px-4 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer shadow-xs shrink-0 inline-flex items-center justify-center gap-1.5 active:scale-[0.98]"
+            className="h-9 px-4 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-full transition-colors cursor-pointer shadow-xs shrink-0 inline-flex items-center justify-center gap-1.5 active:scale-[0.98]"
           >
             <GoogleIcon name="add" size={16} />
             <span>Tambah Pengguna Baru</span>
@@ -287,17 +292,17 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
         />
       </div>
 
-      {/* 3. TABLE WORKSPACE CARD */}
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5">
+      {/* 3. TABLE WORKSPACE (Unboxed, Tanpa Card Pembungkus) */}
+      <div className="space-y-3.5">
         {/* Toolbar Pencarian & Segmented Tabs */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 mb-4">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
             placeholder="Cari nama, username, email, atau shift..."
           />
 
-          <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-xl border border-zinc-200 items-center self-start md:self-auto shrink-0 overflow-x-auto max-w-full">
+          <div className="inline-flex h-9 p-0.5 bg-zinc-100 rounded-full border border-zinc-200 items-center self-start md:self-auto shrink-0 overflow-x-auto max-w-full">
             {(
               [
                 { id: 'all', label: 'Semua' },
@@ -310,7 +315,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => setRoleFilter(tab.id)}
-                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
+                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
                   roleFilter === tab.id
                     ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                     : 'text-zinc-600 hover:text-zinc-900'
@@ -330,11 +335,11 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
           />
         )}
 
-        {/* Inner Table & Mobile Cards Container */}
-        <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
+        {/* Table & Mobile Cards (Unboxed) */}
+        <div className="overflow-hidden">
           {isLoading && items.length === 0 ? (
             <div className="p-12 text-center text-gray-500 flex items-center justify-center gap-2 text-xs sm:text-sm">
-              <GoogleIcon name="progress_activity" size={18} className="animate-spin text-zinc-900" />
+              <GoogleIcon name="progress_activity" size={18} className="animate-spin text-primary" />
               <span>Memuat data pengguna...</span>
             </div>
           ) : items.length === 0 ? (
@@ -353,7 +358,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                     setSearchQuery('');
                     setRoleFilter('all');
                   }}
-                  className="mt-3 px-3.5 py-1.5 text-xs font-bold text-zinc-900 bg-zinc-100 rounded-xl border border-zinc-200 hover:bg-zinc-200/80 transition-colors cursor-pointer"
+                  className="mt-3 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary-soft rounded-xl border border-primary-border hover:bg-primary-soft/80 transition-colors cursor-pointer"
                 >
                   Reset Filter
                 </button>
@@ -365,7 +370,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
               <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs sm:text-sm">
                   <thead>
-                    <tr className="bg-gray-50/80 border-b border-gray-200 text-gray-500 font-semibold uppercase tracking-wider text-xs">
+                    <tr className="border-b border-zinc-200 text-zinc-500 font-semibold uppercase tracking-wider text-xs">
                       <SortableTh
                         label="Pengguna"
                         sortKey="fullName"
@@ -396,12 +401,12 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                       <th className="py-3 px-3 sm:px-4 text-center">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
+                  <tbody className="divide-y divide-zinc-200/70 font-medium text-zinc-700">
                     {items.map(u => {
                       const meta = ROLE_META[u.role];
                       const isSelf = u.id === currentUser.id;
                       return (
-                        <tr key={u.id} className="hover:bg-zinc-50/80 transition-colors">
+                        <tr key={u.id} className="hover:bg-zinc-100/60 transition-colors">
                           <td className="py-3.5 px-3.5 sm:px-4 align-top min-w-[200px]">
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
@@ -489,7 +494,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
               </div>
 
               {/* Mobile / Tablet Card View */}
-              <div className="lg:hidden divide-y divide-gray-100">
+              <div className="lg:hidden divide-y divide-zinc-200/80 border-t border-zinc-200">
                 {items.map(u => {
                   const meta = ROLE_META[u.role];
                   const isSelf = u.id === currentUser.id;

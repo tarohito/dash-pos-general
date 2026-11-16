@@ -220,7 +220,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           onClick={onToggleSound}
           className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
             isSoundEnabled
-              ? 'bg-zinc-900 text-white border-zinc-900'
+              ? 'bg-primary text-white border-primary'
               : 'bg-zinc-100 text-zinc-400 border-zinc-200'
           }`}
           title={isSoundEnabled ? 'Suara beep aktif' : 'Suara beep nonaktif'}
@@ -276,7 +276,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                     }
                   }}
                   onKeyDown={handleKeyDown}
-                  className="w-full pl-9 pr-3 py-2.5 text-xs font-mono font-semibold rounded-xl border border-zinc-300 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 outline-none bg-white transition-colors"
+                  className="w-full pl-9 pr-3 py-2.5 text-xs font-mono font-semibold rounded-xl border border-zinc-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none bg-white transition-colors"
                 />
               </div>
 
@@ -284,7 +284,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                 type="button"
                 disabled={isScanning}
                 onClick={() => void handleProcessScan(inputVal)}
-                className="px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 disabled:opacity-60 text-white font-semibold text-xs rounded-xl transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center"
+                className="px-4 py-2.5 bg-primary hover:bg-primary-hover disabled:opacity-60 text-white font-semibold text-xs rounded-xl transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center"
               >
                 {isScanning ? 'Memproses...' : 'Scan'}
               </button>
@@ -387,7 +387,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
             {isLoadingSamples ? (
               <div className="py-6 flex items-center justify-center text-xs text-zinc-400 gap-2">
-                <GoogleIcon name="progress_activity" size={14} className="animate-spin text-zinc-900" />
+                <GoogleIcon name="progress_activity" size={14} className="animate-spin text-primary" />
                 <span>Memuat daftar SKU...</span>
               </div>
             ) : (

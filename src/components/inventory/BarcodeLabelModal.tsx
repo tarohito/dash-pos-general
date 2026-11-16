@@ -112,13 +112,13 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({ product, o
                       onClick={() => setFormat(opt.id)}
                       className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
                         active
-                          ? 'border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900'
+                          ? 'border-primary bg-primary-soft ring-1 ring-primary'
                           : 'border-zinc-200 hover:border-zinc-300 bg-white'
                       }`}
                     >
                       <div
                         className={`p-1.5 rounded-lg shrink-0 ${
-                          active ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-600'
+                          active ? 'bg-primary text-white' : 'bg-zinc-100 text-zinc-600'
                         }`}
                       >
                         {opt.id === 'qr' ? (
@@ -153,7 +153,7 @@ export const BarcodeLabelModal: React.FC<BarcodeLabelModalProps> = ({ product, o
                   min={1}
                   max={60}
                   suffix="pcs"
-                  className="w-full px-3 py-1.5 text-sm font-bold font-mono bg-white border border-zinc-300 rounded-lg outline-none focus:border-zinc-900"
+                  className="w-full px-3 py-1.5 text-sm font-bold font-mono bg-white border border-zinc-300 rounded-lg outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
 

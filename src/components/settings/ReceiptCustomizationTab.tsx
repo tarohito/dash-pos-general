@@ -344,7 +344,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                       onClick={() => onUpdateField('receiptDefaultPaperSize', opt.value)}
                       className={`p-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
                         active
-                          ? 'bg-zinc-50 border-zinc-900 ring-1 ring-zinc-900 text-zinc-950'
+                          ? 'bg-primary-soft border-primary ring-1 ring-primary text-primary-text'
                           : 'bg-white border-zinc-200 hover:bg-zinc-50 text-zinc-700'
                       }`}
                     >
@@ -373,7 +373,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                       onClick={() => onUpdateField('receiptTheme', theme.value)}
                       className={`p-2.5 rounded-xl border flex items-center gap-2.5 text-left transition-colors cursor-pointer ${
                         active
-                          ? 'bg-zinc-50 border-zinc-900 ring-1 ring-zinc-900'
+                          ? 'bg-primary-soft border-primary ring-1 ring-primary'
                           : 'bg-white border-zinc-200 hover:bg-zinc-50'
                       }`}
                     >
@@ -511,7 +511,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                   type="text"
                   value={settings.receiptTagline}
                   onChange={e => onUpdateField('receiptTagline', e.target.value)}
-                  className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                  className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   placeholder="Kosongkan untuk tampilan simpel"
                 />
               </div>
@@ -524,7 +524,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                   type="text"
                   value={settings.receiptSaleTitle}
                   onChange={e => onUpdateField('receiptSaleTitle', e.target.value)}
-                  className="w-full h-9 px-3 text-xs font-semibold bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                  className="w-full h-9 px-3 text-xs font-semibold bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   placeholder="Contoh: Struk Pembelian (kosongkan jika tidak perlu)"
                 />
               </div>
@@ -537,7 +537,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                   type="text"
                   value={settings.receiptHeaderExtra}
                   onChange={e => onUpdateField('receiptHeaderExtra', e.target.value)}
-                  className="w-full h-9 px-3 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                  className="w-full h-9 px-3 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   placeholder="IG @mki.kosmetik • Buka Setiap Hari 09:00–21:00"
                 />
               </div>
@@ -580,7 +580,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                 type="text"
                 value={settings.receiptTermsTitle}
                 onChange={e => onUpdateField('receiptTermsTitle', e.target.value)}
-                className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 font-semibold"
+                className="w-full h-9 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-semibold"
                 placeholder="Catatan:"
               />
             </div>
@@ -593,7 +593,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                 <button
                   type="button"
                   onClick={() => onUpdateField('receiptTermsText', DEFAULT_RECEIPT_TERMS_TEMPLATE)}
-                  className="text-xs font-semibold text-zinc-900 hover:text-zinc-600 underline underline-offset-2 cursor-pointer whitespace-nowrap"
+                  className="text-xs font-semibold text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer whitespace-nowrap"
                 >
                   Isi Template Standar
                 </button>
@@ -602,7 +602,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                 rows={5}
                 value={settings.receiptTermsText}
                 onChange={e => onUpdateField('receiptTermsText', e.target.value)}
-                className="w-full p-3 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 leading-relaxed"
+                className="w-full p-3 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 leading-relaxed"
                 placeholder="Harap simpan struk ini sebagai bukti transaksi resmi..."
               />
               <p className="text-xs text-gray-400 mt-1">
@@ -618,7 +618,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                 rows={3}
                 value={settings.receiptFooterNote}
                 onChange={e => onUpdateField('receiptFooterNote', e.target.value)}
-                className="w-full p-3 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 leading-relaxed"
+                className="w-full p-3 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 leading-relaxed"
                 placeholder="Contoh: Garansi tukar 7 hari dengan struk asli • WA Layanan Pelanggan 0812-xxxx"
               />
             </div>
@@ -634,7 +634,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                     type="text"
                     value={settings.receiptSignatureGreeting}
                     onChange={e => onUpdateField('receiptSignatureGreeting', e.target.value)}
-                    className="w-full h-9 px-2.5 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                    className="w-full h-9 px-2.5 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="Hormat Kami,"
                   />
                 </div>
@@ -646,7 +646,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                     type="text"
                     value={settings.receiptCustomerSignLabel}
                     onChange={e => onUpdateField('receiptCustomerSignLabel', e.target.value)}
-                    className="w-full h-9 px-2.5 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                    className="w-full h-9 px-2.5 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="Customer"
                   />
                 </div>
@@ -658,7 +658,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                     type="text"
                     value={settings.receiptCashierSignLabel}
                     onChange={e => onUpdateField('receiptCashierSignLabel', e.target.value)}
-                    className="w-full h-9 px-2.5 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                    className="w-full h-9 px-2.5 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="Kasir / Staff"
                   />
                 </div>

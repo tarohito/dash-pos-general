@@ -169,7 +169,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             type="button"
             onClick={() => void handleConfirm()}
             disabled={isSubmitting}
-            className="h-9 px-4 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center whitespace-nowrap cursor-pointer shadow-xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-9 px-4 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-full transition-colors inline-flex items-center justify-center whitespace-nowrap cursor-pointer shadow-xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Memproses Pembayaran...' : `Konfirmasi Bayar (${formatIDR(grandTotal)})`}
           </button>
@@ -336,7 +336,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                       setCashReceived(raw ? parseInt(raw, 10) : '');
                     }}
                     placeholder={formatNumber(grandTotal)}
-                    className="w-full pl-11 pr-4 py-2.5 text-xl sm:text-2xl font-bold text-zinc-950 bg-white border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 font-mono tracking-tight"
+                    className="w-full pl-11 pr-4 py-2.5 text-xl sm:text-2xl font-bold text-zinc-950 bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-mono tracking-tight"
                   />
                 </div>
               </div>
@@ -346,7 +346,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setCashReceived(grandTotal)}
-                  className="px-3 py-1.5 bg-white hover:bg-zinc-100 border border-zinc-200 text-zinc-800 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
+                  className="px-3 py-1.5 bg-white hover:bg-zinc-100 border border-zinc-200 text-zinc-800 rounded-full text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
                 >
                   Uang Pas
                 </button>
@@ -364,7 +364,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                       key={idx}
                       type="button"
                       onClick={() => setCashReceived(val)}
-                      className="px-3 py-1.5 bg-white hover:bg-zinc-100 border border-zinc-200 rounded-lg text-xs sm:text-sm font-semibold text-zinc-700 transition-colors cursor-pointer font-mono"
+                      className="px-3 py-1.5 bg-white hover:bg-zinc-100 border border-zinc-200 rounded-full text-xs sm:text-sm font-semibold text-zinc-700 transition-colors cursor-pointer font-mono"
                     >
                       {formatIDR(val)}
                     </button>
@@ -512,7 +512,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   value={transferRef}
                   onChange={e => setTransferRef(e.target.value)}
                   placeholder="Cth: Ref TRF-839210 / Atas Nama Pengirim"
-                  className="w-full px-3 py-2 text-sm font-mono font-medium bg-white border border-zinc-200 rounded-lg outline-none focus:border-zinc-900"
+                  className="w-full px-3 py-2 text-sm font-mono font-medium bg-white border border-zinc-200 rounded-lg outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
 

@@ -136,7 +136,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     onClick={() => setShowPassword(prev => !prev)}
                     tabIndex={-1}
                     aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Lihat kata sandi'}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-700 cursor-pointer"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 aspect-square rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 cursor-pointer"
                   >
                     {showPassword ? <GoogleIcon name="visibility_off" size={16} /> : <GoogleIcon name="visibility" size={16} />}
                   </button>
@@ -146,7 +146,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full h-10 mt-1 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg transition-colors inline-flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full h-10 mt-1 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-full transition-colors inline-flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <>

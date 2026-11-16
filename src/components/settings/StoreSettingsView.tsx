@@ -10,7 +10,6 @@ import {
   Tenant,
   UserRole,
 } from '../../types';
-import { APP_THEMES } from '../../constants/themes';
 import { posApi } from '../../services/api';
 import { formatIDR } from '../../utils/formatters';
 import { CustomSelect } from '../common/CustomSelect';
@@ -27,17 +26,15 @@ interface StoreSettingsViewProps {
   activeTenant?: Tenant;
   storeSettings: StoreSettings;
   userRole: UserRole;
-  onPreviewAppTheme?: (theme: AppThemeId | null) => void;
   onSettingsSaved: (updated: { tenant: Tenant; storeSettings: StoreSettings }) => void;
 }
 
-type SettingsTab = 'profile' | 'pos_tax' | 'receipt' | 'appearance';
+type SettingsTab = 'profile' | 'pos_tax' | 'receipt';
 
 export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
   activeTenant,
   storeSettings,
   userRole,
-  onPreviewAppTheme,
   onSettingsSaved,
 }) => {
   const { showToast } = useToast();
@@ -192,16 +189,9 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
     return () => controller.abort();
   }, [activeTenant?.id]);
 
-  useEffect(() => {
-    return () => {
-      onPreviewAppTheme?.(null);
-    };
-  }, [onPreviewAppTheme]);
-
   const handleReset = () => {
     if (!baseline) return;
     applyData(baseline.tenant, baseline.settings);
-    onPreviewAppTheme?.(null);
     showToast('info', 'Perubahan dikembalikan ke pengaturan tersimpan.');
   };
 
@@ -270,7 +260,6 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
 
       const saved = await posApi.updateStoreSettings(payload);
       applyData(saved.tenant, saved.storeSettings);
-      onPreviewAppTheme?.(null);
       onSettingsSaved(saved);
       showToast('success', `Pengaturan outlet "${saved.tenant.name}" berhasil disimpan.`);
     } catch (err) {
@@ -296,11 +285,11 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
 
   return (
     <form onSubmit={handleSave} className="space-y-4 pb-8">
-      {/* Top Header Card */}
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      {/* Page Header (Unboxed, Tanpa Card) */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">
               Pengaturan Toko &amp; Operasional Outlet
             </h3>
             {isLoading && <GoogleIcon name="progress_activity" size={15} className="animate-spin text-zinc-900" />}
@@ -319,7 +308,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
             type="button"
             onClick={handleReset}
             disabled={isSaving || isLoading}
-            className="h-9 px-3.5 bg-white hover:bg-zinc-50 text-zinc-700 border border-zinc-200 text-xs sm:text-sm font-semibold rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-50"
+            className="h-9 px-3.5 bg-white hover:bg-zinc-50 text-zinc-700 border border-zinc-200 text-xs sm:text-sm font-semibold rounded-full transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-50"
           >
             <GoogleIcon name="undo" size={15} />
             <span>Reset</span>
@@ -328,7 +317,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
           <button
             type="submit"
             disabled={isSaving || isLoading}
-            className="h-9 px-4 bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-[0.98] disabled:opacity-50"
+            className="h-9 px-4 bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-semibold rounded-full transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-[0.98] disabled:opacity-50"
           >
             {isSaving ? <GoogleIcon name="progress_activity" size={15} className="animate-spin" /> : <GoogleIcon name="save" size={15} />}
             <span>{isSaving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
@@ -339,13 +328,12 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
       {fetchError && <ErrorBanner message={fetchError} onRetry={() => void loadSettings()} />}
 
       {/* Section Navigation Tabs */}
-      <div className="bg-zinc-100 rounded-2xl border border-zinc-200 p-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
+      <div className="bg-zinc-100 rounded-full border border-zinc-200 p-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
         {(
           [
             { key: 'profile', label: 'Profil Outlet', icon: 'storefront' as GoogleIconName },
             { key: 'pos_tax', label: 'Pajak PPN & POS', icon: 'percent' as GoogleIconName },
             { key: 'receipt', label: 'Tampilan Nota', icon: 'receipt_long' as GoogleIconName },
-            { key: 'appearance', label: 'Tema & Warna', icon: 'palette' as GoogleIconName },
           ] as const
         ).map(tab => {
           const Icon = tab.icon;
@@ -355,7 +343,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`h-9 px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all inline-flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`h-9 px-3.5 rounded-full text-xs sm:text-sm font-semibold transition-all inline-flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer ${
                 active
                   ? 'bg-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
                   : 'text-zinc-600 hover:text-zinc-900'
@@ -388,7 +376,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                 required
                 value={storeName}
                 onChange={e => setStoreName(e.target.value)}
-                className="w-full h-10 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                className="w-full h-10 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="MKI (Maklon Kosmetik Indonesia)"
               />
             </div>
@@ -402,7 +390,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                 required
                 value={branchName}
                 onChange={e => setBranchName(e.target.value)}
-                className="w-full h-10 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                className="w-full h-10 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="Cabang Utama (Grand City Mall Lt. 1)"
               />
             </div>
@@ -413,7 +401,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                 type="text"
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
-                className="w-full h-10 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 font-mono"
+                className="w-full h-10 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-mono"
                 placeholder="0812-8899-7766"
               />
             </div>
@@ -424,7 +412,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full h-10 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                className="w-full h-10 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="admin@mki-kosmetik.id"
               />
             </div>
@@ -435,7 +423,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                 type="text"
                 value={city}
                 onChange={e => setCity(e.target.value)}
-                className="w-full h-10 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                className="w-full h-10 px-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="Jakarta Pusat"
               />
             </div>
@@ -463,7 +451,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                 rows={2}
                 value={address}
                 onChange={e => setAddress(e.target.value)}
-                className="w-full p-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                className="w-full p-3 text-sm bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="Jl. Pemuda No. 108..."
               />
             </div>
@@ -538,7 +526,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
                     min={0}
                     max={30}
                     suffix="%"
-                    className="h-10 px-3 text-sm font-mono font-bold bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
+                    className="h-10 px-3 text-sm font-mono font-bold bg-white border border-zinc-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
               </div>
@@ -766,230 +754,6 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
             showToast('info', 'Desain struk dikembalikan ke tampilan simpel standar (klik Simpan Pengaturan untuk menerapkan).');
           }}
         />
-      )}
-
-      {activeTab === 'appearance' && (
-        <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-6 space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h4 className="text-sm sm:text-base font-bold text-zinc-950">
-                Kombinasi Warna Tema Aplikasi
-              </h4>
-              <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
-                Pilih palet warna untuk seluruh antarmuka outlet ini. Pratinjau langsung aktif saat Anda memilih tema.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setAppTheme('zinc_classic');
-                onPreviewAppTheme?.('zinc_classic');
-              }}
-              disabled={appTheme === 'zinc_classic'}
-              className="h-9 px-3.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold text-zinc-700 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-default"
-            >
-              <GoogleIcon name="undo" size={14} />
-              <span>Kembalikan ke Bawaan</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5">
-            {APP_THEMES.map(theme => {
-              const isSelected = appTheme === theme.id;
-              return (
-                <button
-                  key={theme.id}
-                  type="button"
-                  onClick={() => {
-                    setAppTheme(theme.id);
-                    onPreviewAppTheme?.(theme.id);
-                  }}
-                  aria-pressed={isSelected}
-                  className={`text-left rounded-2xl border p-3.5 transition-all cursor-pointer flex flex-col justify-between gap-3 ${
-                    isSelected
-                      ? 'border-zinc-900 ring-2 ring-zinc-900/15 bg-zinc-50/70'
-                      : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50/40'
-                  }`}
-                >
-                  {/* Mini UI Wireframe Preview */}
-                  <div
-                    className="w-full h-28 rounded-xl border overflow-hidden flex flex-col"
-                    style={{
-                      backgroundColor: theme.swatches.canvas,
-                      borderColor: theme.swatches.border,
-                    }}
-                  >
-                    {/* Mini Top Header */}
-                    <div
-                      className="h-6 px-2.5 flex items-center justify-between border-b shrink-0"
-                      style={{
-                        backgroundColor: theme.swatches.header,
-                        borderColor: theme.swatches.border,
-                      }}
-                    >
-                      <span
-                        className="text-[10px] font-bold tracking-tight"
-                        style={{ color: theme.swatches.text }}
-                      >
-                        Logic<span style={{ color: theme.swatches.muted }}>POS</span>
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <span
-                          className="w-6 h-2 rounded-sm"
-                          style={{ backgroundColor: theme.swatches.canvas }}
-                        />
-                        <span
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: theme.swatches.accent }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Mini Sidebar + Content Area */}
-                    <div className="flex-1 flex min-h-0">
-                      {/* Mini Sidebar */}
-                      <div
-                        className="w-14 p-1.5 flex flex-col gap-1 border-r shrink-0"
-                        style={{
-                          backgroundColor: theme.swatches.sidebar,
-                          borderColor: theme.swatches.border,
-                        }}
-                      >
-                        <div
-                          className="h-2.5 rounded-sm px-1 flex items-center"
-                          style={{ backgroundColor: theme.swatches.sidebarActive }}
-                        >
-                          <span className="w-5 h-1 rounded-xs bg-white/90" />
-                        </div>
-                        <div
-                          className="h-2 rounded-sm w-9"
-                          style={{
-                            backgroundColor: theme.isDarkSidebar
-                              ? 'rgba(255,255,255,0.22)'
-                              : theme.swatches.canvas,
-                          }}
-                        />
-                        <div
-                          className="h-2 rounded-sm w-7"
-                          style={{
-                            backgroundColor: theme.isDarkSidebar
-                              ? 'rgba(255,255,255,0.16)'
-                              : theme.swatches.canvas,
-                          }}
-                        />
-                      </div>
-
-                      {/* Mini Main Card + Accent Button */}
-                      <div className="flex-1 p-2 flex flex-col gap-1.5">
-                        <div
-                          className="flex-1 rounded-lg border p-2 flex flex-col justify-between"
-                          style={{
-                            backgroundColor: theme.swatches.surface,
-                            borderColor: theme.swatches.border,
-                          }}
-                        >
-                          <div className="space-y-1">
-                            <div
-                              className="h-2 w-16 rounded-xs"
-                              style={{ backgroundColor: theme.swatches.text }}
-                            />
-                            <div
-                              className="h-1.5 w-24 rounded-xs opacity-60"
-                              style={{ backgroundColor: theme.swatches.muted }}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between pt-1">
-                            <span
-                              className="h-2 w-8 rounded-xs"
-                              style={{ backgroundColor: theme.swatches.secondary }}
-                            />
-                            <div className="flex items-center gap-1">
-                              <span
-                                className="h-3.5 w-3.5 rounded-sm"
-                                style={{ backgroundColor: theme.swatches.accent }}
-                              />
-                              <span
-                                className="h-4 px-2 rounded-sm inline-flex items-center justify-center text-[8px] font-semibold text-white"
-                                style={{ backgroundColor: theme.swatches.primary }}
-                              >
-                                Bayar
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Theme Metadata & Swatch Strip */}
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-zinc-950 leading-tight">
-                          {theme.name}
-                        </p>
-                        <p className="text-xs text-zinc-500 mt-0.5">
-                          {theme.subtitle}
-                        </p>
-                      </div>
-                      {isSelected && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary shrink-0">
-                          <GoogleIcon name="check" size={14} />
-                          <span>Aktif</span>
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-xs text-zinc-600 leading-relaxed">
-                      {theme.description}
-                    </p>
-
-                    <div className="pt-2 border-t border-zinc-100 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-600 font-medium">
-                      <span className="inline-flex items-center gap-1.5">
-                        <span
-                          className="w-3 h-3 rounded-full border border-black/15 shrink-0"
-                          style={{ backgroundColor: theme.swatches.primary }}
-                        />
-                        <span>Primary</span>
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <span
-                          className="w-3 h-3 rounded-full border border-black/15 shrink-0"
-                          style={{ backgroundColor: theme.swatches.secondary }}
-                        />
-                        <span>Secondary</span>
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <span
-                          className="w-3 h-3 rounded-full border border-black/15 shrink-0"
-                          style={{ backgroundColor: theme.swatches.accent }}
-                        />
-                        <span>Aksen</span>
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="pt-4 border-t border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <p className="text-xs text-zinc-500">
-              {appTheme !== (baseline?.settings.appTheme || storeSettings.appTheme)
-                ? 'Sedang menampilkan pratinjau warna baru. Klik "Simpan Pengaturan" untuk menyimpan permanen ke outlet ini.'
-                : 'Tema warna tersimpan dan aktif untuk outlet ini.'}
-            </p>
-            <button
-              type="submit"
-              disabled={isSaving || isLoading}
-              className="h-9 px-4 bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-[0.98] disabled:opacity-50 shrink-0"
-            >
-              {isSaving ? <GoogleIcon name="progress_activity" size={15} className="animate-spin" /> : <GoogleIcon name="save" size={15} />}
-              <span>{isSaving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
-            </button>
-          </div>
-        </div>
       )}
     </form>
   );
