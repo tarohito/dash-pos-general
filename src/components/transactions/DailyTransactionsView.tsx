@@ -463,7 +463,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
 
               {/* DESKTOP TABLE (hidden md:block) */}
               <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-xs sm:text-sm text-left border-collapse">
+                <table className="w-full min-w-[900px] table-fixed text-xs sm:text-sm text-left border-collapse">
                   <thead className="text-zinc-500 uppercase font-semibold text-xs border-b border-zinc-200 tracking-wider">
                     <tr>
                       <SortableTh
@@ -472,7 +472,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                         currentSortBy={sortBy}
                         currentSortDir={sortDir}
                         onSort={key => handleHeaderSort(key, 'desc')}
-                        className="py-3 px-3.5 w-[175px]"
+                        className="py-3 px-3 w-[186px]"
                       />
                       <SortableTh
                         label="Pelanggan"
@@ -480,12 +480,12 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                         currentSortBy={sortBy}
                         currentSortDir={sortDir}
                         onSort={key => handleHeaderSort(key, 'asc')}
-                        className="py-3 px-3.5 w-[170px]"
+                        className="py-3 px-3 w-[155px] xl:w-[175px] 2xl:w-[210px]"
                       />
-                      <th className="py-3 px-3.5 min-w-[240px] text-xs font-semibold uppercase tracking-wider text-zinc-500 whitespace-nowrap">
+                      <th className="py-3 px-3 text-xs font-semibold uppercase tracking-wider text-zinc-500 whitespace-nowrap">
                         Nama Produk
                       </th>
-                      <th className="py-3 px-3 w-[84px] text-center text-xs font-semibold uppercase tracking-wider text-zinc-500 whitespace-nowrap">
+                      <th className="py-3 px-2.5 w-[72px] text-center text-xs font-semibold uppercase tracking-wider text-zinc-500 whitespace-nowrap">
                         Qty
                       </th>
                       <SortableTh
@@ -495,7 +495,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                         currentSortDir={sortDir}
                         onSort={key => handleHeaderSort(key, 'asc')}
                         align="center"
-                        className="py-3 px-3.5 w-[140px]"
+                        className="py-3 px-2.5 w-[146px]"
                       />
                       <SortableTh
                         label="Total Bayar"
@@ -504,9 +504,11 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                         currentSortDir={sortDir}
                         onSort={key => handleHeaderSort(key, 'desc')}
                         align="right"
-                        className="py-3 px-3.5 w-[150px]"
+                        className="py-3 px-3 w-[128px]"
                       />
-                      <th className="py-3 px-3 text-center w-[64px]">Aksi</th>
+                      <th className="py-3 px-2.5 text-center w-[54px] whitespace-nowrap">
+                        Aksi
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-200/70 font-medium text-zinc-700">
@@ -522,30 +524,36 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                             isVoid ? 'bg-red-50/20 opacity-80' : 'hover:bg-zinc-100/60'
                           }`}
                         >
-                          <td className="py-3.5 px-3.5 whitespace-nowrap align-middle">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-mono font-bold text-zinc-950 text-xs sm:text-sm">
+                          <td className="py-3.5 px-3 align-middle">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span
+                                className="font-mono font-bold text-zinc-950 text-xs truncate"
+                                title={tx.invoiceNo}
+                              >
                                 {tx.invoiceNo}
                               </span>
                               {isRecentlyCreated(tx.dateTime, nowMs) && <NewBadge />}
                               {isVoid && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold uppercase bg-red-100 text-red-700 border border-red-200 rounded-md">
+                                <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold uppercase bg-red-100 text-red-700 border border-red-200 rounded-md shrink-0">
                                   VOID
                                 </span>
                               )}
                             </div>
-                            <span className="text-xs text-zinc-500 block mt-0.5 tabular-nums">
+                            <span className="text-xs text-zinc-500 block mt-0.5 tabular-nums truncate">
                               {tx.dateStr} &bull; {tx.timeStr}
                             </span>
                           </td>
 
-                          <td className="py-3.5 px-3.5 align-middle max-w-[175px]">
-                            <span className="font-bold text-zinc-950 truncate block text-xs sm:text-sm">
+                          <td className="py-3.5 px-3 align-middle">
+                            <span
+                              className="font-bold text-zinc-950 truncate block text-xs sm:text-sm"
+                              title={tx.customerName}
+                            >
                               {tx.customerName}
                             </span>
                           </td>
 
-                          <td className="py-3.5 px-3.5 align-middle max-w-[290px]">
+                          <td className="py-3.5 px-3 align-middle">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span
                                 className="font-bold text-zinc-950 text-xs sm:text-sm truncate"
@@ -554,28 +562,29 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                                 {firstItem ? firstItem.name : '-'}
                               </span>
                               {remainingItems > 0 && (
-                                <span className="text-[11px] bg-zinc-100 text-zinc-700 font-semibold px-1.5 py-0.5 rounded-md border border-zinc-200/80 shrink-0">
+                                <span className="text-[11px] bg-zinc-100 text-zinc-700 font-semibold px-1.5 py-0.5 rounded-md border border-zinc-200/80 shrink-0 whitespace-nowrap">
                                   +{remainingItems} item
                                 </span>
                               )}
                             </div>
                           </td>
 
-                          <td className="py-3.5 px-3 text-center whitespace-nowrap align-middle font-mono font-semibold text-zinc-800 text-xs sm:text-sm tabular-nums">
+                          <td className="py-3.5 px-2.5 text-center whitespace-nowrap align-middle font-mono font-semibold text-zinc-800 text-xs sm:text-sm tabular-nums">
                             {tx.totalQty} pcs
                           </td>
 
-                          <td className="py-3.5 px-3.5 text-center whitespace-nowrap align-middle">
+                          <td className="py-3.5 px-2.5 text-center whitespace-nowrap align-middle">
                             <span
-                              className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-md ${badge.badgeClass}`}
+                              className={`inline-block max-w-full truncate text-xs font-semibold px-2 py-0.5 rounded-md ${badge.badgeClass}`}
+                              title={badge.label}
                             >
                               {badge.label}
                             </span>
                           </td>
 
-                          <td className="py-3.5 px-3.5 text-right whitespace-nowrap align-middle">
+                          <td className="py-3.5 px-3 text-right whitespace-nowrap align-middle">
                             <span
-                              className={`font-mono font-bold text-sm block tabular-nums ${
+                              className={`font-mono font-bold text-xs sm:text-sm block tabular-nums ${
                                 isVoid ? 'line-through text-zinc-400' : 'text-zinc-950'
                               }`}
                             >
@@ -583,7 +592,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                             </span>
                           </td>
 
-                          <td className="py-3.5 px-3 text-center whitespace-nowrap align-middle">
+                          <td className="py-3.5 px-2.5 text-center whitespace-nowrap align-middle">
                             <ActionDropdownMenu
                               ariaLabel={`Aksi untuk ${tx.invoiceNo}`}
                               items={[

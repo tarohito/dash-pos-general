@@ -64,25 +64,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   return (
     <div className="min-h-screen bg-zinc-100 flex items-center justify-center p-4 sm:p-6 font-sans">
       <div className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-12 bg-white rounded-2xl border border-zinc-200 overflow-hidden">
-        {/* Kolom Kiri: Branding Flat Minimalis */}
-        <div className="md:col-span-5 bg-gradient-to-br from-primary-soft/80 via-zinc-50 to-secondary-soft/60 border-b md:border-b-0 md:border-r border-zinc-200 p-6 sm:p-8 text-zinc-900 flex flex-col justify-between">
+        {/* Kolom Kiri: Branding Warna Brand */}
+        <div className="md:col-span-5 bg-gradient-to-br from-primary via-primary to-primary-hover p-6 sm:p-8 text-white flex flex-col justify-between">
           <div>
-            <BrandLogo size="lg" />
+            <div className="inline-flex items-center px-3.5 py-2 rounded-xl bg-white shadow-sm">
+              <BrandLogo size="lg" />
+            </div>
           </div>
 
           <div className="my-8 md:my-0">
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-secondary-soft text-secondary-text border border-secondary-border text-xs font-bold uppercase tracking-wider mb-2.5">
-              Retail &amp; Multi-Outlet
-            </span>
-            <h1 className="text-2xl font-bold tracking-tight leading-snug text-zinc-950">
+            <h1 className="text-2xl font-bold tracking-tight leading-snug text-white">
               Sistem Kasir POS
             </h1>
-            <p className="text-xs text-zinc-600 mt-1.5 leading-relaxed">
+            <p className="text-xs sm:text-sm text-white/85 mt-1.5 leading-relaxed">
               Penjualan, Inventaris &amp; Multi-Outlet
             </p>
           </div>
 
-          <p className="text-xs text-zinc-500 font-medium">
+          <p className="text-xs text-white/75 font-medium">
             &copy; {new Date().getFullYear()} Fruitylogic. All rights reserved.
           </p>
         </div>
