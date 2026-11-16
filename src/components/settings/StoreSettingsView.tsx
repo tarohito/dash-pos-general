@@ -21,6 +21,7 @@ import {
   DEFAULT_RECEIPT_TERMS_TEMPLATE,
   ReceiptCustomizationTab,
 } from './ReceiptCustomizationTab';
+import { BTN_PRIMARY_CLASS, BTN_SECONDARY_CLASS } from '../common/ModalShell';
 
 interface StoreSettingsViewProps {
   activeTenant?: Tenant;
@@ -308,7 +309,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
             type="button"
             onClick={handleReset}
             disabled={isSaving || isLoading}
-            className="h-9 px-3.5 bg-white hover:bg-zinc-50 text-zinc-700 border border-zinc-200 text-xs sm:text-sm font-semibold rounded-full transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-50"
+            className={BTN_SECONDARY_CLASS}
           >
             <GoogleIcon name="undo" size={15} />
             <span>Reset</span>
@@ -317,7 +318,7 @@ export const StoreSettingsView: React.FC<StoreSettingsViewProps> = ({
           <button
             type="submit"
             disabled={isSaving || isLoading}
-            className="h-9 px-4 bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-semibold rounded-full transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-[0.98] disabled:opacity-50"
+            className={BTN_PRIMARY_CLASS}
           >
             {isSaving ? <GoogleIcon name="progress_activity" size={15} className="animate-spin" /> : <GoogleIcon name="save" size={15} />}
             <span>{isSaving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>

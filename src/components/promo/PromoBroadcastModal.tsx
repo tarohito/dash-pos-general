@@ -16,6 +16,7 @@ import { formatIDR } from '../../utils/formatters';
 import { CustomSelect } from '../common/CustomSelect';
 import { CustomCheckbox } from '../common/CustomCheckbox';
 import {
+  MODAL_BTN_PRIMARY_CLASS,
   MODAL_BTN_SECONDARY_CLASS,
   MODAL_FOOTER_END_CLASS,
   ModalShell,
@@ -501,7 +502,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                 isGatewayBlockedBySafeLimit
               }
               onClick={() => void handleCreateBroadcast()}
-              className="h-9 px-4 text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1EBE5D] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs active:scale-[0.98]"
+              className={MODAL_BTN_PRIMARY_CLASS}
             >
               {isSending ? (
                 <>
@@ -1306,7 +1307,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                     type="button"
                     disabled={loadingBatchId === item.id}
                     onClick={() => void handleOpenHistoryBatch(item.id)}
-                    className="h-8 px-3 text-xs font-semibold text-zinc-900 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                    className="h-8 px-3 text-xs font-semibold text-secondary-text bg-secondary-soft hover:bg-secondary/15 border border-secondary-border rounded-full inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
                   >
                     {loadingBatchId === item.id ? (
                       <GoogleIcon name="progress_activity" size={13} className="animate-spin" />

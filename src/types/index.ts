@@ -1,4 +1,3 @@
-export type ProductCondition = 'Baru' | 'Bekas';
 export type ProductStatus = 'Aktif' | 'Nonaktif';
 
 export interface Product {
@@ -11,7 +10,6 @@ export interface Product {
   stok: number; // Stok persediaan barang (pcs)
   category: string; // Kategori produk
   brand?: string; // Merek / Brand (Standar Shopee: e.g. "No Brand" atau nama merek)
-  kondisi?: ProductCondition; // Kondisi produk (Standar Shopee: Baru / Bekas)
   deskripsi?: string; // Deskripsi detail / spesifikasi produk
   panjang?: number; // Dimensi paket P (cm)
   lebar?: number; // Dimensi paket L (cm)
@@ -83,7 +81,6 @@ export interface TransactionItem {
   name: string;
   category?: string;
   brand?: string;
-  kondisi?: ProductCondition;
   hpp?: number;
   panjang?: number;
   lebar?: number;
@@ -206,6 +203,7 @@ export interface Tenant {
   plan: 'Basic Single-Store' | 'Pro Multi-Outlet' | 'Enterprise Multi-Tenant';
   cashierCount: number;
   productCount: number;
+  transactionCount?: number;
   phone: string;
   email: string;
   slug: string;
@@ -358,6 +356,21 @@ export interface CategoriesWithStatsResponse {
   totalUniqueStok?: number;
 }
 
+export interface DashboardTopItem {
+  name: string;
+  subtitle?: string;
+  qty: number;
+  sales: number;
+}
+
+export interface DashboardPaymentBreakdownItem {
+  key: string;
+  label: string;
+  amount: number;
+  count: number;
+  percent: number;
+}
+
 export interface DashboardSummaryResponse {
   period: 'HARI' | 'BULAN';
   displayTotalPenjualan: number;
@@ -379,6 +392,9 @@ export interface DashboardSummaryResponse {
   activeLabels: string[];
   salesData: number[];
   trxData: number[];
+  topProducts?: DashboardTopItem[];
+  topCategories?: DashboardTopItem[];
+  paymentBreakdown?: DashboardPaymentBreakdownItem[];
 }
 
 export type UserRole = 'owner' | 'branch_manager' | 'cashier';
@@ -435,7 +451,7 @@ export interface UsersPageResponse extends PaginatedResponse<UserAccount> {
 }
 
 export interface AuthLoginResponse {
-  token: string;
+  csrfToken: string;
   user: UserAccount;
   tenants: Tenant[];
   activeTenantId: string;
@@ -583,6 +599,7 @@ export interface ShiftClosingsPageResponse extends PaginatedResponse<ShiftClosin
 }
 
 export interface BootstrapPayload {
+  csrfToken?: string;
   user: UserAccount;
   categories: string[];
   categoryDetails?: CategoryItem[];

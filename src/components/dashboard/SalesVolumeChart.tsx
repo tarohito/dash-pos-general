@@ -544,7 +544,7 @@ export const SalesVolumeChart: React.FC<SalesVolumeChartProps> = ({
           >
             <button
               type="button"
-              className="text-gray-400 hover:text-gray-600 cursor-help inline-flex items-center p-0.5 rounded transition-colors"
+              className="text-zinc-400 hover:text-zinc-700 cursor-help inline-flex items-center p-0.5 rounded transition-colors"
               aria-label="Info Total transaksi"
             >
               <GoogleIcon name="info" size={12} />

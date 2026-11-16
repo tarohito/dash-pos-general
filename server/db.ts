@@ -242,9 +242,19 @@ db.exec(`
     token TEXT PRIMARY KEY,
     userId TEXT NOT NULL,
     activeTenantId TEXT NOT NULL,
+    csrfToken TEXT NOT NULL DEFAULT '',
+    userAgentHash TEXT NOT NULL DEFAULT '',
+    lastActivityAt TEXT NOT NULL DEFAULT '',
     createdAt TEXT NOT NULL,
     expiresAt TEXT NOT NULL,
     FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS login_attempts (
+    key TEXT PRIMARY KEY,
+    failCount INTEGER NOT NULL DEFAULT 0,
+    firstFailAt TEXT NOT NULL,
+    lockedUntil TEXT
   );
 
   CREATE TABLE IF NOT EXISTS store_settings (
@@ -382,6 +392,18 @@ function ensureColumn(table: string, column: string, definition: string): void {
 }
 
 ensureColumn('users', 'themePreference', "TEXT NOT NULL DEFAULT 'system'");
+ensureColumn('sessions', 'csrfToken', "TEXT NOT NULL DEFAULT ''");
+ensureColumn('sessions', 'userAgentHash', "TEXT NOT NULL DEFAULT ''");
+ensureColumn('sessions', 'lastActivityAt', "TEXT NOT NULL DEFAULT ''");
+
+// One-time upgrade: invalidate any legacy unhashed session tokens so all active sessions use SHA-256 hashed tokens + CSRF tokens
+const hashedSessionsMigrated = db
+  .prepare('SELECT value FROM settings WHERE key = ?')
+  .get('migrated_hashed_sessions_v2') as { value: string } | undefined;
+if (hashedSessionsMigrated?.value !== '1') {
+  db.prepare('DELETE FROM sessions').run();
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('migrated_hashed_sessions_v2', '1');
+}
 
 ensureColumn('transactions', 'status', "TEXT NOT NULL DEFAULT 'completed'");
 ensureColumn('transactions', 'voidReason', 'TEXT');
@@ -1849,7 +1871,6 @@ export function getAllProducts(tenantId: string = getActiveTenantId()): Product[
     .prepare(
       `SELECT id, sku, name, berat, harga, COALESCE(hpp, 0) AS hpp, stok, category, image,
               COALESCE(brand, 'No Brand') AS brand,
-              COALESCE(kondisi, 'Baru') AS kondisi,
               COALESCE(deskripsi, '') AS deskripsi,
               COALESCE(panjang, 0) AS panjang,
               COALESCE(lebar, 0) AS lebar,
@@ -2144,6 +2165,11 @@ export function getAllTenants(): Tenant[] {
     .all() as Array<{ tenantId: string; cnt: number }>;
   const countMap = new Map(counts.map(c => [c.tenantId, c.cnt]));
 
+  const txCounts = db
+    .prepare('SELECT tenantId, COUNT(*) as cnt FROM transactions GROUP BY tenantId')
+    .all() as Array<{ tenantId: string; cnt: number }>;
+  const txCountMap = new Map(txCounts.map(c => [c.tenantId, c.cnt]));
+
   const staffRows = db
     .prepare("SELECT role, allowedTenantIdsJson FROM users WHERE isActive = 1 AND role != 'owner'")
     .all() as Array<{ role: UserRole; allowedTenantIdsJson: string }>;
@@ -2160,6 +2186,7 @@ export function getAllTenants(): Tenant[] {
     logoUrl: t.logoUrl || '',
     cashierCount: staffCountMap.get(t.id) ?? 0,
     productCount: countMap.get(t.id) ?? 0,
+    transactionCount: txCountMap.get(t.id) ?? 0,
     createdAt: t.createdAt ?? undefined,
   }));
 
@@ -2384,6 +2411,9 @@ export function queryProducts(opts: {
     case 'salesCount':
       orderBySql = `salesCount ${sortDir}, id DESC`;
       break;
+    case 'status':
+      orderBySql = `CASE WHEN COALESCE(status, 'Aktif') = 'Aktif' THEN 1 ELSE 0 END ${sortDir}, id DESC`;
+      break;
     case 'newest':
     default:
       orderBySql = `id ${sortDir}`;
@@ -2403,7 +2433,6 @@ export function queryProducts(opts: {
       'LOWER(sku) LIKE ?',
       'LOWER(category) LIKE ?',
       "LOWER(COALESCE(brand, '')) LIKE ?",
-      "LOWER(COALESCE(kondisi, 'Baru')) LIKE ?",
       search === 'aktif' || search === 'nonaktif'
         ? "LOWER(COALESCE(status, 'Aktif')) = ?"
         : "LOWER(COALESCE(status, 'Aktif')) LIKE ?",
@@ -2411,7 +2440,6 @@ export function queryProducts(opts: {
       "LOWER(COALESCE(attributesJson, '')) LIKE ?",
     ];
     const searchParams: Array<string | number> = [
-      like,
       like,
       like,
       like,
@@ -2505,7 +2533,6 @@ export function queryProducts(opts: {
       `SELECT p.id, p.sku, p.name, p.berat, p.harga, p.stok, p.category, p.image,
               COALESCE(p.hpp, 0) AS hpp,
               COALESCE(p.brand, 'No Brand') AS brand,
-              COALESCE(p.kondisi, 'Baru') AS kondisi,
               COALESCE(p.deskripsi, '') AS deskripsi,
               COALESCE(p.panjang, 0) AS panjang,
               COALESCE(p.lebar, 0) AS lebar,
@@ -2521,7 +2548,7 @@ export function queryProducts(opts: {
          GROUP BY productId
        ) si ON si.productId = p.id
        ${whereSql.replace(/\b(tenantId|name|sku|category|brand|status|stok|id|attributesJson)\b/g, 'p.$1')}
-       ORDER BY ${orderBySql.replace(/\b(harga|berat|stok|id)\b/g, 'p.$1').replace(/LOWER\((name|sku|brand)\)/g, 'LOWER(p.$1)')}
+       ORDER BY ${orderBySql.replace(/\b(harga|berat|stok|id|status)\b/g, 'p.$1').replace(/LOWER\((name|sku|brand)\)/g, 'LOWER(p.$1)')}
        LIMIT ? OFFSET ?`
     )
     .all(...params, pageSize, offset) as Array<Product & { attributesJson?: string; salesCount: number }>;
@@ -2651,7 +2678,6 @@ export function lookupProductByCode(rawCode: string, tenantId: string = getActiv
   const productCols = `
     id, sku, name, berat, harga, COALESCE(hpp, 0) AS hpp, stok, category, image,
     COALESCE(brand, 'No Brand') AS brand,
-    COALESCE(kondisi, 'Baru') AS kondisi,
     COALESCE(deskripsi, '') AS deskripsi,
     COALESCE(panjang, 0) AS panjang,
     COALESCE(lebar, 0) AS lebar,
@@ -3288,7 +3314,6 @@ export function queryTransactions(opts: {
       .prepare(
         `SELECT ti.transactionId, ti.productId, ti.sku, ti.name, p.category AS category,
                 COALESCE(p.brand, 'No Brand') AS brand,
-                COALESCE(p.kondisi, 'Baru') AS kondisi,
                 COALESCE(p.hpp, 0) AS hpp,
                 COALESCE(p.panjang, 0) AS panjang,
                 COALESCE(p.lebar, 0) AS lebar,
@@ -3305,7 +3330,6 @@ export function queryTransactions(opts: {
       name: string;
       category: string | null;
       brand: string | null;
-      kondisi: string | null;
       hpp: number;
       panjang: number;
       lebar: number;
@@ -3325,7 +3349,6 @@ export function queryTransactions(opts: {
         name: row.name,
         category: row.category ?? undefined,
         brand: row.brand ?? 'No Brand',
-        kondisi: row.kondisi === 'Bekas' ? 'Bekas' : 'Baru',
         hpp: row.hpp ?? 0,
         panjang: row.panjang ?? 0,
         lebar: row.lebar ?? 0,
@@ -3454,7 +3477,6 @@ export function getTransactionById(id: string, tenantId?: string): Transaction |
     .prepare(
       `SELECT ti.productId, ti.sku, ti.name, p.category AS category,
               COALESCE(p.brand, 'No Brand') AS brand,
-              COALESCE(p.kondisi, 'Baru') AS kondisi,
               COALESCE(p.hpp, 0) AS hpp,
               COALESCE(p.panjang, 0) AS panjang,
               COALESCE(p.lebar, 0) AS lebar,
@@ -3470,7 +3492,6 @@ export function getTransactionById(id: string, tenantId?: string): Transaction |
     name: string;
     category: string | null;
     brand: string | null;
-    kondisi: string | null;
     hpp: number;
     panjang: number;
     lebar: number;
@@ -3500,7 +3521,6 @@ export function getTransactionById(id: string, tenantId?: string): Transaction |
       name: r.name,
       category: r.category ?? undefined,
       brand: r.brand ?? 'No Brand',
-      kondisi: r.kondisi === 'Bekas' ? 'Bekas' : 'Baru',
       hpp: r.hpp ?? 0,
       panjang: r.panjang ?? 0,
       lebar: r.lebar ?? 0,
@@ -3662,7 +3682,6 @@ export function queryTransactionsForExport(opts: {
         .prepare(
           `SELECT ti.transactionId, ti.productId, ti.sku, ti.name, p.category AS category,
                   COALESCE(p.brand, 'No Brand') AS brand,
-                  COALESCE(p.kondisi, 'Baru') AS kondisi,
                   COALESCE(p.hpp, 0) AS hpp,
                   COALESCE(p.panjang, 0) AS panjang,
                   COALESCE(p.lebar, 0) AS lebar,
@@ -3679,7 +3698,6 @@ export function queryTransactionsForExport(opts: {
         name: string;
         category: string | null;
         brand: string | null;
-        kondisi: string | null;
         hpp: number;
         panjang: number;
         lebar: number;
@@ -3699,7 +3717,6 @@ export function queryTransactionsForExport(opts: {
           name: row.name,
           category: row.category ?? undefined,
           brand: row.brand ?? 'No Brand',
-          kondisi: row.kondisi === 'Bekas' ? 'Bekas' : 'Baru',
           hpp: row.hpp ?? 0,
           panjang: row.panjang ?? 0,
           lebar: row.lebar ?? 0,
@@ -4277,6 +4294,11 @@ export function queryPromos(opts: {
 
 export function getDashboardSummary(period: 'HARI' | 'BULAN', tenantId: string = getActiveTenantId()): DashboardSummaryResponse {
   const settings = getStoreSettings(tenantId);
+  const todayStr = getTodayWibDateStr();
+  const monthPrefix = todayStr.slice(0, 7);
+  const dateFilterSql = period === 'HARI' ? 'substr(dateTime, 1, 10) = ?' : 'substr(dateTime, 1, 7) = ?';
+  const dateFilterSqlT = period === 'HARI' ? 'substr(t.dateTime, 1, 10) = ?' : 'substr(t.dateTime, 1, 7) = ?';
+  const dateFilterParam = period === 'HARI' ? todayStr : monthPrefix;
 
   const txAgg = db
     .prepare(
@@ -4288,9 +4310,9 @@ export function getDashboardSummary(period: 'HARI' | 'BULAN', tenantId: string =
               COALESCE(SUM(CASE WHEN COALESCE(status, 'completed') != 'void' AND paymentMethod = 'cash' THEN grandTotal ELSE 0 END), 0) as cashTotal,
               SUM(CASE WHEN COALESCE(status, 'completed') != 'void' THEN 1 ELSE 0 END) as countTransaksi,
               SUM(CASE WHEN COALESCE(status, 'completed') = 'void' THEN 1 ELSE 0 END) as voidCount
-       FROM transactions WHERE tenantId = ?`
+       FROM transactions WHERE tenantId = ? AND ${dateFilterSql}`
     )
-    .get(tenantId) as {
+    .get(tenantId, dateFilterParam) as {
     totalOmzet: number;
     totalSubtotal: number;
     totalDiscount: number;
@@ -4312,9 +4334,9 @@ export function getDashboardSummary(period: 'HARI' | 'BULAN', tenantId: string =
        FROM transaction_items ti
        JOIN transactions t ON t.id = ti.transactionId
        LEFT JOIN products p ON p.id = ti.productId
-       WHERE t.tenantId = ? AND COALESCE(t.status, 'completed') != 'void'`
+       WHERE t.tenantId = ? AND ${dateFilterSqlT} AND COALESCE(t.status, 'completed') != 'void'`
     )
-    .get(tenantId) as { grossProfit: number };
+    .get(tenantId, dateFilterParam) as { grossProfit: number };
 
   const invAgg = db
     .prepare(
@@ -4345,8 +4367,8 @@ export function getDashboardSummary(period: 'HARI' | 'BULAN', tenantId: string =
   const trxArr = Array<number>(labels.length).fill(0);
 
   const txTimes = db
-    .prepare("SELECT dateTime, timeStr, grandTotal FROM transactions WHERE tenantId = ? AND COALESCE(status, 'completed') != 'void'")
-    .all(tenantId) as Array<{ dateTime: string; timeStr: string; grandTotal: number }>;
+    .prepare(`SELECT dateTime, timeStr, grandTotal FROM transactions WHERE tenantId = ? AND ${dateFilterSql} AND COALESCE(status, 'completed') != 'void'`)
+    .all(tenantId, dateFilterParam) as Array<{ dateTime: string; timeStr: string; grandTotal: number }>;
 
   if (period === 'HARI') {
     for (const tx of txTimes) {
@@ -4389,6 +4411,93 @@ export function getDashboardSummary(period: 'HARI' | 'BULAN', tenantId: string =
     }
   }
 
+  const topProductsRows = db
+    .prepare(
+      `SELECT ti.sku,
+              ti.name,
+              COALESCE(p.category, 'Produk Toko') as kategori,
+              SUM(ti.qty) as totalQty,
+              SUM(ti.subtotal) as totalSales
+       FROM transaction_items ti
+       JOIN transactions t ON t.id = ti.transactionId
+       LEFT JOIN products p ON p.id = ti.productId
+       WHERE t.tenantId = ? AND ${dateFilterSqlT} AND COALESCE(t.status, 'completed') != 'void'
+       GROUP BY ti.sku, ti.name, COALESCE(p.category, 'Produk Toko')
+       ORDER BY totalQty DESC, totalSales DESC
+       LIMIT 5`
+    )
+    .all(tenantId, dateFilterParam) as Array<{
+    sku: string;
+    name: string;
+    kategori: string;
+    totalQty: number;
+    totalSales: number;
+  }>;
+
+  const topCategoriesRows = db
+    .prepare(
+      `SELECT COALESCE(NULLIF(TRIM(p.category), ''), 'Produk Toko') as kategori,
+              SUM(ti.qty) as totalQty,
+              SUM(ti.subtotal) as totalSales
+       FROM transaction_items ti
+       JOIN transactions t ON t.id = ti.transactionId
+       LEFT JOIN products p ON p.id = ti.productId
+       WHERE t.tenantId = ? AND ${dateFilterSqlT} AND COALESCE(t.status, 'completed') != 'void'
+       GROUP BY COALESCE(NULLIF(TRIM(p.category), ''), 'Produk Toko')
+       ORDER BY totalSales DESC, totalQty DESC
+       LIMIT 5`
+    )
+    .all(tenantId, dateFilterParam) as Array<{
+    kategori: string;
+    totalQty: number;
+    totalSales: number;
+  }>;
+
+  const paymentRows = db
+    .prepare(
+      `SELECT paymentMethod, paymentDetailsJson, grandTotal
+       FROM transactions
+       WHERE tenantId = ? AND ${dateFilterSql} AND COALESCE(status, 'completed') != 'void'`
+    )
+    .all(tenantId, dateFilterParam) as Array<{
+    paymentMethod: string;
+    paymentDetailsJson: string;
+    grandTotal: number;
+  }>;
+
+  const paymentBucketMap = new Map<string, { key: string; label: string; amount: number; count: number }>();
+  for (const row of paymentRows) {
+    let key = 'cash';
+    let label = 'Tunai';
+    if (row.paymentMethod !== 'cash') {
+      let bankName = '';
+      try {
+        const parsed = JSON.parse(row.paymentDetailsJson || '{}') as { transferBank?: string };
+        bankName = String(parsed.transferBank || '').trim();
+      } catch {
+        bankName = '';
+      }
+      if (bankName) {
+        key = `transfer_${bankName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+        label = `Transfer ${bankName}`;
+      } else {
+        key = 'transfer_other';
+        label = 'Non-Tunai';
+      }
+    }
+    const existing = paymentBucketMap.get(key) ?? { key, label, amount: 0, count: 0 };
+    existing.amount += row.grandTotal;
+    existing.count += 1;
+    paymentBucketMap.set(key, existing);
+  }
+
+  const paymentBreakdown = Array.from(paymentBucketMap.values())
+    .sort((a, b) => b.amount - a.amount)
+    .map(item => ({
+      ...item,
+      percent: totalPenjualan > 0 ? Number(((item.amount / totalPenjualan) * 100).toFixed(1)) : 0,
+    }));
+
   return {
     period,
     displayTotalPenjualan: totalPenjualan,
@@ -4410,6 +4519,18 @@ export function getDashboardSummary(period: 'HARI' | 'BULAN', tenantId: string =
     activeLabels: labels,
     salesData: salesArr,
     trxData: trxArr,
+    topProducts: topProductsRows.map(r => ({
+      name: r.name,
+      subtitle: `${r.sku} · ${r.kategori}`,
+      qty: r.totalQty,
+      sales: r.totalSales,
+    })),
+    topCategories: topCategoriesRows.map(r => ({
+      name: r.kategori,
+      qty: r.totalQty,
+      sales: r.totalSales,
+    })),
+    paymentBreakdown,
   };
 }
 
@@ -4569,84 +4690,274 @@ export function isTenantAllowedForUser(user: UserAccount, tenantId: string): boo
 
 export function resolveActiveTenantForUser(user: UserAccount, requestedTenantId?: string): string {
   const accessible = getAccessibleTenantsForUser(user);
-  if (requestedTenantId && accessible.some(t => t.id === requestedTenantId)) {
+  const usable = accessible.filter(t => t.status !== 'Nonaktif');
+  const pool = usable.length > 0 ? usable : accessible;
+  if (requestedTenantId && pool.some(t => t.id === requestedTenantId)) {
     return requestedTenantId;
   }
-  if (user.defaultTenantId && accessible.some(t => t.id === user.defaultTenantId)) {
+  if (user.defaultTenantId && pool.some(t => t.id === user.defaultTenantId)) {
     return user.defaultTenantId;
   }
-  return accessible[0]?.id ?? getActiveTenantId();
+  return pool[0]?.id ?? getActiveTenantId();
+}
+
+const SESSION_ABSOLUTE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const SESSION_IDLE_TIMEOUT_MS = 12 * 60 * 60 * 1000;
+const SESSION_ACTIVITY_TOUCH_MS = 5 * 60 * 1000;
+const MAX_SESSIONS_PER_USER = 10;
+
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_LOCK_MS = 15 * 60 * 1000;
+const MAX_ACCOUNT_LOGIN_FAILS = 5;
+const MAX_IP_LOGIN_FAILS = 20;
+
+const DUMMY_PASSWORD_HASH = hashPassword(crypto.randomBytes(32).toString('hex'));
+
+export function hashSessionToken(rawToken: string): string {
+  return crypto.createHash('sha256').update(rawToken).digest('hex');
+}
+
+export function hashUserAgent(userAgent?: string): string {
+  return crypto
+    .createHash('sha256')
+    .update((userAgent ?? '').trim().slice(0, 512))
+    .digest('hex');
+}
+
+export function safeTimingEqual(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+function getLoginAttemptKeys(identifier: string, clientIp: string): { idKey: string; ipKey: string } {
+  const cleanId = identifier.trim().toLowerCase().slice(0, 120);
+  const cleanIp = (clientIp || 'unknown').trim().slice(0, 80);
+  return {
+    idKey: `id:${crypto.createHash('sha256').update(cleanId).digest('hex')}`,
+    ipKey: `ip:${crypto.createHash('sha256').update(cleanIp).digest('hex')}`,
+  };
+}
+
+export function checkLoginRateLimit(
+  identifier: string,
+  clientIp: string
+): { allowed: boolean; retryAfterSec?: number; message?: string } {
+  const nowMs = Date.now();
+  const { idKey, ipKey } = getLoginAttemptKeys(identifier, clientIp);
+
+  // Prune stale login attempt records older than window + lock
+  const staleBeforeIso = new Date(nowMs - LOGIN_WINDOW_MS - LOGIN_LOCK_MS).toISOString();
+  db.prepare('DELETE FROM login_attempts WHERE (lockedUntil IS NULL AND firstFailAt < ?) OR (lockedUntil IS NOT NULL AND lockedUntil < ?)').run(
+    staleBeforeIso,
+    new Date(nowMs).toISOString()
+  );
+
+  for (const key of [idKey, ipKey]) {
+    const row = db
+      .prepare('SELECT failCount, firstFailAt, lockedUntil FROM login_attempts WHERE key = ?')
+      .get(key) as { failCount: number; firstFailAt: string; lockedUntil: string | null } | undefined;
+    if (!row) continue;
+
+    if (row.lockedUntil) {
+      const lockUntilMs = Date.parse(row.lockedUntil);
+      if (Number.isFinite(lockUntilMs) && lockUntilMs > nowMs) {
+        const retryAfterSec = Math.max(1, Math.ceil((lockUntilMs - nowMs) / 1000));
+        const waitMin = Math.max(1, Math.ceil(retryAfterSec / 60));
+        return {
+          allowed: false,
+          retryAfterSec,
+          message: `Terlalu banyak percobaan login gagal. Demi keamanan, silakan coba lagi dalam ${waitMin} menit.`,
+        };
+      }
+      db.prepare('DELETE FROM login_attempts WHERE key = ?').run(key);
+    }
+  }
+
+  return { allowed: true };
+}
+
+export function recordLoginFailure(identifier: string, clientIp: string): void {
+  const now = new Date();
+  const nowMs = now.getTime();
+  const nowIso = now.toISOString();
+  const { idKey, ipKey } = getLoginAttemptKeys(identifier, clientIp);
+
+  const entries: Array<{ key: string; maxFails: number }> = [
+    { key: idKey, maxFails: MAX_ACCOUNT_LOGIN_FAILS },
+    { key: ipKey, maxFails: MAX_IP_LOGIN_FAILS },
+  ];
+
+  for (const { key, maxFails } of entries) {
+    const row = db
+      .prepare('SELECT failCount, firstFailAt FROM login_attempts WHERE key = ?')
+      .get(key) as { failCount: number; firstFailAt: string } | undefined;
+
+    if (!row || nowMs - Date.parse(row.firstFailAt) > LOGIN_WINDOW_MS) {
+      db.prepare('INSERT OR REPLACE INTO login_attempts (key, failCount, firstFailAt, lockedUntil) VALUES (?, 1, ?, NULL)').run(
+        key,
+        nowIso
+      );
+      continue;
+    }
+
+    const nextCount = row.failCount + 1;
+    const lockedUntil = nextCount >= maxFails ? new Date(nowMs + LOGIN_LOCK_MS).toISOString() : null;
+    db.prepare('UPDATE login_attempts SET failCount = ?, lockedUntil = ? WHERE key = ?').run(
+      nextCount,
+      lockedUntil,
+      key
+    );
+  }
+}
+
+export function clearLoginFailures(identifier: string): void {
+  const cleanId = identifier.trim().toLowerCase().slice(0, 120);
+  if (!cleanId) return;
+  const idKey = `id:${crypto.createHash('sha256').update(cleanId).digest('hex')}`;
+  db.prepare('DELETE FROM login_attempts WHERE key = ?').run(idKey);
 }
 
 export function authenticateUser(identifier: string, password: string): UserAccount | null {
+  if (typeof identifier !== 'string' || typeof password !== 'string') return null;
   const cleanId = identifier.trim();
-  if (!cleanId || !password) return null;
+  if (!cleanId || !password || cleanId.length > 120 || password.length > 128) return null;
+  if (/[\x00-\x1F\x7F]/.test(cleanId)) return null;
 
   const row = db
     .prepare('SELECT * FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?) LIMIT 1')
     .get(cleanId, cleanId) as UserDbRow | undefined;
 
-  if (!row || row.isActive !== 1) return null;
-  if (!verifyPassword(password, row.passwordHash)) return null;
+  // Constant-time verification even when account does not exist or is inactive to prevent username enumeration
+  const targetHash = row?.passwordHash || DUMMY_PASSWORD_HASH;
+  const passwordValid = verifyPassword(password, targetHash);
+
+  if (!row || row.isActive !== 1 || !passwordValid) {
+    return null;
+  }
 
   const nowIso = new Date().toISOString();
   db.prepare('UPDATE users SET lastLoginAt = ? WHERE id = ?').run(nowIso, row.id);
   return mapUserRow({ ...row, lastLoginAt: nowIso });
 }
 
-export function createSession(user: UserAccount): { token: string; activeTenantId: string } {
-  const token = crypto.randomBytes(32).toString('hex');
+export function createSession(
+  user: UserAccount,
+  userAgent?: string
+): { rawToken: string; tokenHash: string; csrfToken: string; activeTenantId: string } {
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const tokenHash = hashSessionToken(rawToken);
+  const csrfToken = crypto.randomBytes(32).toString('hex');
+  const userAgentHash = hashUserAgent(userAgent);
   const activeTenantId = resolveActiveTenantForUser(user);
   const now = new Date();
-  const expires = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const nowIso = now.toISOString();
+  const expires = new Date(now.getTime() + SESSION_ABSOLUTE_TTL_MS);
 
-  db.prepare('DELETE FROM sessions WHERE expiresAt <= ?').run(now.toISOString());
+  db.prepare('DELETE FROM sessions WHERE expiresAt <= ?').run(nowIso);
   db.prepare(
-    'INSERT INTO sessions (token, userId, activeTenantId, createdAt, expiresAt) VALUES (?, ?, ?, ?, ?)'
-  ).run(token, user.id, activeTenantId, now.toISOString(), expires.toISOString());
+    `INSERT INTO sessions (token, userId, activeTenantId, csrfToken, userAgentHash, lastActivityAt, createdAt, expiresAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(tokenHash, user.id, activeTenantId, csrfToken, userAgentHash, nowIso, nowIso, expires.toISOString());
 
-  return { token, activeTenantId };
+  // Enforce concurrent session cap per user
+  const userSessions = db
+    .prepare('SELECT token FROM sessions WHERE userId = ? ORDER BY createdAt DESC')
+    .all(user.id) as Array<{ token: string }>;
+  if (userSessions.length > MAX_SESSIONS_PER_USER) {
+    const toDelete = userSessions.slice(MAX_SESSIONS_PER_USER).map(s => s.token);
+    const delStmt = db.prepare('DELETE FROM sessions WHERE token = ?');
+    for (const oldHash of toDelete) {
+      delStmt.run(oldHash);
+    }
+  }
+
+  return { rawToken, tokenHash, csrfToken, activeTenantId };
 }
 
-export function getSessionContext(token: string): { token: string; user: UserAccount; activeTenantId: string } | null {
-  const cleanToken = token.trim();
-  if (!cleanToken) return null;
+export function getSessionContext(
+  rawToken: string,
+  userAgent?: string
+): { token: string; csrfToken: string; user: UserAccount; activeTenantId: string } | null {
+  if (typeof rawToken !== 'string') return null;
+  const cleanToken = rawToken.trim();
+  if (!/^[a-f0-9]{64}$/i.test(cleanToken)) return null;
 
+  const tokenHash = hashSessionToken(cleanToken);
   const sessionRow = db
-    .prepare('SELECT token, userId, activeTenantId, expiresAt FROM sessions WHERE token = ?')
-    .get(cleanToken) as { token: string; userId: string; activeTenantId: string; expiresAt: string } | undefined;
+    .prepare('SELECT token, userId, activeTenantId, csrfToken, userAgentHash, lastActivityAt, expiresAt FROM sessions WHERE token = ?')
+    .get(tokenHash) as
+    | {
+        token: string;
+        userId: string;
+        activeTenantId: string;
+        csrfToken: string;
+        userAgentHash: string;
+        lastActivityAt: string;
+        expiresAt: string;
+      }
+    | undefined;
 
-  if (!sessionRow) return null;
-  if (sessionRow.expiresAt <= new Date().toISOString()) {
-    db.prepare('DELETE FROM sessions WHERE token = ?').run(cleanToken);
+  if (!sessionRow || !sessionRow.csrfToken) return null;
+
+  const nowMs = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+
+  // Check absolute expiry
+  if (sessionRow.expiresAt <= nowIso) {
+    db.prepare('DELETE FROM sessions WHERE token = ?').run(tokenHash);
+    return null;
+  }
+
+  // Check idle timeout
+  const lastActivityMs = Date.parse(sessionRow.lastActivityAt || '');
+  if (!Number.isFinite(lastActivityMs) || nowMs - lastActivityMs > SESSION_IDLE_TIMEOUT_MS) {
+    db.prepare('DELETE FROM sessions WHERE token = ?').run(tokenHash);
+    return null;
+  }
+
+  // Verify User-Agent binding to mitigate stolen cookie replay from another client
+  if (sessionRow.userAgentHash && !safeTimingEqual(sessionRow.userAgentHash, hashUserAgent(userAgent))) {
+    db.prepare('DELETE FROM sessions WHERE token = ?').run(tokenHash);
     return null;
   }
 
   const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(sessionRow.userId) as UserDbRow | undefined;
   if (!userRow || userRow.isActive !== 1) {
-    db.prepare('DELETE FROM sessions WHERE token = ?').run(cleanToken);
+    db.prepare('DELETE FROM sessions WHERE token = ?').run(tokenHash);
     return null;
+  }
+
+  // Throttled idle activity touch
+  if (nowMs - lastActivityMs > SESSION_ACTIVITY_TOUCH_MS) {
+    db.prepare('UPDATE sessions SET lastActivityAt = ? WHERE token = ?').run(nowIso, tokenHash);
   }
 
   const user = mapUserRow(userRow);
   const resolvedTenantId = resolveActiveTenantForUser(user, sessionRow.activeTenantId);
   if (resolvedTenantId !== sessionRow.activeTenantId) {
-    db.prepare('UPDATE sessions SET activeTenantId = ? WHERE token = ?').run(resolvedTenantId, cleanToken);
+    db.prepare('UPDATE sessions SET activeTenantId = ? WHERE token = ?').run(resolvedTenantId, tokenHash);
   }
 
   return {
-    token: cleanToken,
+    token: tokenHash,
+    csrfToken: sessionRow.csrfToken,
     user,
     activeTenantId: resolvedTenantId,
   };
 }
 
-export function updateSessionTenant(token: string, tenantId: string): void {
-  db.prepare('UPDATE sessions SET activeTenantId = ? WHERE token = ?').run(tenantId, token);
+export function updateSessionTenant(tokenHash: string, tenantId: string): void {
+  db.prepare('UPDATE sessions SET activeTenantId = ? WHERE token = ?').run(tenantId, tokenHash);
 }
 
-export function deleteSession(token: string): void {
-  db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
+export function deleteSession(rawToken: string): void {
+  if (typeof rawToken !== 'string') return;
+  const cleanToken = rawToken.trim();
+  if (!/^[a-f0-9]{64}$/i.test(cleanToken)) return;
+  db.prepare('DELETE FROM sessions WHERE token = ?').run(hashSessionToken(cleanToken));
 }
 
 export function getUserById(id: string): UserAccount | null {
@@ -4956,7 +5267,11 @@ export function updateUserAccount(id: string, payload: UserUpdatePayload, actorU
     id
   );
 
-  if (!nextIsActive) {
+  const passwordChanged = Boolean(payload.password !== undefined && payload.password.trim().length > 0);
+  const roleChanged = nextRole !== existingRow.role;
+  const allowedChanged = JSON.stringify(validAllowed) !== existingRow.allowedTenantIdsJson;
+
+  if (!nextIsActive || passwordChanged || roleChanged || allowedChanged) {
     db.prepare('DELETE FROM sessions WHERE userId = ?').run(id);
   }
 

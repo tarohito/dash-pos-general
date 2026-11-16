@@ -21,6 +21,7 @@ import {
   SortDirection,
   getNextColumnSort,
 } from '../common/TableSortControls';
+import { BTN_PRIMARY_CLASS, BTN_SECONDARY_CLASS } from '../common/ModalShell';
 
 interface DailyTransactionsViewProps {
   refreshTrigger: number;
@@ -346,7 +347,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                 <button
                   type="button"
                   onClick={handleClearSearch}
-                  className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-primary bg-primary-soft hover:bg-primary-soft/80 rounded-xl transition-colors cursor-pointer border border-primary-border"
+                  className={`mt-3 ${BTN_SECONDARY_CLASS}`}
                 >
                   <GoogleIcon name="close" size={14} />
                   <span>Bersihkan Pencarian</span>
@@ -355,7 +356,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                 <button
                   type="button"
                   onClick={onNavigateToPos}
-                  className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-primary bg-primary-soft hover:bg-primary-soft/80 rounded-xl transition-colors cursor-pointer border border-primary-border"
+                  className={`mt-3 ${BTN_PRIMARY_CLASS}`}
                 >
                   <GoogleIcon name="add" size={14} />
                   <span>Buat Transaksi Penjualan Baru</span>

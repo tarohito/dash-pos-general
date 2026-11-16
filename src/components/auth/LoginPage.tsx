@@ -62,34 +62,53 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-100 flex items-center justify-center p-4 sm:p-6 font-sans">
-      <div className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-12 bg-white rounded-2xl border border-zinc-200 overflow-hidden">
-        {/* Kolom Kiri: Branding Warna Brand */}
-        <div className="md:col-span-5 bg-gradient-to-br from-primary via-primary to-primary-hover p-6 sm:p-8 text-white flex flex-col justify-between">
+    <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4 sm:p-6 font-sans relative overflow-hidden">
+      <div
+        aria-hidden="true"
+        className="main-container-top-gradient pointer-events-none absolute inset-x-0 top-0 h-56 sm:h-72 z-0"
+      />
+      <div className="relative z-10 w-full max-w-[940px] grid grid-cols-1 md:grid-cols-12 bg-white rounded-2xl border border-zinc-200 overflow-hidden shadow-[0_8px_30px_-10px_rgba(15,23,42,0.08)]">
+        {/* Kolom Kiri: Branding Warna Brand & Ilustrasi POS */}
+        <div className="md:col-span-6 bg-gradient-to-br from-primary via-primary to-primary-hover p-6 sm:p-8 text-white flex flex-col justify-between gap-6">
           <div>
             <div className="inline-flex items-center px-3.5 py-2 rounded-xl bg-white shadow-sm">
               <BrandLogo size="lg" />
             </div>
           </div>
 
-          <div className="my-8 md:my-0">
-            <h1 className="text-2xl font-bold tracking-tight leading-snug text-white">
-              Sistem Kasir POS
-            </h1>
-            <p className="text-xs sm:text-sm text-white/85 mt-1.5 leading-relaxed">
-              Penjualan, Inventaris &amp; Multi-Outlet
-            </p>
+          <div className="my-2 flex flex-col items-center md:items-start gap-5">
+            <div className="w-full max-w-[280px] sm:max-w-[330px] md:max-w-[390px] mx-auto flex items-center justify-center">
+              <img
+                src="/assets/login-pos-illustration.webp"
+                alt="Ilustrasi Perangkat Kasir POS LogicPOS"
+                width={960}
+                height={741}
+                loading="eager"
+                decoding="async"
+                referrerPolicy="no-referrer"
+                className="w-full h-auto object-contain select-none drop-shadow-[0_16px_28px_rgba(15,23,42,0.28)]"
+              />
+            </div>
+
+            <div className="w-full text-center md:text-left">
+              <h1 className="text-2xl font-bold tracking-tight leading-snug text-white">
+                Sistem Kasir POS
+              </h1>
+              <p className="text-xs sm:text-sm text-white/85 mt-1.5 leading-relaxed">
+                Penjualan, Inventaris &amp; Multi-Outlet
+              </p>
+            </div>
           </div>
 
-          <p className="text-xs text-white/75 font-medium">
+          <p className="text-xs text-white/75 font-medium text-center md:text-left">
             &copy; {new Date().getFullYear()} Fruitylogic. All rights reserved.
           </p>
         </div>
 
         {/* Kolom Kanan: Form Login Simpel */}
-        <div className="md:col-span-7 p-6 sm:p-8 flex flex-col justify-between bg-white">
-          <div>
-            <h2 className="text-lg font-bold text-zinc-950 mb-5">Masuk</h2>
+        <div className="md:col-span-6 p-6 sm:p-8 flex flex-col justify-center bg-white">
+          <div className="w-full max-w-sm mx-auto">
+            <h2 className="text-xl font-bold text-zinc-950 text-center mb-5">Masuk</h2>
 
             {errorMsg && (
               <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
@@ -160,28 +179,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 )}
               </button>
             </form>
-          </div>
 
-          {/* Akses Cepat Demo Minimalis */}
-          <div className="mt-6 pt-4 border-t border-zinc-200">
-            <p className="text-xs font-medium text-zinc-400 mb-2">Akses cepat demo</p>
-            <div className="grid grid-cols-2 gap-1.5">
-              {DEMO_ACCOUNTS.map(acc => (
-                <button
-                  key={acc.username}
-                  type="button"
-                  disabled={isSubmitting}
-                  onClick={() => handleQuickDemoLogin(acc)}
-                  className="px-2.5 py-2 rounded-lg border border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-zinc-100 text-left transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <span className="block text-xs font-semibold text-zinc-800 leading-tight">
-                    {acc.label}
-                  </span>
-                  <span className="block text-xs font-mono text-zinc-400 mt-0.5 truncate">
-                    @{acc.username}
-                  </span>
-                </button>
-              ))}
+            {/* Akses Cepat Demo Minimalis */}
+            <div className="mt-6 pt-4 border-t border-zinc-200">
+              <p className="text-xs font-medium text-zinc-400 text-center mb-2.5">Akses cepat demo</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {DEMO_ACCOUNTS.map(acc => (
+                  <button
+                    key={acc.username}
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => handleQuickDemoLogin(acc)}
+                    className="px-2.5 py-2 rounded-lg border border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-zinc-100 text-center transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <span className="block text-xs font-semibold text-zinc-800 leading-tight">
+                      {acc.label}
+                    </span>
+                    <span className="block text-xs font-mono text-zinc-400 mt-0.5 truncate">
+                      @{acc.username}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

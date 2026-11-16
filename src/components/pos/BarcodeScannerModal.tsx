@@ -7,7 +7,7 @@ import { formatIDR } from '../../utils/formatters';
 import { posApi } from '../../services/api';
 import { extractBarcodeValue } from '../../utils/barcode';
 import { useToast } from '../../contexts/ToastContext';
-import { ModalShell, MODAL_BTN_PRIMARY_CLASS } from '../common/ModalShell';
+import { ModalShell, MODAL_BTN_SECONDARY_CLASS } from '../common/ModalShell';
 
 interface BarcodeScannerModalProps {
   isOpen: boolean;
@@ -240,7 +240,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className={MODAL_BTN_PRIMARY_CLASS}
+            className={MODAL_BTN_SECONDARY_CLASS}
           >
             Selesai Scan
           </button>

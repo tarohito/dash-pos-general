@@ -526,7 +526,6 @@ export async function generateTransactionsExcelBuffer(
       const criteria = [
         it.category,
         it.brand && it.brand !== 'No Brand' ? it.brand : '',
-        it.kondisi,
       ]
         .filter(Boolean)
         .join(' · ');
@@ -638,7 +637,7 @@ export async function generateTransactionsExcelBuffer(
     properties: { tabColor: { argb: 'FF2563EB' } },
   });
 
-  itemSheet.mergeCells('A1:Q1');
+  itemSheet.mergeCells('A1:P1');
   const itemTitle = itemSheet.getCell('A1');
   itemTitle.value = `DETAIL ITEM PRODUK TERJUAL — ${storeTitle}`;
   itemTitle.font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -646,9 +645,9 @@ export async function generateTransactionsExcelBuffer(
   itemTitle.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
   itemSheet.getRow(1).height = 28;
 
-  itemSheet.mergeCells('A2:Q2');
+  itemSheet.mergeCells('A2:P2');
   const itemSub = itemSheet.getCell('A2');
-  itemSub.value = `Periode: ${periodLabel}  •  Rincian Nama Produk, Kategori, Merek / Brand, Kondisi, Harga Jual, HPP & Laba`;
+  itemSub.value = `Periode: ${periodLabel}  •  Rincian Nama Produk, Kategori, Merek / Brand, Harga Jual, HPP & Laba`;
   itemSub.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF4C1D95' } };
   itemSub.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: SUBHEADER_FILL } };
   itemSub.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
@@ -664,7 +663,6 @@ export async function generateTransactionsExcelBuffer(
     'Nama Produk',
     'Kategori',
     'Merek / Brand',
-    'Kondisi',
     'Qty (pcs)',
     'HPP (Rp)',
     'Harga Jual (Rp)',
@@ -682,7 +680,7 @@ export async function generateTransactionsExcelBuffer(
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND_HEADER_FILL } };
     cell.alignment = {
       vertical: 'middle',
-      horizontal: [1, 11, 12, 13, 14, 15].includes(colNumber) ? 'right' : 'left',
+      horizontal: [1, 10, 11, 12, 13, 14].includes(colNumber) ? 'right' : 'left',
       wrapText: true,
     };
     applyThinBorder(cell, BRAND_HEADER_FILL);
@@ -724,7 +722,6 @@ export async function generateTransactionsExcelBuffer(
         it.name,
         it.category || '-',
         it.brand || 'No Brand',
-        it.kondisi || 'Baru',
         it.qty,
         hppVal,
         it.harga,
@@ -747,16 +744,16 @@ export async function generateTransactionsExcelBuffer(
         };
         cell.alignment = {
           vertical: 'middle',
-          horizontal: [1, 11, 12, 13, 14, 15].includes(colNumber) ? 'right' : 'left',
+          horizontal: [1, 10, 11, 12, 13, 14].includes(colNumber) ? 'right' : 'left',
         };
         applyThinBorder(cell);
       });
       row.getCell(1).numFmt = '#,##0';
-      row.getCell(11).numFmt = '#,##0';
+      row.getCell(10).numFmt = '#,##0';
+      row.getCell(11).numFmt = '"Rp "#,##0';
       row.getCell(12).numFmt = '"Rp "#,##0';
       row.getCell(13).numFmt = '"Rp "#,##0';
       row.getCell(14).numFmt = '"Rp "#,##0';
-      row.getCell(15).numFmt = '"Rp "#,##0';
     }
   }
 
@@ -764,7 +761,6 @@ export async function generateTransactionsExcelBuffer(
   itemTotalRow.values = [
     '',
     `TOTAL ITEM AKTIF (${activeItemLineCount} Baris)`,
-    '',
     '',
     '',
     '',
@@ -786,13 +782,13 @@ export async function generateTransactionsExcelBuffer(
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_ROW_FILL } };
     cell.alignment = {
       vertical: 'middle',
-      horizontal: [11, 14, 15].includes(colNumber) ? 'right' : 'left',
+      horizontal: [10, 13, 14].includes(colNumber) ? 'right' : 'left',
     };
     applyThinBorder(cell, BRAND_HEADER_FILL);
   });
-  itemTotalRow.getCell(11).numFmt = '#,##0';
+  itemTotalRow.getCell(10).numFmt = '#,##0';
+  itemTotalRow.getCell(13).numFmt = '"Rp "#,##0';
   itemTotalRow.getCell(14).numFmt = '"Rp "#,##0';
-  itemTotalRow.getCell(15).numFmt = '"Rp "#,##0';
 
   itemSheet.autoFilter = {
     from: { row: 4, column: 1 },
@@ -825,7 +821,6 @@ export function generateTransactionsCsvString(transactions: Transaction[]): stri
     'Nama Produk',
     'Kategori',
     'Merek / Brand',
-    'Kondisi',
     'Qty (pcs)',
     'Harga Jual (Rp)',
     'Subtotal (Rp)',
@@ -851,7 +846,6 @@ export function generateTransactionsCsvString(transactions: Transaction[]): stri
           it.name,
           it.category || '-',
           it.brand || 'No Brand',
-          it.kondisi || 'Baru',
           it.qty,
           it.harga,
           it.subtotal,

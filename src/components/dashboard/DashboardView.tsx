@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleIcon } from '../common/GoogleIcon';
 import { DashboardSummaryResponse, Tenant, UserAccount } from '../../types';
-import { CustomerServiceModal } from './CustomerServiceModal';
 import { SalesVolumeChart } from './SalesVolumeChart';
+import {
+  PaymentBreakdownChartCard,
+  TopSellingChartCard,
+} from './DashboardInsightsCharts';
 import { posApi } from '../../services/api';
 import { ErrorBanner } from '../common/ErrorBanner';
 import { useToast } from '../../contexts/ToastContext';
 import { MoneyAmount } from '../common/MoneyAmount';
 import { KpiCard } from '../common/KpiCard';
+import { BTN_PRIMARY_CLASS, BTN_SECONDARY_CLASS } from '../common/ModalShell';
 import { formatIDR } from '../../utils/formatters';
 
 interface DashboardViewProps {
@@ -39,11 +43,13 @@ const EMPTY_SUMMARY: DashboardSummaryResponse = {
   activeLabels: ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
   salesData: Array(12).fill(0),
   trxData: Array(12).fill(0),
+  topProducts: [],
+  topCategories: [],
+  paymentBreakdown: [],
 };
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   refreshTrigger,
-  activeTenant,
   currentUser,
   onNavigateTo,
 }) => {
@@ -52,7 +58,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [isCsModalOpen, setIsCsModalOpen] = useState(false);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -98,6 +103,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     activeLabels,
     salesData,
     trxData,
+    topProducts = [],
+    topCategories = [],
+    paymentBreakdown = [],
   } = summary;
 
   const displayName = currentUser?.fullName?.trim() || currentUser?.username || 'Pengguna';
@@ -105,7 +113,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-4 pb-6">
       {/* User Welcome Banner */}
-      <div className="relative rounded-2xl border border-primary bg-transparent p-4 sm:p-6">
+      <div className="relative rounded-2xl border border-zinc-200 bg-white/85 backdrop-blur-xs p-4 sm:p-6">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
             <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-950 leading-tight tracking-tight">
@@ -120,7 +128,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <button
               type="button"
               onClick={() => onNavigateTo('Kasir POS (Penjualan)')}
-              className="h-9 px-4 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer active:scale-[0.98]"
+              className={BTN_PRIMARY_CLASS}
             >
               <GoogleIcon name="shopping_cart" size={16} />
               <span>Buka Kasir POS</span>
@@ -128,9 +136,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <button
               type="button"
               onClick={() => onNavigateTo('Transaksi')}
-              className="h-9 px-3.5 bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-200 font-semibold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer active:scale-[0.98]"
+              className={BTN_SECONDARY_CLASS}
             >
-              <GoogleIcon name="receipt_long" size={16} className="text-zinc-500" />
+              <GoogleIcon name="receipt_long" size={16} />
               <span>Lihat Transaksi</span>
             </button>
           </div>
@@ -146,14 +154,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </h3>
             <span className="text-xs text-zinc-400" aria-hidden="true">&middot;</span>
             <span className="text-xs sm:text-sm font-semibold text-primary">
-              {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+              {period === 'HARI'
+                ? new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+                : new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
             </span>
             {isLoading && <GoogleIcon name="progress_activity" size={14} className="animate-spin text-primary" />}
           </div>
           <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
             {period === 'HARI'
-              ? 'Pantau omzet, laba kotor, transaksi, dan grafik penjualan per jam dibanding hari kemarin.'
-              : 'Pantau akumulasi omzet, laba kotor, transaksi, dan grafik penjualan dibanding bulan kemarin.'}
+              ? 'Pantau omzet, laba kotor, transaksi, dan grafik penjualan hari ini per interval waktu.'
+              : 'Pantau akumulasi omzet, laba kotor, transaksi, dan grafik penjualan selama bulan berjalan.'}
           </p>
         </div>
 
@@ -285,7 +295,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           title="Penerimaan Penjualan"
           accent="primary"
           compactMobile
-          tooltip="Total penerimaan pembayaran bersih dari transaksi penjualan aktif (Tunai & Transfer Bank)."
+          tooltip="Total penerimaan pembayaran bersih dari transaksi penjualan aktif (Tunai & Non-Tunai)."
           icon={<GoogleIcon name="account_balance_wallet" size={15} />}
           value={
             <MoneyAmount
@@ -301,7 +311,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 Tunai {cashPercent}%
               </span>
               <span className="text-zinc-500 truncate">
-                &middot; Transfer {transferPercent}%
+                &middot; Non-Tunai {transferPercent}%
               </span>
             </div>
           }
@@ -402,11 +412,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         />
       </div>
 
-      <CustomerServiceModal
-        isOpen={isCsModalOpen}
-        onClose={() => setIsCsModalOpen(false)}
-        activeTenant={activeTenant}
-      />
+      {/* Supporting Insights Charts (2-Column Grid) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <TopSellingChartCard
+          period={period}
+          topProducts={topProducts}
+          topCategories={topCategories}
+        />
+        <PaymentBreakdownChartCard
+          period={period}
+          totalAmount={displayPenerimaan}
+          totalTransactions={displayTransaksi}
+          breakdown={paymentBreakdown}
+        />
+      </div>
     </div>
   );
 };

@@ -420,7 +420,7 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                     <button
                       type="button"
                       onClick={() => logoInputRef.current?.click()}
-                      className="h-8 px-2.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-xs font-semibold rounded-lg transition-colors inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                      className="h-8 px-3 bg-secondary-soft hover:bg-secondary/15 text-secondary-text border border-secondary-border text-xs font-semibold rounded-full transition-colors inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                     >
                       <GoogleIcon name="upload" size={13} />
                       <span>{settings.receiptCustomLogoUrl ? 'Ganti' : 'Upload'}</span>

@@ -7,6 +7,12 @@ export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
 export const MODAL_FOOTER_END_CLASS =
   'flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2';
 
+export const BTN_PRIMARY_CLASS =
+  'h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-full transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.08)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed';
+
+export const BTN_SECONDARY_CLASS =
+  'h-9 px-4 text-xs sm:text-sm font-semibold text-secondary-text bg-secondary-soft hover:bg-secondary/15 rounded-full border border-secondary-border transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed';
+
 export const MODAL_BTN_SECONDARY_CLASS =
   'h-9 px-4 text-sm font-semibold text-zinc-700 bg-zinc-100 hover:bg-zinc-200/80 hover:text-zinc-950 rounded-full border border-zinc-200/90 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed';
 

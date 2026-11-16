@@ -6,6 +6,7 @@ import {
   ModalShell,
   MODAL_BTN_SECONDARY_CLASS,
   MODAL_BTN_PRIMARY_CLASS,
+  BTN_SECONDARY_CLASS,
 } from '../common/ModalShell';
 
 interface ReceiptModalProps {
@@ -66,7 +67,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               onClose();
               onViewDailyTransactions();
             }}
-            className={MODAL_BTN_SECONDARY_CLASS}
+            className={BTN_SECONDARY_CLASS}
           >
             Lihat Transaksi Harian
           </button>

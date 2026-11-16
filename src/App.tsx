@@ -30,8 +30,8 @@ import { extractBarcodeValue } from './utils/barcode';
 import { formatIDR } from './utils/formatters';
 import { getPromoEffectiveStatus } from './utils/promoDuration';
 import {
-  clearAuthToken,
-  getAuthToken,
+  ApiError,
+  clearClientSessionState,
   posApi,
   setUnauthorizedHandler,
 } from './services/api';
@@ -214,7 +214,7 @@ const App: React.FC = () => {
   const { showToast } = useToast();
 
   const resetAuthSession = useCallback(() => {
-    clearAuthToken();
+    clearClientSessionState();
     setCurrentUser(null);
     setCart([]);
     setAppliedPromo(null);
@@ -237,15 +237,8 @@ const App: React.FC = () => {
     return () => setUnauthorizedHandler(null);
   }, [resetAuthSession]);
 
-  // Load lightweight bootstrap metadata (authenticated user, categories, accessible tenants, active tenant)
+  // Load lightweight bootstrap metadata (authenticated via HttpOnly session cookie)
   const fetchBootstrapData = useCallback(async () => {
-    if (!getAuthToken()) {
-      setCurrentUser(null);
-      setIsCheckingAuth(false);
-      setIsLoadingData(false);
-      return;
-    }
-
     setIsLoadingData(true);
     setLoadError(null);
     try {
@@ -262,7 +255,7 @@ const App: React.FC = () => {
         isMenuAllowedForRole(prev, data.user.role) ? prev : 'Kasir POS (Penjualan)'
       );
     } catch (err) {
-      if (!getAuthToken()) {
+      if (err instanceof ApiError && err.status === 401) {
         setCurrentUser(null);
       } else {
         const msg = err instanceof Error ? err.message : 'Gagal memuat data dari database SQLite.';
@@ -330,6 +323,7 @@ const App: React.FC = () => {
 
   // Multi-Tenant CRUD
   const [isRegisterTenantOpen, setIsRegisterTenantOpen] = useState(false);
+  const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
   const activeTenant = tenants.find(t => t.id === activeTenantId) || tenants[0];
 
   const refreshActiveOutletViews = useCallback(() => {
@@ -370,21 +364,64 @@ const App: React.FC = () => {
     }
   };
 
-  const handleRegisterTenant = async (newTenant: Tenant) => {
+  const handleSaveTenant = async (tenantData: Tenant, editId?: string) => {
     try {
-      const created = await posApi.registerTenant(newTenant);
-      setTenants(prev => [created, ...prev]);
-      setActiveTenantId(created.id);
-      setCart([]);
-      setAppliedPromo(null);
-      setPromoCouponError(null);
-      setCustomerName('Pelanggan Umum');
-      refreshActiveOutletViews();
-      void posApi.getStoreSettings().then(res => setStoreSettings(res.storeSettings)).catch(() => {});
-      setIsRegisterTenantOpen(false);
-      showToast('success', `Outlet "${created.name}" berhasil didaftarkan & diaktifkan.`);
+      if (editId) {
+        const updated = await posApi.updateTenant(editId, tenantData);
+        setTenants(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+        setEditingTenant(null);
+        setIsRegisterTenantOpen(false);
+        showToast('success', `Outlet "${updated.name}" berhasil diperbarui.`);
+      } else {
+        const created = await posApi.registerTenant(tenantData);
+        setTenants(prev => [created, ...prev]);
+        setActiveTenantId(created.id);
+        setCart([]);
+        setAppliedPromo(null);
+        setPromoCouponError(null);
+        setCustomerName('Pelanggan Umum');
+        refreshActiveOutletViews();
+        void posApi.getStoreSettings().then(res => setStoreSettings(res.storeSettings)).catch(() => {});
+        setEditingTenant(null);
+        setIsRegisterTenantOpen(false);
+        showToast('success', `Outlet "${created.name}" berhasil didaftarkan & diaktifkan.`);
+      }
     } catch (err) {
-      showToast('error', err instanceof Error ? err.message : 'Gagal mendaftarkan outlet.');
+      showToast(
+        'error',
+        err instanceof Error
+          ? err.message
+          : editId
+          ? 'Gagal memperbarui outlet.'
+          : 'Gagal mendaftarkan outlet.'
+      );
+      throw err;
+    }
+  };
+
+  const handleToggleTenantStatus = async (tenant: Tenant, nextStatus: 'Aktif' | 'Nonaktif') => {
+    try {
+      const updated = await posApi.toggleTenantStatus(tenant.id, nextStatus);
+      setTenants(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+      showToast(
+        'success',
+        nextStatus === 'Nonaktif'
+          ? `Outlet "${updated.name}" dinonaktifkan. Histori transaksi tetap tersimpan aman.`
+          : `Outlet "${updated.name}" diaktifkan kembali.`
+      );
+    } catch (err) {
+      showToast('error', err instanceof Error ? err.message : 'Gagal mengubah status outlet.');
+      throw err;
+    }
+  };
+
+  const handleDeleteTenant = async (tenant: Tenant) => {
+    try {
+      await posApi.deleteTenant(tenant.id);
+      setTenants(prev => prev.filter(t => t.id !== tenant.id));
+      showToast('success', `Outlet "${tenant.name}" berhasil dihapus.`);
+    } catch (err) {
+      showToast('error', err instanceof Error ? err.message : 'Gagal menghapus outlet.');
       throw err;
     }
   };
@@ -1103,7 +1140,16 @@ const App: React.FC = () => {
                         tenants={tenants}
                         activeTenantId={activeTenantId}
                         onSelectTenant={handleSelectTenant}
-                        onOpenRegisterModal={() => setIsRegisterTenantOpen(true)}
+                        onOpenRegisterModal={() => {
+                          setEditingTenant(null);
+                          setIsRegisterTenantOpen(true);
+                        }}
+                        onEditTenant={t => {
+                          setEditingTenant(t);
+                          setIsRegisterTenantOpen(true);
+                        }}
+                        onToggleTenantStatus={handleToggleTenantStatus}
+                        onDeleteTenant={handleDeleteTenant}
                         onNavigateToPos={() => setActiveMenu('Kasir POS (Penjualan)')}
                         canCreateOutlet={isOwner}
                       />
@@ -1290,8 +1336,12 @@ const App: React.FC = () => {
           {isRegisterTenantOpen && (
             <RegisterTenantModal
               isOpen={isRegisterTenantOpen}
-              onClose={() => setIsRegisterTenantOpen(false)}
-              onSaveTenant={handleRegisterTenant}
+              onClose={() => {
+                setIsRegisterTenantOpen(false);
+                setEditingTenant(null);
+              }}
+              editingTenant={editingTenant}
+              onSaveTenant={handleSaveTenant}
             />
           )}
         </Suspense>

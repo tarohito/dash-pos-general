@@ -40,30 +40,37 @@ import type {
   UserUpdatePayload,
 } from '../types';
 
-const AUTH_TOKEN_KEY = 'epaper_auth_token';
+const LEGACY_AUTH_TOKEN_KEY = 'epaper_auth_token';
+const MUTATING_HTTP_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+// Keep CSRF & optional iframe-cookie-blocked fallback ONLY in private module RAM (never localStorage/sessionStorage/cookie)
+let memoryCsrfToken: string | null = null;
+let memoryFallbackToken: string | null = null;
 let unauthorizedHandler: (() => void) | null = null;
 
-export function getAuthToken(): string | null {
-  try {
-    return window.localStorage.getItem(AUTH_TOKEN_KEY);
-  } catch {
-    return null;
+// Clean up any legacy token previously stored in localStorage
+try {
+  window.localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+} catch {
+  // Ignore if storage unavailable
+}
+
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
   }
 }
 
-export function setAuthToken(token: string): void {
+export function clearClientSessionState(): void {
+  memoryCsrfToken = null;
+  memoryFallbackToken = null;
   try {
-    window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+    window.localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
   } catch {
-    // Abaikan jika storage tidak tersedia
-  }
-}
-
-export function clearAuthToken(): void {
-  try {
-    window.localStorage.removeItem(AUTH_TOKEN_KEY);
-  } catch {
-    // Abaikan jika storage tidak tersedia
+    // Ignore if storage unavailable
   }
 }
 
@@ -83,13 +90,18 @@ function toQueryString(params: Record<string, string | number | boolean | undefi
 }
 
 async function requestJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const token = getAuthToken();
+  const method = (options?.method ?? 'GET').toUpperCase();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((options?.headers as Record<string, string> | undefined) ?? {}),
   };
-  if (token && !headers.Authorization) {
-    headers.Authorization = `Bearer ${token}`;
+
+  if (memoryFallbackToken && !headers['X-Session-Token']) {
+    headers['X-Session-Token'] = memoryFallbackToken;
+  }
+
+  if (MUTATING_HTTP_METHODS.has(method) && memoryCsrfToken && !headers['X-CSRF-Token']) {
+    headers['X-CSRF-Token'] = memoryCsrfToken;
   }
 
   const res = await fetch(url, {
@@ -101,37 +113,70 @@ async function requestJson<T>(url: string, options?: RequestInit): Promise<T> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401 && !url.startsWith('/api/auth/login')) {
-      clearAuthToken();
+      clearClientSessionState();
       unauthorizedHandler?.();
     }
     const message = (data as { error?: string }).error || `Request gagal (${res.status})`;
-    throw new Error(message);
+    throw new ApiError(message, res.status);
   }
   return data as T;
 }
 
 export const posApi = {
-  // Authentication & Session
+  // Authentication & Session (HttpOnly Cookie + In-Memory CSRF Synchronizer Token)
   login: async (identifier: string, password: string): Promise<AuthLoginResponse> => {
-    const res = await requestJson<AuthLoginResponse>('/api/auth/login', {
+    memoryFallbackToken = null;
+    const rawRes = await requestJson<AuthLoginResponse & { fallbackToken?: string }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ identifier, password }),
     });
-    setAuthToken(res.token);
-    return res;
+    memoryCsrfToken = rawRes.csrfToken || null;
+
+    // Verify whether the browser accepted and returns the HttpOnly session cookie
+    if (rawRes.fallbackToken) {
+      try {
+        const probe = await fetch('/api/auth/me', { credentials: 'same-origin' });
+        if (probe.ok) {
+          // HttpOnly cookie works — discard fallback token so JS holds zero session tokens
+          memoryFallbackToken = null;
+        } else {
+          // Browser/iframe blocked cookies — hold token strictly in private closure RAM (never localStorage)
+          memoryFallbackToken = rawRes.fallbackToken;
+        }
+      } catch {
+        memoryFallbackToken = rawRes.fallbackToken;
+      }
+      delete rawRes.fallbackToken;
+    }
+
+    return rawRes;
   },
   logout: async (): Promise<void> => {
     try {
       await requestJson<{ ok: boolean }>('/api/auth/logout', { method: 'POST' });
     } catch {
-      // Tetap bersihkan token lokal meskipun server sudah clear session
+      // Tetap bersihkan state CSRF lokal meskipun sesi server sudah berakhir
     } finally {
-      clearAuthToken();
+      clearClientSessionState();
     }
   },
-  getMe: () => requestJson<{ user: UserAccount; tenants: Tenant[]; activeTenantId: string }>('/api/auth/me'),
+  getMe: async () => {
+    const res = await requestJson<{ csrfToken?: string; user: UserAccount; tenants: Tenant[]; activeTenantId: string }>(
+      '/api/auth/me'
+    );
+    if (res.csrfToken) {
+      memoryCsrfToken = res.csrfToken;
+    }
+    return res;
+  },
 
-  bootstrap: () => requestJson<BootstrapPayload>('/api/bootstrap'),
+  bootstrap: async () => {
+    const res = await requestJson<BootstrapPayload>('/api/bootstrap');
+    if (res.csrfToken) {
+      memoryCsrfToken = res.csrfToken;
+    }
+    return res;
+  },
 
   // Users CRUD (Owner only)
   getUsers: (
@@ -403,11 +448,6 @@ export const posApi = {
     search?: string;
     format?: TransactionExportFormat;
   }): Promise<{ blob: Blob; filename: string }> => {
-    const token = getAuthToken();
-    const headers: Record<string, string> = {};
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
     const url = `/api/transactions/export${toQueryString({
       period: params.period,
       month: params.month,
@@ -420,17 +460,21 @@ export const posApi = {
       search: params.search,
       format: params.format,
     })}`;
+    const headers: Record<string, string> = {};
+    if (memoryFallbackToken) {
+      headers['X-Session-Token'] = memoryFallbackToken;
+    }
     const res = await fetch(url, {
       credentials: 'same-origin',
       headers,
     });
     if (!res.ok) {
       if (res.status === 401) {
-        clearAuthToken();
+        clearClientSessionState();
         unauthorizedHandler?.();
       }
       const errData = await res.json().catch(() => ({}));
-      throw new Error((errData as { error?: string }).error || `Ekspor gagal (${res.status})`);
+      throw new ApiError((errData as { error?: string }).error || `Ekspor gagal (${res.status})`, res.status);
     }
     const headerName = res.headers.get('X-Export-Filename');
     const disp = res.headers.get('Content-Disposition') || '';
@@ -609,6 +653,20 @@ export const posApi = {
     requestJson<Tenant>('/api/tenants', {
       method: 'POST',
       body: JSON.stringify(payload),
+    }),
+  updateTenant: (id: string, payload: Partial<Tenant>) =>
+    requestJson<Tenant>(`/api/tenants/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  toggleTenantStatus: (id: string, status: 'Aktif' | 'Nonaktif') =>
+    requestJson<Tenant>(`/api/tenants/${encodeURIComponent(id)}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+  deleteTenant: (id: string) =>
+    requestJson<{ deletedId: string }>(`/api/tenants/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
     }),
   setActiveTenant: (tenantId: string) =>
     requestJson<{ activeTenantId: string }>('/api/tenants/active', {

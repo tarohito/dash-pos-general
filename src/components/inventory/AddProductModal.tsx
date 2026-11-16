@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleIcon } from '../common/GoogleIcon';
-import { Product, ProductCondition, ProductStatus } from '../../types';
+import { Product, ProductStatus } from '../../types';
 import { CustomSelect } from '../common/CustomSelect';
 import { NumericInput } from '../common/NumericInput';
 import { StatusToggle } from '../common/StatusToggle';
@@ -39,7 +39,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     name: '',
     category: categories[0] || 'Parfum',
     brand: 'No Brand',
-    kondisi: 'Baru' as ProductCondition,
     deskripsi: '',
     berat: '50',
     harga: '185000',
@@ -114,7 +113,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
         name: editingProduct.name,
         category: editingProduct.category || defaultCategory,
         brand: editingProduct.brand || 'No Brand',
-        kondisi: (editingProduct.kondisi === 'Bekas' ? 'Bekas' : 'Baru') as ProductCondition,
         deskripsi: editingProduct.deskripsi || '',
         berat: String(editingProduct.berat),
         harga: String(editingProduct.harga),
@@ -133,7 +131,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
         name: '',
         category: defaultCategory,
         brand: 'No Brand',
-        kondisi: 'Baru',
         deskripsi: '',
         berat: '50',
         harga: '185000',
@@ -327,7 +324,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           name: cleanName,
           category: formData.category,
           brand: (formData.brand.trim() || 'No Brand'),
-          kondisi: formData.kondisi,
           deskripsi: formData.deskripsi.trim(),
           berat: beratNum,
           harga: hargaNum,
@@ -426,7 +422,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             </p>
           </div>
 
-          {/* Kategori, Merek & Kondisi */}
+          {/* Kategori & Merek */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-zinc-700 mb-1">
@@ -466,25 +462,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 className="w-full h-10 px-3.5 text-sm font-medium bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
-          </div>
-
-          <div className="sm:w-1/2 sm:pr-1.5">
-            <label className="block text-xs font-semibold text-zinc-700 mb-1">
-              Kondisi Produk
-            </label>
-            <CustomSelect
-              value={formData.kondisi}
-              onChange={val =>
-                setFormData(prev => ({
-                  ...prev,
-                  kondisi: val === 'Bekas' ? 'Bekas' : 'Baru',
-                }))
-              }
-              options={[
-                { value: 'Baru', label: 'Baru' },
-                { value: 'Bekas', label: 'Bekas / Preloved' },
-              ]}
-            />
           </div>
 
           {/* Deskripsi Produk */}
@@ -800,7 +777,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="h-9 px-3.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                          className="h-9 px-3.5 rounded-full bg-secondary-soft hover:bg-secondary/15 text-secondary-text border border-secondary-border text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
                         >
                           <GoogleIcon name="upload" size={14} />
                           <span>Pilih Foto Baru</span>

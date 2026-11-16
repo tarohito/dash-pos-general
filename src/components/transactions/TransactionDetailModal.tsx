@@ -233,17 +233,6 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                               {item.brand}
                             </span>
                           )}
-                          {item.kondisi && (
-                            <span
-                              className={`px-1.5 py-0.2 rounded-md border text-[10px] font-bold uppercase ${
-                                item.kondisi === 'Bekas'
-                                  ? 'bg-zinc-100 text-zinc-700 border-zinc-300'
-                                  : 'bg-blue-50 text-blue-700 border-blue-200'
-                              }`}
-                            >
-                              {item.kondisi}
-                            </span>
-                          )}
                         </div>
                       </td>
                       <td className="py-2.5 px-3 align-middle text-center whitespace-nowrap font-mono font-semibold text-zinc-800 tabular-nums text-xs">

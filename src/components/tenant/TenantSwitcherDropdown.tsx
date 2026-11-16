@@ -24,7 +24,12 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const activeTenant = tenants.find(t => t.id === activeTenantId) || tenants[0];
+  const switchableTenants = useMemo(
+    () => tenants.filter(t => t.status !== 'Nonaktif'),
+    [tenants]
+  );
+  const activeTenant =
+    tenants.find(t => t.id === activeTenantId) || switchableTenants[0] || tenants[0];
   const tenantTimestamps = useMemo(() => tenants.map(t => t.createdAt), [tenants]);
   const nowMs = useNewBadgeClock(tenantTimestamps);
 
@@ -76,7 +81,7 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Ganti Tenant Bisnis</p>
             </div>
             <div className="max-h-56 overflow-y-auto space-y-0.5">
-              {tenants.map(tenant => {
+              {switchableTenants.map(tenant => {
                 const isSelected = tenant.id === activeTenant.id;
                 return (
                   <button
@@ -167,7 +172,7 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
               <span className="text-xs font-bold text-gray-900">Multi-Tenant Cloud POS</span>
             </div>
             <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded font-semibold">
-              {tenants.length} Tenant Terdaftar
+              {switchableTenants.length} Outlet Aktif
             </span>
           </div>
 
@@ -191,7 +196,7 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
           <div className="p-1.5">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 py-1">Pilih / Ganti Tenant Bisnis:</p>
             <div className="max-h-56 overflow-y-auto space-y-0.5">
-              {tenants.map(t => {
+              {switchableTenants.map(t => {
                 const isSelected = t.id === activeTenant.id;
                 return (
                   <button
@@ -244,14 +249,14 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
           </div>
 
           {/* Bottom Actions */}
-          <div className="px-1.5 pt-1.5 border-t border-zinc-100 space-y-1">
+          <div className="px-1.5 pt-1.5 border-t border-zinc-100 space-y-1.5">
             <button
               type="button"
               onClick={() => {
                 setIsOpen(false);
                 onOpenRegisterModal();
               }}
-              className="w-full py-2 px-3 text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              className="w-full h-9 px-3 text-xs sm:text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-full transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
             >
               <GoogleIcon name="add" size={14} className="shrink-0" />
               <span>Daftar / Tambah Tenant Baru</span>
@@ -263,7 +268,7 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
                 setIsOpen(false);
                 onNavigateToManagement();
               }}
-              className="w-full py-2 px-3 text-sm font-medium text-zinc-700 hover:bg-zinc-100 rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+              className="w-full h-9 px-3 text-xs sm:text-sm font-semibold text-secondary-text bg-secondary-soft hover:bg-secondary/15 border border-secondary-border rounded-full transition-colors flex items-center justify-center cursor-pointer"
             >
               Kelola Semua Tenant &amp; Outlet
             </button>

@@ -30,6 +30,7 @@ import {
   MODAL_FOOTER_END_CLASS,
   MODAL_BTN_SECONDARY_CLASS,
   MODAL_BTN_PRIMARY_CLASS,
+  BTN_SECONDARY_CLASS,
 } from '../common/ModalShell';
 
 interface UserManagementViewProps {
@@ -396,7 +397,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 <button
                   type="button"
                   onClick={handleClearSearch}
-                  className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary-soft rounded-xl border border-primary-border hover:bg-primary-soft/80 transition-colors cursor-pointer"
+                  className={`mt-3 ${BTN_SECONDARY_CLASS}`}
                 >
                   <GoogleIcon name="close" size={14} />
                   <span>Bersihkan Pencarian</span>
@@ -488,7 +489,6 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                                 disabled={isSelf}
                                 isLoading={togglingId === u.id}
                                 onChange={() => void handleToggleUserStatus(u)}
-                                label={u.isActive ? 'Aktif' : 'Nonaktif'}
                                 ariaLabel={`Status akun ${u.fullName}`}
                                 tooltip={
                                   isSelf
@@ -573,7 +573,6 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                           disabled={isSelf}
                           isLoading={togglingId === u.id}
                           onChange={() => void handleToggleUserStatus(u)}
-                          label={u.isActive ? 'Aktif' : 'Nonaktif'}
                           ariaLabel={`Status akun ${u.fullName}`}
                           tooltip={
                             isSelf

@@ -6,11 +6,14 @@ import { ActionDropdownMenu } from '../common/ActionDropdownMenu';
 import { KpiCard } from '../common/KpiCard';
 import { NewBadge } from '../common/NewBadge';
 import { isRecentlyCreated, useNewBadgeClock } from '../../utils/newBadge';
+import { ConfirmModal } from '../common/ConfirmModal';
 import {
   ModalShell,
   MODAL_FOOTER_END_CLASS,
   MODAL_BTN_SECONDARY_CLASS,
   MODAL_BTN_PRIMARY_CLASS,
+  BTN_PRIMARY_CLASS,
+  BTN_SECONDARY_CLASS,
 } from '../common/ModalShell';
 
 interface TenantManagementViewProps {
@@ -18,6 +21,9 @@ interface TenantManagementViewProps {
   activeTenantId: string;
   onSelectTenant: (tenantId: string) => void;
   onOpenRegisterModal: () => void;
+  onEditTenant?: (tenant: Tenant) => void;
+  onToggleTenantStatus?: (tenant: Tenant, nextStatus: 'Aktif' | 'Nonaktif') => Promise<void>;
+  onDeleteTenant?: (tenant: Tenant) => Promise<void>;
   onNavigateToPos: () => void;
   canCreateOutlet?: boolean;
 }
@@ -29,11 +35,22 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
   activeTenantId,
   onSelectTenant,
   onOpenRegisterModal,
+  onEditTenant,
+  onToggleTenantStatus,
+  onDeleteTenant,
   onNavigateToPos,
   canCreateOutlet = true,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Aktif' | 'Nonaktif'>('all');
   const [detailTenant, setDetailTenant] = useState<Tenant | null>(null);
+  const [deletingTenant, setDeletingTenant] = useState<Tenant | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [togglingStatusTenant, setTogglingStatusTenant] = useState<{
+    tenant: Tenant;
+    nextStatus: 'Aktif' | 'Nonaktif';
+  } | null>(null);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
 
   const activeTenant = useMemo(
     () => tenants.find(t => t.id === activeTenantId) || tenants[0],
@@ -41,7 +58,8 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
   );
 
   const summary = useMemo(() => {
-    const activeCount = tenants.filter(t => t.status === 'Aktif').length;
+    const activeCount = tenants.filter(t => t.status !== 'Nonaktif').length;
+    const inactiveCount = tenants.filter(t => t.status === 'Nonaktif').length;
     const totalCashiers = tenants.reduce((acc, t) => acc + (t.cashierCount || 0), 0);
     const citySet = new Set<string>();
     for (const t of tenants) {
@@ -52,6 +70,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
     return {
       totalTenants: tenants.length,
       activeCount,
+      inactiveCount,
       totalCashiers,
       uniqueCities: citySet.size,
     };
@@ -63,6 +82,8 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
   const filteredTenants = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const list = tenants.filter(t => {
+      if (statusFilter === 'Aktif' && t.status === 'Nonaktif') return false;
+      if (statusFilter === 'Nonaktif' && t.status !== 'Nonaktif') return false;
       if (!q) return true;
       const statusLower = t.status.toLowerCase();
       const matchesStatus =
@@ -80,6 +101,9 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
       );
     });
     return [...list].sort((a, b) => {
+      const aInactive = a.status === 'Nonaktif';
+      const bInactive = b.status === 'Nonaktif';
+      if (aInactive !== bInactive) return aInactive ? 1 : -1;
       const aNew = isRecentlyCreated(a.createdAt, nowMs);
       const bNew = isRecentlyCreated(b.createdAt, nowMs);
       if (aNew !== bNew) return aNew ? -1 : 1;
@@ -88,7 +112,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
       }
       return 0;
     });
-  }, [tenants, searchQuery, nowMs]);
+  }, [tenants, searchQuery, statusFilter, nowMs]);
 
   const [visibleCount, setVisibleCount] = useState(OUTLET_BATCH_SIZE);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -227,11 +251,55 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
 
       {/* Search & Outlet Cards Workspace (Unboxed, Tanpa Card Pembungkus) */}
       <div className="space-y-3">
-        <SearchInput
-          value={searchQuery}
-          onChange={handleSearchChange}
-          placeholder="Cari nama outlet, kode gerai, cabang, kota, status, atau kontak..."
-        />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+          <div className="flex-1 min-w-0">
+            <SearchInput
+              value={searchQuery}
+              onChange={handleSearchChange}
+              placeholder="Cari nama outlet, kode gerai, cabang, kota, status, atau kontak..."
+            />
+          </div>
+
+          <div
+            role="group"
+            aria-label="Filter status outlet"
+            className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 self-start sm:self-auto items-center shrink-0"
+          >
+            {(
+              [
+                { value: 'all', label: 'Semua', count: summary.totalTenants },
+                { value: 'Aktif', label: 'Aktif', count: summary.activeCount },
+                { value: 'Nonaktif', label: 'Nonaktif', count: summary.inactiveCount },
+              ] as const
+            ).map(opt => {
+              const isTabSelected = statusFilter === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter(opt.value);
+                    setVisibleCount(OUTLET_BATCH_SIZE);
+                  }}
+                  className={`h-full px-3 text-xs font-semibold rounded-full transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${
+                    isTabSelected
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'text-zinc-600 hover:text-zinc-950'
+                  }`}
+                >
+                  <span>{opt.label}</span>
+                  <span
+                    className={`font-mono text-[11px] tabular-nums ${
+                      isTabSelected ? 'text-white/85' : 'text-zinc-400'
+                    }`}
+                  >
+                    {opt.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Outlet Card Grid or Empty State */}
         {visibleTenants.length === 0 ? (
@@ -241,22 +309,27 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
             <p className="text-xs text-gray-400 mt-0.5 max-w-sm mx-auto">
               {hasSearchQuery
                 ? `Pencarian "${searchQuery}" tidak cocok dengan outlet mana pun.`
+                : statusFilter !== 'all'
+                ? `Belum ada outlet berstatus ${statusFilter}.`
                 : 'Belum ada outlet bisnis yang terdaftar.'}
             </p>
-            {hasSearchQuery ? (
+            {hasSearchQuery || statusFilter !== 'all' ? (
               <button
                 type="button"
-                onClick={handleClearSearch}
-                className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary-soft rounded-xl border border-primary-border hover:bg-primary-soft/80 transition-colors cursor-pointer"
+                onClick={() => {
+                  handleClearSearch();
+                  setStatusFilter('all');
+                }}
+                className={`mt-3 ${BTN_SECONDARY_CLASS}`}
               >
                 <GoogleIcon name="close" size={14} />
-                <span>Bersihkan Pencarian</span>
+                <span>{hasSearchQuery ? 'Bersihkan Pencarian' : 'Tampilkan Semua Outlet'}</span>
               </button>
             ) : canCreateOutlet ? (
               <button
                 type="button"
                 onClick={onOpenRegisterModal}
-                className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-primary hover:bg-primary-hover rounded-xl transition-colors cursor-pointer"
+                className={`mt-3 ${BTN_PRIMARY_CLASS}`}
               >
                 <GoogleIcon name="add" size={14} />
                 <span>Tambah Outlet Baru</span>
@@ -267,12 +340,29 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {visibleTenants.map(tenant => {
               const isSelected = activeTenant?.id === tenant.id;
+              const isInactive = tenant.status === 'Nonaktif';
+              const txCount = tenant.transactionCount ?? 0;
+              const isLastActiveOutlet = !isInactive && summary.activeCount <= 1;
+              const deleteDisabledReason = isSelected
+                ? 'Sedang aktif'
+                : tenants.length <= 1
+                ? 'Outlet terakhir'
+                : txCount > 0
+                ? 'Ada transaksi'
+                : tenant.productCount > 0
+                ? 'Masih ada produk'
+                : isLastActiveOutlet
+                ? 'Minimal 1 aktif'
+                : undefined;
+
               return (
                 <div
                   key={tenant.id}
                   className={`rounded-2xl border p-4 sm:p-5 flex flex-col justify-between transition-colors ${
                     isSelected
                       ? 'bg-primary border-primary text-white'
+                      : isInactive
+                      ? 'bg-zinc-50/90 border-zinc-200/80 opacity-85'
                       : 'bg-white border-zinc-200 hover:border-primary/50'
                   }`}
                 >
@@ -381,7 +471,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-gray-500 shrink-0">Kapasitas Outlet</span>
                         <span className="font-mono font-semibold text-gray-800 tabular-nums text-right">
-                          {tenant.cashierCount} kasir &bull; {tenant.productCount} SKU
+                          {tenant.cashierCount} kasir &bull; {tenant.productCount} SKU &bull; {txCount} nota
                         </span>
                       </div>
                       <div className="pt-1.5 border-t border-gray-200/70">
@@ -407,11 +497,20 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                       >
                         Buka Kasir POS
                       </button>
+                    ) : isInactive ? (
+                      <button
+                        type="button"
+                        disabled
+                        title="Outlet nonaktif tidak bisa dipakai untuk kasir. Aktifkan outlet terlebih dahulu."
+                        className="flex-1 h-9 px-3.5 bg-zinc-100 border border-zinc-200 text-zinc-400 font-semibold text-xs sm:text-sm rounded-xl inline-flex items-center justify-center cursor-not-allowed"
+                      >
+                        Outlet Nonaktif
+                      </button>
                     ) : (
                       <button
                         type="button"
                         onClick={() => onSelectTenant(tenant.id)}
-                        className="flex-1 h-9 px-3.5 bg-zinc-50 hover:bg-primary hover:text-white hover:border-primary border border-zinc-200 text-zinc-800 font-semibold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer inline-flex items-center justify-center active:scale-[0.98]"
+                        className="flex-1 h-9 px-3.5 bg-secondary-soft hover:bg-secondary hover:text-white hover:border-secondary border border-secondary-border text-secondary-text font-semibold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer inline-flex items-center justify-center active:scale-[0.98]"
                       >
                         Pilih &amp; Aktifkan Outlet
                       </button>
@@ -436,16 +535,74 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                               id: 'pos',
                               label: 'Buka Kasir POS',
                               icon: <GoogleIcon name="storefront" size={14} />,
-                              tone: 'primary',
+                              tone: 'primary' as const,
                               onClick: onNavigateToPos,
                             }
                           : {
                               id: 'activate',
                               label: 'Pilih & Aktifkan Outlet',
                               icon: <GoogleIcon name="check_circle" size={14} />,
-                              tone: 'primary',
+                              tone: 'primary' as const,
+                              disabled: isInactive,
+                              disabledReason: isInactive ? 'Outlet nonaktif' : undefined,
                               onClick: () => onSelectTenant(tenant.id),
                             },
+                        ...(canCreateOutlet
+                          ? [
+                              ...(onEditTenant
+                                ? [
+                                    {
+                                      id: 'edit',
+                                      label: 'Edit Outlet',
+                                      icon: <GoogleIcon name="edit" size={14} />,
+                                      onClick: () => onEditTenant(tenant),
+                                    },
+                                  ]
+                                : []),
+                              ...(onToggleTenantStatus
+                                ? [
+                                    isInactive
+                                      ? {
+                                          id: 'enable',
+                                          label: 'Aktifkan Outlet',
+                                          icon: <GoogleIcon name="toggle_on" size={14} />,
+                                          onClick: () =>
+                                            void onToggleTenantStatus(tenant, 'Aktif'),
+                                        }
+                                      : {
+                                          id: 'disable',
+                                          label: 'Nonaktifkan Outlet',
+                                          icon: <GoogleIcon name="pause_circle" size={14} />,
+                                          disabled: isSelected || isLastActiveOutlet,
+                                          disabledReason: isSelected
+                                            ? 'Sedang aktif'
+                                            : isLastActiveOutlet
+                                            ? 'Minimal 1 aktif'
+                                            : undefined,
+                                          onClick: () =>
+                                            setTogglingStatusTenant({
+                                              tenant,
+                                              nextStatus: 'Nonaktif',
+                                            }),
+                                        },
+                                  ]
+                                : []),
+                              ...(onDeleteTenant
+                                ? [
+                                    {
+                                      id: 'delete',
+                                      label: 'Hapus Outlet',
+                                      icon: <GoogleIcon name="delete" size={14} />,
+                                      tone: 'danger' as const,
+                                      dividerBefore: true,
+                                      disabled: Boolean(deleteDisabledReason),
+                                      disabledReason: deleteDisabledReason,
+                                      onClick: () => setDeletingTenant(tenant),
+                                    },
+                                  ]
+                                : []),
+                            ]
+                          : []),
                       ]}
                     />
                   </div>
@@ -499,14 +656,15 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
               ) : (
                 <button
                   type="button"
+                  disabled={detailTenant.status === 'Nonaktif'}
                   onClick={() => {
                     const targetId = detailTenant.id;
                     setDetailTenant(null);
                     onSelectTenant(targetId);
                   }}
-                  className={MODAL_BTN_PRIMARY_CLASS}
+                  className={`${MODAL_BTN_PRIMARY_CLASS} disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  Pilih Outlet Ini
+                  {detailTenant.status === 'Nonaktif' ? 'Outlet Nonaktif' : 'Pilih Outlet Ini'}
                 </button>
               )}
             </div>
@@ -530,6 +688,8 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                   className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${
                     detailTenant.status === 'Aktif'
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : detailTenant.status === 'Trial'
+                      ? 'bg-amber-50 text-amber-800 border-amber-200'
                       : 'bg-gray-100 text-gray-700 border-gray-200'
                   }`}
                 >
@@ -562,9 +722,10 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                 <span className="font-medium text-gray-800">{detailTenant.email}</span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-gray-500">Kapasitas Kasir &amp; Katalog</span>
+                <span className="text-gray-500">Kapasitas &amp; Riwayat</span>
                 <span className="font-mono font-semibold text-gray-900 tabular-nums">
-                  {detailTenant.cashierCount} kasir &bull; {detailTenant.productCount} SKU
+                  {detailTenant.cashierCount} kasir &bull; {detailTenant.productCount} SKU &bull;{' '}
+                  {detailTenant.transactionCount ?? 0} nota
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
@@ -575,6 +736,54 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
           </div>
         )}
       </ModalShell>
+
+      {/* Confirm Deactivate Outlet Modal */}
+      <ConfirmModal
+        isOpen={Boolean(togglingStatusTenant)}
+        title="Nonaktifkan Outlet"
+        description={
+          togglingStatusTenant
+            ? `Nonaktifkan outlet "${togglingStatusTenant.tenant.name}" (${togglingStatusTenant.tenant.code})? Outlet ini tidak akan bisa dipilih di Kasir POS, namun seluruh histori transaksi dan laporan keuangannya tetap tersimpan aman.`
+            : ''
+        }
+        confirmLabel="Ya, Nonaktifkan"
+        isLoading={isTogglingStatus}
+        onCancel={() => setTogglingStatusTenant(null)}
+        onConfirm={async () => {
+          if (!togglingStatusTenant || !onToggleTenantStatus) return;
+          setIsTogglingStatus(true);
+          try {
+            await onToggleTenantStatus(togglingStatusTenant.tenant, togglingStatusTenant.nextStatus);
+            setTogglingStatusTenant(null);
+          } finally {
+            setIsTogglingStatus(false);
+          }
+        }}
+      />
+
+      {/* Confirm Delete Outlet Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deletingTenant)}
+        title="Hapus Outlet Permanen"
+        description={
+          deletingTenant
+            ? `Apakah Anda yakin ingin menghapus outlet "${deletingTenant.name}" (${deletingTenant.code}) secara permanen? Tindakan ini tidak dapat dibatalkan.`
+            : ''
+        }
+        confirmLabel="Ya, Hapus Outlet"
+        isLoading={isDeleting}
+        onCancel={() => setDeletingTenant(null)}
+        onConfirm={async () => {
+          if (!deletingTenant || !onDeleteTenant) return;
+          setIsDeleting(true);
+          try {
+            await onDeleteTenant(deletingTenant);
+            setDeletingTenant(null);
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
+      />
     </div>
   );
 };

@@ -28,15 +28,19 @@ function getTenantInitials(rawName: string): string {
 interface RegisterTenantModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaveTenant: (newTenant: Tenant) => Promise<void> | void;
+  editingTenant?: Tenant | null;
+  onSaveTenant: (tenantData: Tenant, editId?: string) => Promise<void> | void;
 }
 
 export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
   isOpen,
   onClose,
+  editingTenant = null,
   onSaveTenant,
 }) => {
+  const isEdit = Boolean(editingTenant);
   const [name, setName] = useState('');
+  const [code, setCode] = useState('');
   const [branchName, setBranchName] = useState('');
   const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
@@ -52,6 +56,34 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showToast } = useToast();
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    setErrorMsg(null);
+    setIsSuccess(false);
+    setCreatedTenant(null);
+    if (editingTenant) {
+      setName(editingTenant.name || '');
+      setCode(editingTenant.code || '');
+      setBranchName(editingTenant.branchName || '');
+      setCity(editingTenant.city || '');
+      setAddress(editingTenant.address || '');
+      setOwnerName('');
+      setPhone(editingTenant.phone || '');
+      setEmail(editingTenant.email || '');
+      setLogoUrl(editingTenant.logoUrl || '');
+    } else {
+      setName('');
+      setCode('');
+      setBranchName('');
+      setCity('');
+      setAddress('');
+      setOwnerName('');
+      setPhone('');
+      setEmail('');
+      setLogoUrl('');
+    }
+  }, [isOpen, editingTenant]);
 
   const liveInitials = getTenantInitials(name);
 
@@ -87,6 +119,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
     setErrorMsg(null);
 
     const cleanName = name.trim();
+    const cleanCode = code.trim().toUpperCase();
     const cleanBranch = branchName.trim();
     const cleanPhone = phone.trim();
     const phoneDigits = cleanPhone.replace(/[^0-9]/g, '');
@@ -96,50 +129,78 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
       failValidation('Nama bisnis / toko wajib diisi (minimal 3 karakter).');
       return;
     }
+    if (isEdit && !cleanCode) {
+      failValidation('Kode outlet wajib diisi.');
+      return;
+    }
     if (!cleanBranch || cleanBranch.length < 3) {
       failValidation('Nama cabang utama wajib diisi (minimal 3 karakter).');
       return;
     }
-    if (cleanPhone && (phoneDigits.length < 8 || phoneDigits.length > 15)) {
+    if (cleanPhone && cleanPhone !== '-' && (phoneDigits.length < 8 || phoneDigits.length > 15)) {
       failValidation('Format nomor WhatsApp / HP tidak sesuai (8–15 digit angka).');
       return;
     }
-    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    if (cleanEmail && cleanEmail !== '-' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       failValidation('Format alamat email toko tidak sesuai.');
       return;
     }
 
     const initials = getTenantInitials(cleanName);
+    const cleanSlug =
+      editingTenant?.slug ||
+      cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') + '.logicpos.id';
+    const resolvedCode = cleanCode || 'TEN-' + Math.floor(100 + Math.random() * 900);
 
-    const cleanSlug = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') + '.logicpos.id';
-    const code = 'TEN-' + Math.floor(100 + Math.random() * 900);
-
-    const newTenant: Tenant = {
-      id: `tenant-${Date.now()}`,
-      name: cleanName,
-      code,
-      branchName: cleanBranch,
-      address: address.trim() || `Jl. Utama Bisnis No. 1, ${city.trim() || 'Indonesia'}`,
-      city: city.trim() || 'Jakarta',
-      plan: 'Enterprise Multi-Tenant',
-      cashierCount: 2,
-      productCount: 0,
-      phone: cleanPhone || '0812-0000-0000',
-      email: cleanEmail || `kontak@${cleanSlug}`,
-      slug: cleanSlug,
-      logoInitial: initials,
-      logoUrl: logoUrl || '',
-      databaseSchema: `tenant_db_${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString().slice(-4)}`,
-      status: 'Aktif',
-    };
+    const tenantPayload: Tenant = editingTenant
+      ? {
+          ...editingTenant,
+          name: cleanName,
+          code: resolvedCode,
+          branchName: cleanBranch,
+          address: address.trim() || editingTenant.address || '-',
+          city: city.trim() || editingTenant.city || 'Jakarta',
+          phone: cleanPhone || '-',
+          email: cleanEmail || '-',
+          logoInitial: initials,
+          logoUrl: logoUrl || '',
+        }
+      : {
+          id: `tenant-${Date.now()}`,
+          name: cleanName,
+          code: resolvedCode,
+          branchName: cleanBranch,
+          address: address.trim() || `Jl. Utama Bisnis No. 1, ${city.trim() || 'Indonesia'}`,
+          city: city.trim() || 'Jakarta',
+          plan: 'Enterprise Multi-Tenant',
+          cashierCount: 2,
+          productCount: 0,
+          phone: cleanPhone || '0812-0000-0000',
+          email: cleanEmail || `kontak@${cleanSlug}`,
+          slug: cleanSlug,
+          logoInitial: initials,
+          logoUrl: logoUrl || '',
+          databaseSchema: `tenant_db_${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString().slice(-4)}`,
+          status: 'Aktif',
+        };
 
     setIsSubmitting(true);
     try {
-      await onSaveTenant(newTenant);
-      setCreatedTenant(newTenant);
-      setIsSuccess(true);
+      await onSaveTenant(tenantPayload, editingTenant?.id);
+      if (isEdit) {
+        onClose();
+      } else {
+        setCreatedTenant(tenantPayload);
+        setIsSuccess(true);
+      }
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Gagal mendaftarkan outlet baru.');
+      setErrorMsg(
+        err instanceof Error
+          ? err.message
+          : isEdit
+          ? 'Gagal memperbarui data outlet.'
+          : 'Gagal mendaftarkan outlet baru.'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -149,6 +210,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
     setIsSuccess(false);
     setCreatedTenant(null);
     setName('');
+    setCode('');
     setBranchName('');
     setCity('');
     setAddress('');
@@ -164,7 +226,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
       isOpen={isOpen}
       onClose={isSuccess && createdTenant ? handleFinish : onClose}
       size="2xl"
-      title="Tambah Outlet"
+      title={isEdit ? 'Edit Outlet' : 'Tambah Outlet'}
       disableEscapeClose={isSubmitting}
       footer={
         isSuccess && createdTenant ? (
@@ -193,7 +255,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
               disabled={isSubmitting}
               className={MODAL_BTN_PRIMARY_CLASS}
             >
-              {isSubmitting ? 'Menyimpan...' : 'Simpan Outlet'}
+              {isSubmitting ? 'Menyimpan...' : isEdit ? 'Simpan Perubahan' : 'Simpan Outlet'}
             </button>
           </div>
         )
@@ -301,18 +363,34 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                 />
               </div>
 
-              <div className="min-w-0">
-                <label className="block text-xs font-semibold text-zinc-700 mb-1">
-                  Nama Pemilik / PIC
-                </label>
-                <input
-                  type="text"
-                  placeholder="Cth: Ibu Veronica"
-                  value={ownerName}
-                  onChange={e => setOwnerName(e.target.value)}
-                  className="w-full h-10 px-3.5 text-sm font-medium bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
-                />
-              </div>
+              {isEdit ? (
+                <div className="min-w-0">
+                  <label className="block text-xs font-semibold text-zinc-700 mb-1">
+                    Kode Outlet <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Cth: TMS-01"
+                    value={code}
+                    onChange={e => setCode(e.target.value.toUpperCase())}
+                    className="w-full h-10 px-3.5 text-sm font-mono font-bold uppercase bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                  />
+                </div>
+              ) : (
+                <div className="min-w-0">
+                  <label className="block text-xs font-semibold text-zinc-700 mb-1">
+                    Nama Pemilik / PIC
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Cth: Ibu Veronica"
+                    value={ownerName}
+                    onChange={e => setOwnerName(e.target.value)}
+                    className="w-full h-10 px-3.5 text-sm font-medium bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -438,7 +516,7 @@ export const RegisterTenantModal: React.FC<RegisterTenantModalProps> = ({
                       <button
                         type="button"
                         onClick={() => logoInputRef.current?.click()}
-                        className="h-9 px-3.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                        className="h-9 px-3.5 rounded-full bg-secondary-soft hover:bg-secondary/15 text-secondary-text border border-secondary-border text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
                       >
                         <GoogleIcon name="upload" size={14} />
                         <span>Pilih Foto Baru</span>

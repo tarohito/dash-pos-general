@@ -12,6 +12,7 @@ import { ConfirmModal } from '../common/ConfirmModal';
 import { ErrorBanner } from '../common/ErrorBanner';
 import { useToast } from '../../contexts/ToastContext';
 import { isRecentlyCreated, useNewBadgeClock } from '../../utils/newBadge';
+import { BTN_SECONDARY_CLASS } from '../common/ModalShell';
 
 interface PosViewProps {
   categories: string[];
@@ -80,12 +81,13 @@ export const PosView: React.FC<PosViewProps> = ({
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [promoOnly, setPromoOnly] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [pendingRemoveItem, setPendingRemoveItem] = useState<CartItem | null>(null);
   const [isConfirmClearCart, setIsConfirmClearCart] = useState(false);
   const { showToast } = useToast();
 
-  // Fetch page 1 whenever search or refreshTrigger changes
+  // Fetch page 1 whenever search, promoOnly, or refreshTrigger changes
   useEffect(() => {
     const controller = new AbortController();
     setIsInitialLoading(true);
@@ -98,6 +100,7 @@ export const PosView: React.FC<PosViewProps> = ({
           page: 1,
           pageSize: POS_PAGE_SIZE,
           search: debouncedSearch,
+          promoOnly,
         },
         controller.signal
       )
@@ -118,7 +121,7 @@ export const PosView: React.FC<PosViewProps> = ({
       });
 
     return () => controller.abort();
-  }, [debouncedSearch, refreshTrigger, retryCount, showToast]);
+  }, [debouncedSearch, promoOnly, refreshTrigger, retryCount, showToast]);
 
   const loadNextPage = useCallback(async () => {
     if (isLoadingMore || isInitialLoading || page >= totalPages) return;
@@ -129,6 +132,7 @@ export const PosView: React.FC<PosViewProps> = ({
         page: nextPage,
         pageSize: POS_PAGE_SIZE,
         search: debouncedSearch,
+        promoOnly,
       });
       setProducts(prev => {
         const seen = new Set(prev.map(p => p.id));
@@ -146,7 +150,7 @@ export const PosView: React.FC<PosViewProps> = ({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, isInitialLoading, page, totalPages, debouncedSearch, showToast]);
+  }, [isLoadingMore, isInitialLoading, page, totalPages, debouncedSearch, promoOnly, showToast]);
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -238,7 +242,7 @@ export const PosView: React.FC<PosViewProps> = ({
           <button
             type="button"
             onClick={onOpenScanModal}
-            className="h-9 px-3.5 bg-secondary-soft/75 hover:bg-secondary-soft border border-secondary-border text-secondary-text rounded-full text-xs sm:text-sm font-semibold inline-flex items-center justify-center transition-colors cursor-pointer shrink-0"
+            className="h-9 px-3.5 bg-secondary-soft hover:bg-secondary/15 border border-secondary-border text-secondary-text rounded-full text-xs sm:text-sm font-semibold inline-flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
             title="Buka Scanner Barcode"
           >
             <GoogleIcon name="barcode_scanner" size={16} className="mr-1.5 text-secondary shrink-0" />
@@ -254,7 +258,11 @@ export const PosView: React.FC<PosViewProps> = ({
           }`}
         >
           {/* Card Promo */}
-          <PromoCard promoCount={promoCount} />
+          <PromoCard
+            promoCount={promoCount}
+            isActiveFilter={promoOnly}
+            onToggleFilter={() => setPromoOnly(prev => !prev)}
+          />
 
           {isInitialLoading && products.length === 0 ? (
             <div className="col-span-full py-12 flex items-center justify-center text-xs text-zinc-400 gap-2">
@@ -289,8 +297,22 @@ export const PosView: React.FC<PosViewProps> = ({
           )}
 
           {!isInitialLoading && !fetchError && products.length === 0 && (
-            <div className="col-span-full py-16 text-center text-gray-400">
-              <p className="text-sm font-medium">Tidak ada produk yang cocok dengan pencarian.</p>
+            <div className="col-span-full py-16 text-center text-zinc-500">
+              <p className="text-sm font-medium">
+                {promoOnly
+                  ? 'Tidak ada produk promo yang cocok.'
+                  : 'Tidak ada produk yang cocok dengan pencarian.'}
+              </p>
+              {promoOnly && (
+                <button
+                  type="button"
+                  onClick={() => setPromoOnly(false)}
+                  className={`mt-3 ${BTN_SECONDARY_CLASS}`}
+                >
+                  <GoogleIcon name="close" size={14} />
+                  <span>Tampilkan Semua Produk</span>
+                </button>
+              )}
             </div>
           )}
         </div>

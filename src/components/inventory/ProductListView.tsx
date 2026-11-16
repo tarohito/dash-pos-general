@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { GoogleIcon } from '../common/GoogleIcon';
-import { Product } from '../../types';
+import { Product, ProductStatus } from '../../types';
 import { formatIDR } from '../../utils/formatters';
 import { PaginationControls } from '../common/PaginationControls';
 import { ConfirmModal } from '../common/ConfirmModal';
@@ -21,12 +21,8 @@ import {
   SortDirection,
   getNextColumnSort,
 } from '../common/TableSortControls';
-import {
-  ModalShell,
-  MODAL_FOOTER_END_CLASS,
-  MODAL_BTN_SECONDARY_CLASS,
-  MODAL_BTN_PRIMARY_CLASS,
-} from '../common/ModalShell';
+import { ProductDetailModal } from './ProductDetailModal';
+import { BTN_PRIMARY_CLASS, BTN_SECONDARY_CLASS } from '../common/ModalShell';
 
 interface ProductListViewProps {
   refreshTrigger: number;
@@ -47,6 +43,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
   const debouncedSearch = useDebounce(search, 220);
   const [sortBy, setSortBy] = useState<string>('newest');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Aktif' | 'Nonaktif'>('all');
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -54,6 +51,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
   const [totalItems, setTotalItems] = useState(0);
   const [totalAllProducts, setTotalAllProducts] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
+  const [inactiveCount, setInactiveCount] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [promoCount, setPromoCount] = useState(0);
   const [totalStockQty, setTotalStockQty] = useState(0);
@@ -73,7 +71,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, sortBy, sortDir]);
+  }, [debouncedSearch, statusFilter, sortBy, sortDir]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -86,6 +84,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
           page: currentPage,
           pageSize,
           search: debouncedSearch,
+          statusFilter,
           sortBy,
           sortDir,
         },
@@ -96,6 +95,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
         setTotalItems(res.total);
         setTotalAllProducts(res.totalAllProducts);
         setActiveCount(res.activeCount ?? 0);
+        setInactiveCount(res.inactiveCount ?? 0);
         setLowStockCount(res.lowStockCount ?? 0);
         setPromoCount(res.promoCount ?? 0);
         setTotalStockQty(res.totalStockQty ?? 0);
@@ -118,6 +118,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
     currentPage,
     pageSize,
     debouncedSearch,
+    statusFilter,
     sortBy,
     sortDir,
     refreshTrigger,
@@ -151,14 +152,24 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
 
   const handleToggleProductStatus = async (product: Product) => {
     if (!canManageInventory) return;
-    const newStatus = product.status === 'Nonaktif' ? 'Aktif' : 'Nonaktif';
+    const newStatus: ProductStatus = product.status === 'Nonaktif' ? 'Aktif' : 'Nonaktif';
     // Optimistic UI update
-    setItems(prev =>
-      prev.map(item => (item.id === product.id ? { ...item, status: newStatus } : item))
-    );
+    setItems(prev => {
+      const updated = prev.map(item =>
+        item.id === product.id ? { ...item, status: newStatus } : item
+      );
+      if (statusFilter !== 'all') {
+        return updated.filter(item => (item.status ?? 'Aktif') === statusFilter);
+      }
+      return updated;
+    });
     setActiveCount(prev => Math.max(0, prev + (newStatus === 'Aktif' ? 1 : -1)));
+    setInactiveCount(prev => Math.max(0, prev + (newStatus === 'Nonaktif' ? 1 : -1)));
     try {
       await posApi.updateProduct(product.id, { status: newStatus });
+      if (statusFilter !== 'all') {
+        setRetryCount(c => c + 1);
+      }
       showToast(
         'success',
         `Status produk "${product.name}" diubah menjadi ${newStatus}.`,
@@ -170,6 +181,10 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
         prev.map(item => (item.id === product.id ? { ...item, status: product.status } : item))
       );
       setActiveCount(prev => Math.max(0, prev + (newStatus === 'Aktif' ? -1 : 1)));
+      setInactiveCount(prev => Math.max(0, prev + (newStatus === 'Nonaktif' ? -1 : 1)));
+      if (statusFilter !== 'all') {
+        setRetryCount(c => c + 1);
+      }
       showToast('error', 'Gagal memperbarui status produk.');
     }
   };
@@ -273,11 +288,52 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
 
       {/* Table Workspace (Unboxed, Tanpa Card Pembungkus) */}
       <div className="space-y-3">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Cari nama produk, SKU/barcode, kategori, merek, promo, atau status..."
-        />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+          <div className="flex-1 min-w-0">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Cari nama produk, SKU/barcode, kategori, merek, promo, atau status..."
+            />
+          </div>
+
+          <div
+            role="group"
+            aria-label="Filter status produk"
+            className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 self-start sm:self-auto items-center shrink-0"
+          >
+            {(
+              [
+                { value: 'all', label: 'Semua', count: totalAllProducts },
+                { value: 'Aktif', label: 'Aktif', count: activeCount },
+                { value: 'Nonaktif', label: 'Nonaktif', count: inactiveCount },
+              ] as const
+            ).map(opt => {
+              const isSelected = statusFilter === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setStatusFilter(opt.value)}
+                  className={`h-full px-3 text-xs font-semibold rounded-full transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${
+                    isSelected
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'text-zinc-600 hover:text-zinc-950'
+                  }`}
+                >
+                  <span>{opt.label}</span>
+                  <span
+                    className={`font-mono text-[11px] tabular-nums ${
+                      isSelected ? 'text-white/85' : 'text-zinc-400'
+                    }`}
+                  >
+                    {opt.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {fetchError && (
           <ErrorBanner
@@ -301,22 +357,27 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
               <p className="text-xs text-gray-400 mt-0.5">
                 {hasSearchQuery
                   ? `Pencarian "${search}" tidak cocok dengan produk mana pun.`
+                  : statusFilter !== 'all'
+                  ? `Belum ada produk berstatus ${statusFilter}.`
                   : 'Belum ada produk terdaftar di toko.'}
               </p>
-              {hasSearchQuery ? (
+              {hasSearchQuery || statusFilter !== 'all' ? (
                 <button
                   type="button"
-                  onClick={handleClearSearch}
-                  className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary-soft hover:bg-primary-soft/80 rounded-xl transition-colors cursor-pointer border border-primary-border"
+                  onClick={() => {
+                    handleClearSearch();
+                    setStatusFilter('all');
+                  }}
+                  className={`mt-3 ${BTN_SECONDARY_CLASS}`}
                 >
                   <GoogleIcon name="close" size={14} />
-                  <span>Bersihkan Pencarian</span>
+                  <span>{hasSearchQuery ? 'Bersihkan Pencarian' : 'Tampilkan Semua Produk'}</span>
                 </button>
               ) : canManageInventory ? (
                 <button
                   type="button"
                   onClick={onOpenAddModal}
-                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-800 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors cursor-pointer border border-zinc-200"
+                  className={`mt-3 ${BTN_PRIMARY_CLASS}`}
                 >
                   <GoogleIcon name="add" size={14} />
                   <span>Tambah Barang Baru</span>
@@ -486,7 +547,15 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                         align="center"
                         className="py-3 px-4 w-[105px]"
                       />
-                      <th className="py-3 px-3 text-center w-[90px]">Status</th>
+                      <SortableTh
+                        label="Status"
+                        sortKey="status"
+                        currentSortBy={sortBy}
+                        currentSortDir={sortDir}
+                        onSort={key => handleHeaderSort(key, 'desc')}
+                        align="center"
+                        className="py-3 px-3 w-[100px]"
+                      />
                       <th className="py-3 px-3 text-center w-[60px]">Aksi</th>
                     </tr>
                   </thead>
@@ -648,203 +717,13 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
         onClose={() => setPrintingBarcodeProduct(null)}
       />
 
-      {/* Detail Produk Modal */}
-      <ModalShell
-        isOpen={!!detailProduct}
+      <ProductDetailModal
+        product={detailProduct}
         onClose={() => setDetailProduct(null)}
-        size="lg"
-        title="Detail Produk"
-        footer={
-          detailProduct ? (
-            <div className={MODAL_FOOTER_END_CLASS}>
-              <button
-                type="button"
-                onClick={() => setDetailProduct(null)}
-                className={MODAL_BTN_SECONDARY_CLASS}
-              >
-                Tutup
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const target = detailProduct;
-                  setDetailProduct(null);
-                  setPrintingBarcodeProduct(target);
-                }}
-                className={MODAL_BTN_SECONDARY_CLASS}
-              >
-                <GoogleIcon name="barcode_scanner" size={15} className="shrink-0" />
-                <span>Cetak Barcode</span>
-              </button>
-              {canManageInventory && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const target = detailProduct;
-                    setDetailProduct(null);
-                    onEditProduct(target);
-                  }}
-                  className={MODAL_BTN_PRIMARY_CLASS}
-                >
-                  <GoogleIcon name="edit" size={15} className="shrink-0" />
-                  <span>Edit Barang</span>
-                </button>
-              )}
-            </div>
-          ) : undefined
-        }
-      >
-        {detailProduct && (() => {
-          const margin =
-            detailProduct.hpp && detailProduct.hpp > 0
-              ? detailProduct.harga - detailProduct.hpp
-              : null;
-          const marginPct =
-            margin !== null && detailProduct.hpp && detailProduct.hpp > 0
-              ? ((margin / detailProduct.hpp) * 100).toFixed(1)
-              : null;
-          const hasDimensions =
-            (detailProduct.panjang ?? 0) > 0 ||
-            (detailProduct.lebar ?? 0) > 0 ||
-            (detailProduct.tinggi ?? 0) > 0;
-
-          return (
-            <div className="space-y-4 text-sm">
-              {/* Header Identity Card */}
-              <div className="bg-zinc-50/80 border border-zinc-200/80 rounded-2xl p-4 flex items-center gap-4">
-                {detailProduct.image ? (
-                  <img
-                    src={detailProduct.image}
-                    alt={detailProduct.name}
-                    className="w-16 h-16 aspect-square rounded-xl object-cover border border-zinc-200 shrink-0"
-                  />
-                ) : (
-                  <div className="w-16 h-16 aspect-square rounded-xl bg-zinc-100 border border-zinc-200 shrink-0 flex items-center justify-center text-zinc-400">
-                    <GoogleIcon name="deployed_code" size={26} />
-                  </div>
-                )}
-                <div className="min-w-0 flex-1 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-white border border-zinc-200 text-zinc-800">
-                      {detailProduct.sku}
-                    </span>
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${
-                        (detailProduct.status ?? 'Aktif') === 'Aktif'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-zinc-100 text-zinc-600 border-zinc-200'
-                      }`}
-                    >
-                      {detailProduct.status ?? 'Aktif'}
-                    </span>
-                    {detailProduct.isPromo && detailProduct.promoLabel && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                        <GoogleIcon name="sell" size={12} className="text-amber-600" />
-                        {detailProduct.promoLabel}
-                      </span>
-                    )}
-                  </div>
-                  <h4 className="font-bold text-base text-zinc-950 leading-snug">
-                    {detailProduct.name}
-                  </h4>
-                </div>
-              </div>
-
-              {/* Info Grids */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-xl p-4 space-y-2.5">
-                  <div className="text-xs font-bold text-zinc-800 uppercase tracking-wider pb-2 border-b border-zinc-200/70">
-                    Harga &amp; Inventaris
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-zinc-500">Harga Jual</span>
-                    <span className="font-mono font-bold text-zinc-950 tabular-nums">
-                      {formatIDR(detailProduct.harga)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-zinc-500">Harga Modal (HPP)</span>
-                    <span className="font-mono font-semibold text-zinc-800 tabular-nums">
-                      {detailProduct.hpp && detailProduct.hpp > 0
-                        ? formatIDR(detailProduct.hpp)
-                        : '-'}
-                    </span>
-                  </div>
-                  {margin !== null && marginPct !== null && (
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-zinc-500">Estimasi Margin</span>
-                      <span className="font-mono font-bold text-emerald-700 tabular-nums">
-                        +{marginPct}% ({formatIDR(margin)})
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-zinc-500">Stok Fisik</span>
-                    <span className="font-mono font-bold text-zinc-900 tabular-nums">
-                      {detailProduct.stok} pcs
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-zinc-500">Total Terjual</span>
-                    <span className="font-mono font-semibold text-zinc-800 tabular-nums">
-                      {detailProduct.salesCount ?? 0} pcs
-                    </span>
-                  </div>
-                </div>
-
-                <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-xl p-4 space-y-2.5">
-                  <div className="text-xs font-bold text-zinc-800 uppercase tracking-wider pb-2 border-b border-zinc-200/70">
-                    Katalog &amp; Logistik
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-zinc-500">Kategori</span>
-                    <span className="font-semibold text-zinc-900 text-right">
-                      {detailProduct.category}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-zinc-500">Merek / Brand</span>
-                    <span className="font-semibold text-zinc-900 text-right">
-                      {detailProduct.brand || 'No Brand'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-zinc-500">Kondisi</span>
-                    <span className="font-semibold text-zinc-900">
-                      {detailProduct.kondisi ?? 'Baru'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-zinc-500">Berat Paket</span>
-                    <span className="font-mono font-semibold text-zinc-900 tabular-nums">
-                      {Number(detailProduct.berat.toFixed(2))} gr
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-zinc-500">Dimensi (P×L×T)</span>
-                    <span className="font-mono text-zinc-800 tabular-nums">
-                      {hasDimensions
-                        ? `${detailProduct.panjang ?? 0} × ${detailProduct.lebar ?? 0} × ${detailProduct.tinggi ?? 0} cm`
-                        : '-'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {detailProduct.deskripsi && (
-                <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-xl p-4">
-                  <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider block mb-1.5">
-                    Deskripsi &amp; Spesifikasi
-                  </span>
-                  <p className="text-zinc-600 leading-relaxed whitespace-pre-line">
-                    {detailProduct.deskripsi}
-                  </p>
-                </div>
-              )}
-            </div>
-          );
-        })()}
-      </ModalShell>
+        onPrintBarcode={target => setPrintingBarcodeProduct(target)}
+        onEditProduct={onEditProduct}
+        canManageInventory={canManageInventory}
+      />
     </div>
   );
 };

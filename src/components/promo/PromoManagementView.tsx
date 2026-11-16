@@ -17,6 +17,8 @@ import {
   ModalShell,
   MODAL_FOOTER_END_CLASS,
   MODAL_BTN_PRIMARY_CLASS,
+  BTN_PRIMARY_CLASS,
+  BTN_SECONDARY_CLASS,
 } from '../common/ModalShell';
 import { MoneyAmount } from '../common/MoneyAmount';
 import { KpiCard } from '../common/KpiCard';
@@ -258,7 +260,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
               setBroadcastPromo(null);
               setIsBroadcastOpen(true);
             }}
-            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1EBE5D] rounded-full inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
+            className={BTN_SECONDARY_CLASS}
           >
             <GoogleIcon name="chat" size={15} />
             <span>Broadcast WA</span>
@@ -266,7 +268,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
           <button
             type="button"
             onClick={handleOpenAddModal}
-            className="h-9 px-4 text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 rounded-full inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs active:scale-[0.98]"
+            className={BTN_PRIMARY_CLASS}
           >
             <GoogleIcon name="add" size={16} />
             <span>Buat Promo Baru</span>
@@ -378,7 +380,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                 <button
                   type="button"
                   onClick={handleClearSearch}
-                  className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-primary bg-primary-soft hover:bg-primary-soft/80 rounded-xl transition-colors cursor-pointer border border-primary-border"
+                  className={`mt-3 ${BTN_SECONDARY_CLASS}`}
                 >
                   <GoogleIcon name="close" size={14} />
                   <span>Bersihkan Pencarian</span>
@@ -387,7 +389,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                 <button
                   type="button"
                   onClick={handleOpenAddModal}
-                  className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-primary bg-primary-soft hover:bg-primary-soft/80 rounded-xl transition-colors cursor-pointer border border-primary-border"
+                  className={`mt-3 ${BTN_PRIMARY_CLASS}`}
                 >
                   <GoogleIcon name="add" size={14} />
                   <span>Buat Promo Baru</span>
@@ -715,7 +717,7 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                   setBroadcastPromo(target);
                   setIsBroadcastOpen(true);
                 }}
-                className="h-9 px-4 text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1EBE5D] rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs active:scale-[0.98]"
+                className={BTN_SECONDARY_CLASS}
               >
                 <GoogleIcon name="chat" size={15} className="shrink-0" />
                 <span>Broadcast WA</span>

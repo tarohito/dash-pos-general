@@ -27,7 +27,9 @@ import type {
 import {
   authenticateUser,
   cancelPendingPromoBroadcastRecipients,
+  checkLoginRateLimit,
   checkProductSkuAvailability,
+  clearLoginFailures,
   createCategoryItem,
   createPromoBroadcastBatch,
   createSession,
@@ -43,6 +45,7 @@ import {
   getActivePromos,
   getAllCategories,
   getAllCategoryItems,
+  getAllTenants,
   getBroadcastAudienceCustomers,
   getBuybackById,
   getCategoriesWithStats,
@@ -65,6 +68,8 @@ import {
   queryTransactions,
   queryTransactionsForExport,
   queryUsers,
+  recordLoginFailure,
+  safeTimingEqual,
   seedInitialDataIfEmpty,
   syncExpiredPromos,
   toggleCategoryItemActive,
@@ -91,24 +96,38 @@ import {
 seedInitialDataIfEmpty();
 
 const app = express();
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
 app.use(compression());
 app.use(express.json({ limit: '15mb' }));
 
+// Global HTTP security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-XSS-Protection', '0');
+  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
+  res.setHeader('Content-Security-Policy', "object-src 'none'; base-uri 'self'; form-action 'self';");
+  if (req.path.startsWith('/api')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+  }
+  next();
+});
+
 interface AuthContext {
   token: string;
+  csrfToken: string;
   user: UserAccount;
   activeTenantId: string;
 }
 
 type AuthenticatedRequest = express.Request & { auth?: AuthContext };
 
-function extractTokenFromRequest(req: express.Request): string | null {
-  const authHeader = req.headers.authorization;
-  if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-    const bearer = authHeader.slice(7).trim();
-    if (bearer) return bearer;
-  }
+const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
+function extractTokenFromRequest(req: express.Request): string | null {
+  // Primary: HttpOnly session cookie
   const cookieHeader = req.headers.cookie;
   if (typeof cookieHeader === 'string' && cookieHeader.length > 0) {
     for (const part of cookieHeader.split(';')) {
@@ -119,7 +138,83 @@ function extractTokenFromRequest(req: express.Request): string | null {
       }
     }
   }
+
+  // Fallback for cross-site iframes where browser blocks 3P/partitioned cookies:
+  // Accept in-memory ephemeral token via X-Session-Token only on verified same-origin requests
+  const headerToken = req.headers['x-session-token'];
+  if (typeof headerToken === 'string' && headerToken.trim() && verifySameOriginRequest(req)) {
+    return headerToken.trim();
+  }
+
   return null;
+}
+
+function isHttpsRequest(req: express.Request): boolean {
+  if (req.secure) return true;
+  const proto = String(req.headers['x-forwarded-proto'] ?? '').split(',')[0].trim().toLowerCase();
+  if (proto === 'https') return true;
+  const origin = String(req.headers.origin ?? '').trim().toLowerCase();
+  if (origin.startsWith('https://')) return true;
+  const referer = String(req.headers.referer ?? '').trim().toLowerCase();
+  if (referer.startsWith('https://')) return true;
+  return false;
+}
+
+function buildSessionCookie(req: express.Request, value: string, maxAgeSec: number): string {
+  const encoded = encodeURIComponent(value);
+  if (isHttpsRequest(req)) {
+    return `epaper_session=${encoded}; Path=/; HttpOnly; SameSite=None; Secure; Partitioned; Max-Age=${maxAgeSec}`;
+  }
+  return `epaper_session=${encoded}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSec}`;
+}
+
+function verifySameOriginRequest(req: express.Request): boolean {
+  const secFetchSite = String(req.headers['sec-fetch-site'] ?? '').trim().toLowerCase();
+  if (secFetchSite === 'cross-site') {
+    return false;
+  }
+
+  const fwdHost = String(req.headers['x-forwarded-host'] ?? '').split(',')[0].trim().toLowerCase();
+  const rawHost = String(req.headers.host ?? '').trim().toLowerCase();
+  const expectedHost = fwdHost || rawHost;
+  if (!expectedHost) return true;
+
+  const isInternalProxyHost =
+    !fwdHost && (rawHost.startsWith('localhost:') || rawHost.startsWith('127.0.0.1:') || rawHost === 'localhost' || rawHost === '127.0.0.1');
+
+  const originHeader = req.headers.origin;
+  if (typeof originHeader === 'string' && originHeader.trim()) {
+    try {
+      const originUrl = new URL(originHeader.trim());
+      if (isInternalProxyHost && originUrl.hostname !== 'localhost' && originUrl.hostname !== '127.0.0.1') {
+        // Behind reverse proxy rewriting Host to localhost without X-Forwarded-Host: rely on Sec-Fetch-Site + JSON/CSRF checks
+        return true;
+      }
+      return originUrl.host.toLowerCase() === expectedHost;
+    } catch {
+      return false;
+    }
+  }
+
+  const refererHeader = req.headers.referer;
+  if (typeof refererHeader === 'string' && refererHeader.trim()) {
+    try {
+      const refUrl = new URL(refererHeader.trim());
+      if (isInternalProxyHost && refUrl.hostname !== 'localhost' && refUrl.hostname !== '127.0.0.1') {
+        return true;
+      }
+      return refUrl.host.toLowerCase() === expectedHost;
+    } catch {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function getClientIp(req: express.Request): string {
+  const xff = String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim();
+  return xff || req.ip || req.socket.remoteAddress || 'unknown';
 }
 
 function getAuth(req: express.Request): AuthContext {
@@ -127,16 +222,30 @@ function getAuth(req: express.Request): AuthContext {
 }
 
 const requireAuth: express.RequestHandler = (req, res, next) => {
-  const token = extractTokenFromRequest(req);
-  if (!token) {
+  const rawToken = extractTokenFromRequest(req);
+  if (!rawToken) {
     res.status(401).json({ error: 'Silakan login terlebih dahulu untuk mengakses aplikasi.' });
     return;
   }
-  const ctx = getSessionContext(token);
+  const ctx = getSessionContext(rawToken, req.headers['user-agent']);
   if (!ctx) {
+    res.setHeader('Set-Cookie', buildSessionCookie(req, '', 0));
     res.status(401).json({ error: 'Sesi login telah berakhir atau tidak valid. Silakan login kembali.' });
     return;
   }
+
+  if (MUTATING_METHODS.has(req.method.toUpperCase())) {
+    if (!verifySameOriginRequest(req)) {
+      res.status(403).json({ error: 'Permintaan lintas-origin ditolak demi keamanan sesi.' });
+      return;
+    }
+    const headerCsrf = String(req.headers['x-csrf-token'] ?? '').trim();
+    if (!safeTimingEqual(headerCsrf, ctx.csrfToken)) {
+      res.status(403).json({ error: 'Token keamanan CSRF tidak valid. Silakan muat ulang halaman.' });
+      return;
+    }
+  }
+
   (req as AuthenticatedRequest).auth = ctx;
   next();
 };
@@ -161,30 +270,71 @@ function requireRoles(...roles: UserRole[]): express.RequestHandler {
 // ============================================================
 app.post('/api/auth/login', (req, res) => {
   try {
-    const body = (req.body ?? {}) as { identifier?: string; username?: string; password?: string };
-    const identifier = String(body.identifier ?? body.username ?? '').trim();
-    const password = String(body.password ?? '');
+    if (!verifySameOriginRequest(req)) {
+      res.status(403).json({ error: 'Permintaan login lintas-origin ditolak.' });
+      return;
+    }
+    if (!req.is('application/json')) {
+      res.status(415).json({ error: 'Content-Type harus application/json.' });
+      return;
+    }
+
+    const body = (req.body ?? {}) as { identifier?: unknown; username?: unknown; password?: unknown };
+    const rawIdentifier = body.identifier ?? body.username;
+    const rawPassword = body.password;
+
+    if (typeof rawIdentifier !== 'string' || typeof rawPassword !== 'string') {
+      res.status(400).json({ error: 'Format username/email dan kata sandi tidak valid.' });
+      return;
+    }
+
+    const identifier = rawIdentifier.trim();
+    const password = rawPassword;
 
     if (!identifier || !password) {
       res.status(400).json({ error: 'Username/email dan kata sandi wajib diisi.' });
       return;
     }
 
+    if (identifier.length > 120 || password.length > 128) {
+      res.status(400).json({ error: 'Panjang username atau kata sandi melebihi batas yang diizinkan.' });
+      return;
+    }
+
+    const clientIp = getClientIp(req);
+    const rateCheck = checkLoginRateLimit(identifier, clientIp);
+    if (!rateCheck.allowed) {
+      if (rateCheck.retryAfterSec) {
+        res.setHeader('Retry-After', String(rateCheck.retryAfterSec));
+      }
+      res.status(429).json({
+        error: rateCheck.message || 'Terlalu banyak percobaan login gagal. Silakan coba lagi nanti.',
+      });
+      return;
+    }
+
     const user = authenticateUser(identifier, password);
     if (!user) {
+      recordLoginFailure(identifier, clientIp);
       res.status(401).json({ error: 'Username/email atau kata sandi salah, atau akun tidak aktif.' });
       return;
     }
 
-    const { token, activeTenantId } = createSession(user);
+    clearLoginFailures(identifier);
+
+    // Session Rotation: invalidate any previous session cookie before issuing a new one
+    const previousRawToken = extractTokenFromRequest(req);
+    if (previousRawToken) {
+      deleteSession(previousRawToken);
+    }
+
+    const { rawToken, csrfToken, activeTenantId } = createSession(user, req.headers['user-agent']);
     const tenants = getAccessibleTenantsForUser(user);
 
-    res.setHeader(
-      'Set-Cookie',
-      `epaper_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`
-    );
+    res.setHeader('Set-Cookie', buildSessionCookie(req, rawToken, 7 * 24 * 3600));
     res.json({
-      token,
+      csrfToken,
+      fallbackToken: rawToken,
       user,
       tenants,
       activeTenantId,
@@ -196,23 +346,38 @@ app.post('/api/auth/login', (req, res) => {
 
 app.post('/api/auth/logout', (req, res) => {
   try {
-    const token = extractTokenFromRequest(req);
-    if (token) {
-      deleteSession(token);
+    if (!verifySameOriginRequest(req)) {
+      res.status(403).json({ error: 'Permintaan logout lintas-origin ditolak.' });
+      return;
     }
-    res.setHeader('Set-Cookie', 'epaper_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+
+    const rawToken = extractTokenFromRequest(req);
+    if (rawToken) {
+      const ctx = getSessionContext(rawToken, req.headers['user-agent']);
+      if (ctx) {
+        const headerCsrf = String(req.headers['x-csrf-token'] ?? '').trim();
+        if (!safeTimingEqual(headerCsrf, ctx.csrfToken)) {
+          res.status(403).json({ error: 'Token keamanan CSRF tidak valid.' });
+          return;
+        }
+      }
+      deleteSession(rawToken);
+    }
+
+    res.setHeader('Set-Cookie', buildSessionCookie(req, '', 0));
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal logout.' });
   }
 });
 
-// Require valid authenticated session for all remaining /api endpoints
+// Require valid authenticated session (+ CSRF for mutating calls) for all remaining /api endpoints
 app.use('/api', requireAuth);
 
 app.get('/api/auth/me', (req, res) => {
   const auth = getAuth(req);
   res.json({
+    csrfToken: auth.csrfToken,
     user: auth.user,
     tenants: getAccessibleTenantsForUser(auth.user),
     activeTenantId: auth.activeTenantId,
@@ -226,6 +391,7 @@ app.get('/api/bootstrap', (req, res) => {
   try {
     const auth = getAuth(req);
     res.json({
+      csrfToken: auth.csrfToken,
       user: auth.user,
       categories: getAllCategories(),
       categoryDetails: getAllCategoryItems(),
@@ -426,7 +592,6 @@ app.post('/api/products', requireRoles('owner', 'branch_manager'), (req, res) =>
     const hpp = body.hpp !== undefined && Number(body.hpp) >= 0 ? Math.round(Number(body.hpp)) : 0;
     const stok = Math.max(0, Math.round(Number(body.stok ?? 0)));
     const brand = (body.brand ?? 'No Brand').trim() || 'No Brand';
-    const kondisi = body.kondisi === 'Bekas' ? 'Bekas' : 'Baru';
     const deskripsi = (body.deskripsi ?? '').trim();
     const panjang = Number(body.panjang) > 0 ? Number(body.panjang) : 0;
     const lebar = Number(body.lebar) > 0 ? Number(body.lebar) : 0;
@@ -475,18 +640,17 @@ app.post('/api/products', requireRoles('owner', 'branch_manager'), (req, res) =>
         .prepare(`
           INSERT INTO products (
             tenantId, sku, name, berat, harga, hpp, stok, category, image,
-            brand, kondisi, deskripsi, panjang, lebar, tinggi, status, attributesJson, createdAt
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            brand, deskripsi, panjang, lebar, tinggi, status, attributesJson, createdAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
         .run(
           tenantId, sku, name, berat, harga, hpp, stok, category, image,
-          brand, kondisi, deskripsi, panjang, lebar, tinggi, status, attributesJson, createdAt
+          brand, deskripsi, panjang, lebar, tinggi, status, attributesJson, createdAt
         );
       const row = db
         .prepare(`
           SELECT id, sku, name, berat, harga, COALESCE(hpp, 0) AS hpp, stok, category, image,
                  COALESCE(brand, 'No Brand') AS brand,
-                 COALESCE(kondisi, 'Baru') AS kondisi,
                  COALESCE(deskripsi, '') AS deskripsi,
                  COALESCE(panjang, 0) AS panjang,
                  COALESCE(lebar, 0) AS lebar,
@@ -538,7 +702,6 @@ app.put('/api/products/:id', requireRoles('owner', 'branch_manager'), (req, res)
     const hpp = body.hpp !== undefined ? Math.max(0, Math.round(Number(body.hpp))) : (existing.hpp ?? 0);
     const stok = body.stok !== undefined ? Math.max(0, Math.round(Number(body.stok))) : existing.stok;
     const brand = body.brand !== undefined ? (body.brand.trim() || 'No Brand') : (existing.brand ?? 'No Brand');
-    const kondisi = body.kondisi !== undefined ? (body.kondisi === 'Bekas' ? 'Bekas' : 'Baru') : (existing.kondisi ?? 'Baru');
     const deskripsi = body.deskripsi !== undefined ? body.deskripsi.trim() : (existing.deskripsi ?? '');
     const panjang = body.panjang !== undefined ? Math.max(0, Number(body.panjang)) : (existing.panjang ?? 0);
     const lebar = body.lebar !== undefined ? Math.max(0, Number(body.lebar)) : (existing.lebar ?? 0);
@@ -582,18 +745,17 @@ app.put('/api/products/:id', requireRoles('owner', 'branch_manager'), (req, res)
       db.prepare(`
         UPDATE products
         SET sku = ?, name = ?, berat = ?, harga = ?, hpp = ?, stok = ?, category = ?, image = ?,
-            brand = ?, kondisi = ?, deskripsi = ?, panjang = ?, lebar = ?, tinggi = ?, status = ?, attributesJson = ?
+            brand = ?, deskripsi = ?, panjang = ?, lebar = ?, tinggi = ?, status = ?, attributesJson = ?
         WHERE id = ? AND tenantId = ?
       `).run(
         sku, name, berat, harga, hpp, stok, category, image,
-        brand, kondisi, deskripsi, panjang, lebar, tinggi, status, attributesJson,
+        brand, deskripsi, panjang, lebar, tinggi, status, attributesJson,
         id, tenantId
       );
       const row = db
         .prepare(`
           SELECT id, sku, name, berat, harga, COALESCE(hpp, 0) AS hpp, stok, category, image,
                  COALESCE(brand, 'No Brand') AS brand,
-                 COALESCE(kondisi, 'Baru') AS kondisi,
                  COALESCE(deskripsi, '') AS deskripsi,
                  COALESCE(panjang, 0) AS panjang,
                  COALESCE(lebar, 0) AS lebar,
@@ -955,7 +1117,7 @@ app.post('/api/transactions', (req, res) => {
       for (const reqItem of body.items!) {
         const prod = db
           .prepare(
-            "SELECT id, sku, name, berat, harga, COALESCE(hpp, 0) AS hpp, stok, category, COALESCE(brand, 'No Brand') AS brand, COALESCE(kondisi, 'Baru') AS kondisi, COALESCE(panjang, 0) AS panjang, COALESCE(lebar, 0) AS lebar, COALESCE(tinggi, 0) AS tinggi, image FROM products WHERE id = ? AND tenantId = ?"
+            "SELECT id, sku, name, berat, harga, COALESCE(hpp, 0) AS hpp, stok, category, COALESCE(brand, 'No Brand') AS brand, COALESCE(panjang, 0) AS panjang, COALESCE(lebar, 0) AS lebar, COALESCE(tinggi, 0) AS tinggi, image FROM products WHERE id = ? AND tenantId = ?"
           )
           .get(reqItem.id, tenantId) as Product | undefined;
 
@@ -981,7 +1143,6 @@ app.post('/api/transactions', (req, res) => {
           name: prod.name,
           category: prod.category,
           brand: prod.brand ?? 'No Brand',
-          kondisi: prod.kondisi === 'Bekas' ? 'Bekas' : 'Baru',
           hpp: prod.hpp ?? 0,
           panjang: prod.panjang ?? 0,
           lebar: prod.lebar ?? 0,
@@ -2200,6 +2361,246 @@ app.post('/api/tenants', requireRoles('owner'), (req, res) => {
   }
 });
 
+app.put('/api/tenants/:id', requireRoles('owner'), (req, res) => {
+  try {
+    const auth = getAuth(req);
+    const id = String(req.params.id ?? '').trim();
+    const existing = db.prepare('SELECT * FROM tenants WHERE id = ?').get(id) as Tenant | undefined;
+    if (!existing) {
+      res.status(404).json({ error: 'Outlet tidak ditemukan.' });
+      return;
+    }
+
+    const body = req.body as Partial<Tenant>;
+    const name = body.name !== undefined ? body.name.trim() : existing.name;
+    const code = body.code !== undefined ? body.code.trim().toUpperCase() : existing.code;
+    const branchName = body.branchName !== undefined ? body.branchName.trim() : existing.branchName;
+    const city = body.city !== undefined ? body.city.trim() : existing.city;
+    const address = body.address !== undefined ? body.address.trim() : existing.address;
+    const phone = body.phone !== undefined ? body.phone.trim() : existing.phone;
+    const email = body.email !== undefined ? body.email.trim() : existing.email;
+    const logoUrl = body.logoUrl !== undefined ? body.logoUrl.trim() : (existing.logoUrl ?? '');
+    const status =
+      body.status && (['Aktif', 'Trial', 'Nonaktif'] as const).includes(body.status)
+        ? body.status
+        : existing.status;
+
+    if (!name || name.length < 2 || !code || !branchName) {
+      res.status(400).json({ error: 'Nama outlet, kode outlet, dan nama cabang wajib diisi.' });
+      return;
+    }
+
+    const dupCode = db
+      .prepare('SELECT id, name FROM tenants WHERE LOWER(code) = LOWER(?) AND id != ?')
+      .get(code, id) as { id: string; name: string } | undefined;
+    if (dupCode) {
+      res.status(409).json({ error: `Kode outlet "${code}" sudah terdaftar pada "${dupCode.name}".` });
+      return;
+    }
+
+    if (status === 'Nonaktif') {
+      if (id === auth.activeTenantId) {
+        res.status(400).json({
+          error: 'Tidak dapat menonaktifkan outlet yang sedang aktif digunakan. Beralihlah ke outlet lain terlebih dahulu.',
+        });
+        return;
+      }
+      const otherActiveCount = (
+        db
+          .prepare("SELECT COUNT(*) as cnt FROM tenants WHERE id != ? AND status != 'Nonaktif'")
+          .get(id) as { cnt: number }
+      ).cnt;
+      if (otherActiveCount <= 0) {
+        res.status(400).json({
+          error: 'Minimal harus ada 1 outlet yang berstatus aktif untuk operasional POS.',
+        });
+        return;
+      }
+    }
+
+    const words = name
+      .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+      .split(/\s+/)
+      .filter(Boolean);
+    const computedInitial =
+      words.length >= 2
+        ? `${words[0][0] ?? ''}${words[1][0] ?? ''}`.toUpperCase()
+        : (words[0]?.slice(0, 2).toUpperCase() || existing.logoInitial || 'LP');
+
+    db.prepare(
+      `UPDATE tenants
+       SET name = ?, code = ?, branchName = ?, city = ?, address = ?, phone = ?, email = ?, logoInitial = ?, logoUrl = ?, status = ?
+       WHERE id = ?`
+    ).run(
+      name,
+      code,
+      branchName,
+      city || 'Jakarta',
+      address || '-',
+      phone || '-',
+      email || '-',
+      computedInitial,
+      logoUrl,
+      status,
+      id
+    );
+
+    const updated = getAllTenants().find(t => t.id === id);
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal memperbarui outlet.' });
+  }
+});
+
+app.patch('/api/tenants/:id/status', requireRoles('owner'), (req, res) => {
+  try {
+    const auth = getAuth(req);
+    const id = String(req.params.id ?? '').trim();
+    const existing = db.prepare('SELECT * FROM tenants WHERE id = ?').get(id) as Tenant | undefined;
+    if (!existing) {
+      res.status(404).json({ error: 'Outlet tidak ditemukan.' });
+      return;
+    }
+
+    const nextStatus = (req.body as { status?: string }).status === 'Nonaktif' ? 'Nonaktif' : 'Aktif';
+    if (nextStatus === 'Nonaktif') {
+      if (id === auth.activeTenantId) {
+        res.status(400).json({
+          error: 'Outlet ini sedang aktif digunakan. Beralih ke outlet lain terlebih dahulu sebelum menonaktifkannya.',
+        });
+        return;
+      }
+      const otherActiveCount = (
+        db
+          .prepare("SELECT COUNT(*) as cnt FROM tenants WHERE id != ? AND status != 'Nonaktif'")
+          .get(id) as { cnt: number }
+      ).cnt;
+      if (otherActiveCount <= 0) {
+        res.status(400).json({
+          error: 'Minimal harus ada 1 outlet yang tetap aktif untuk operasional kasir.',
+        });
+        return;
+      }
+    }
+
+    db.prepare('UPDATE tenants SET status = ? WHERE id = ?').run(nextStatus, id);
+    const updated = getAllTenants().find(t => t.id === id);
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal mengubah status outlet.' });
+  }
+});
+
+app.delete('/api/tenants/:id', requireRoles('owner'), (req, res) => {
+  try {
+    const auth = getAuth(req);
+    const id = String(req.params.id ?? '').trim();
+    const existing = db.prepare('SELECT * FROM tenants WHERE id = ?').get(id) as Tenant | undefined;
+    if (!existing) {
+      res.status(404).json({ error: 'Outlet tidak ditemukan.' });
+      return;
+    }
+
+    const totalTenants = (db.prepare('SELECT COUNT(*) as cnt FROM tenants').get() as { cnt: number }).cnt;
+    if (totalTenants <= 1) {
+      res.status(400).json({ error: 'Tidak dapat menghapus satu-satunya outlet yang tersisa.' });
+      return;
+    }
+
+    if (id === auth.activeTenantId) {
+      res.status(400).json({
+        error: 'Outlet sedang aktif digunakan. Silakan beralih ke outlet lain sebelum menghapusnya.',
+      });
+      return;
+    }
+
+    const otherActiveCount = (
+      db
+        .prepare("SELECT COUNT(*) as cnt FROM tenants WHERE id != ? AND status != 'Nonaktif'")
+        .get(id) as { cnt: number }
+    ).cnt;
+    if (otherActiveCount <= 0) {
+      res.status(400).json({
+        error: 'Tidak dapat menghapus outlet karena minimal harus tersisa 1 outlet aktif.',
+      });
+      return;
+    }
+
+    const txCount = (db.prepare('SELECT COUNT(*) as cnt FROM transactions WHERE tenantId = ?').get(id) as { cnt: number }).cnt;
+    if (txCount > 0) {
+      res.status(409).json({
+        error: `Outlet "${existing.name}" memiliki ${txCount} riwayat transaksi sehingga tidak dapat dihapus permanen. Gunakan fitur Nonaktifkan Outlet agar laporan keuangan tetap terjaga.`,
+      });
+      return;
+    }
+
+    const prodCount = (db.prepare('SELECT COUNT(*) as cnt FROM products WHERE tenantId = ?').get(id) as { cnt: number }).cnt;
+    if (prodCount > 0) {
+      res.status(409).json({
+        error: `Outlet "${existing.name}" masih memiliki ${prodCount} produk terdaftar. Kosongkan produk terlebih dahulu atau gunakan fitur Nonaktifkan Outlet.`,
+      });
+      return;
+    }
+
+    const buybackCount = (db.prepare('SELECT COUNT(*) as cnt FROM buybacks WHERE tenantId = ?').get(id) as { cnt: number }).cnt;
+    const promoCount = (db.prepare('SELECT COUNT(*) as cnt FROM promos WHERE tenantId = ?').get(id) as { cnt: number }).cnt;
+    const shiftCount = (db.prepare('SELECT COUNT(*) as cnt FROM shift_closings WHERE tenantId = ?').get(id) as { cnt: number }).cnt;
+    if (buybackCount > 0 || promoCount > 0 || shiftCount > 0) {
+      res.status(409).json({
+        error: `Outlet "${existing.name}" masih memiliki data promo/shift/riwayat operasional. Gunakan fitur Nonaktifkan Outlet sebagai gantinya.`,
+      });
+      return;
+    }
+
+    const fallbackTenantId =
+      (
+        db
+          .prepare("SELECT id FROM tenants WHERE id != ? AND status != 'Nonaktif' ORDER BY rowid ASC LIMIT 1")
+          .get(id) as { id: string } | undefined
+      )?.id || auth.activeTenantId;
+
+    const deleteTx = db.transaction(() => {
+      db.prepare('DELETE FROM promo_broadcast_recipients WHERE broadcastId IN (SELECT id FROM promo_broadcasts WHERE tenantId = ?)').run(id);
+      db.prepare('DELETE FROM promo_broadcasts WHERE tenantId = ?').run(id);
+      db.prepare('DELETE FROM store_settings WHERE tenantId = ?').run(id);
+
+      const userRows = db
+        .prepare('SELECT id, defaultTenantId, allowedTenantIdsJson FROM users')
+        .all() as Array<{ id: string; defaultTenantId: string | null; allowedTenantIdsJson: string }>;
+      const updateUserStmt = db.prepare(
+        'UPDATE users SET defaultTenantId = ?, allowedTenantIdsJson = ? WHERE id = ?'
+      );
+      for (const u of userRows) {
+        const parsedAllowed = (() => {
+          try {
+            const arr = JSON.parse(u.allowedTenantIdsJson || '[]');
+            return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : [];
+          } catch {
+            return [];
+          }
+        })();
+        const nextAllowed = parsedAllowed.filter(tid => tid !== id);
+        const nextDefault =
+          u.defaultTenantId === id ? (nextAllowed[0] ?? fallbackTenantId) : u.defaultTenantId;
+        if (nextAllowed.length !== parsedAllowed.length || u.defaultTenantId === id) {
+          updateUserStmt.run(nextDefault, JSON.stringify(nextAllowed), u.id);
+        }
+      }
+
+      db.prepare('UPDATE sessions SET activeTenantId = ? WHERE activeTenantId = ?').run(
+        fallbackTenantId,
+        id
+      );
+      db.prepare('DELETE FROM tenants WHERE id = ?').run(id);
+    });
+    deleteTx();
+
+    res.json({ deletedId: id });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal menghapus outlet.' });
+  }
+});
+
 app.patch('/api/tenants/active', (req, res) => {
   try {
     const auth = getAuth(req);
@@ -2208,9 +2609,17 @@ app.patch('/api/tenants/active', (req, res) => {
       res.status(400).json({ error: 'tenantId wajib diisi.' });
       return;
     }
-    const exists = db.prepare('SELECT id FROM tenants WHERE id = ?').get(tenantId) as { id: string } | undefined;
+    const exists = db.prepare('SELECT id, status FROM tenants WHERE id = ?').get(tenantId) as
+      | { id: string; status: string }
+      | undefined;
     if (!exists) {
       res.status(404).json({ error: 'Outlet tidak ditemukan.' });
+      return;
+    }
+    if (exists.status === 'Nonaktif') {
+      res.status(400).json({
+        error: 'Outlet ini berstatus Nonaktif dan tidak dapat dipilih untuk operasional kasir. Aktifkan terlebih dahulu di menu Multi-Outlet.',
+      });
       return;
     }
     if (!isTenantAllowedForUser(auth.user, tenantId)) {
@@ -2333,9 +2742,83 @@ async function startServer() {
       server: {
         middlewareMode: true,
         hmr: false,
+        ws: false,
       },
       appType: 'spa',
     });
+
+    // When HMR is disabled, Vite 8's default /@vite/client still opens a WebSocket to port 24678.
+    // Serve a clean no-WS client shim that preserves CSS injection & import.meta.hot stubs without WebSocket errors.
+    app.get('/@vite/client', (_req, res) => {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      res.send(`
+const sheetsMap = new Map();
+const linkSheetsMap = new Map();
+if ("document" in globalThis) {
+  document.querySelectorAll("style[data-vite-dev-id]").forEach((el) => {
+    sheetsMap.set(el.getAttribute("data-vite-dev-id"), el);
+  });
+  document.querySelectorAll('link[rel="stylesheet"][data-vite-dev-id]').forEach((el) => {
+    linkSheetsMap.set(el.getAttribute("data-vite-dev-id"), el);
+  });
+}
+let lastInsertedStyle;
+export function updateStyle(id, content) {
+  if (linkSheetsMap.has(id)) return;
+  let style = sheetsMap.get(id);
+  if (!style) {
+    style = document.createElement("style");
+    style.setAttribute("type", "text/css");
+    style.setAttribute("data-vite-dev-id", id);
+    style.textContent = content;
+    if (!lastInsertedStyle) {
+      document.head.appendChild(style);
+      setTimeout(() => { lastInsertedStyle = undefined; }, 0);
+    } else {
+      lastInsertedStyle.insertAdjacentElement("afterend", style);
+    }
+    lastInsertedStyle = style;
+  } else if (style.textContent !== content) {
+    style.textContent = content;
+  }
+  sheetsMap.set(id, style);
+}
+export function removeStyle(id) {
+  if (linkSheetsMap.has(id)) {
+    document.querySelectorAll('link[rel="stylesheet"][data-vite-dev-id="' + CSS.escape(id) + '"]').forEach((el) => el.remove());
+    linkSheetsMap.delete(id);
+  }
+  const style = sheetsMap.get(id);
+  if (style && style.parentNode) {
+    style.parentNode.removeChild(style);
+    sheetsMap.delete(id);
+  }
+}
+export function createHotContext() {
+  return {
+    data: {},
+    accept() {},
+    acceptExports() {},
+    dispose() {},
+    prune() {},
+    decline() {},
+    invalidate() {},
+    on() {},
+    off() {},
+    send() {},
+  };
+}
+export function injectQuery(url, queryToInject) {
+  if (url[0] !== "." && url[0] !== "/") return url;
+  const pathname = url.replace(/[?#].*$/, "");
+  const { search, hash } = new URL(url, "http://vite.dev");
+  return pathname + "?" + queryToInject + (search ? "&" + search.slice(1) : "") + (hash || "");
+}
+export class ErrorOverlay {}
+`);
+    });
+
     app.use(vite.middlewares);
   } else {
     const distDir = path.resolve(process.cwd(), 'dist');

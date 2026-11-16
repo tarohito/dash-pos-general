@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { GoogleIcon } from '../common/GoogleIcon';
-import { CategoryStatsItem, Product } from '../../types';
+import { CategoryItem, CategoryStatsItem, Product } from '../../types';
 import { ActionDropdownMenu } from '../common/ActionDropdownMenu';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { posApi } from '../../services/api';
@@ -12,18 +12,13 @@ import { useToast } from '../../contexts/ToastContext';
 import { KpiCard } from '../common/KpiCard';
 import { NewBadge } from '../common/NewBadge';
 import { isRecentlyCreated, useNewBadgeClock } from '../../utils/newBadge';
-import { formatIDR } from '../../utils/formatters';
 import {
   SortableTh,
   SortDirection,
   getNextColumnSort,
 } from '../common/TableSortControls';
-import {
-  ModalShell,
-  MODAL_FOOTER_END_CLASS,
-  MODAL_BTN_SECONDARY_CLASS,
-  MODAL_BTN_PRIMARY_CLASS,
-} from '../common/ModalShell';
+import { CategoryDetailModal, CategoryDetailRow } from './CategoryDetailModal';
+import { BTN_PRIMARY_CLASS, BTN_SECONDARY_CLASS } from '../common/ModalShell';
 
 interface CategoryListViewProps {
   refreshTrigger: number;
@@ -32,12 +27,7 @@ interface CategoryListViewProps {
   onDeleteCategory: (category: string) => Promise<void>;
 }
 
-interface CategoryRow {
-  name: string;
-  count: number;
-  totalStok: number;
-  createdAt?: string;
-}
+type CategoryRow = CategoryDetailRow;
 
 export const CategoryListView: React.FC<CategoryListViewProps> = ({
   refreshTrigger,
@@ -46,6 +36,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
   onDeleteCategory,
 }) => {
   const [categories, setCategories] = useState<string[]>([]);
+  const [categoryItems, setCategoryItems] = useState<CategoryItem[]>([]);
   const [categoryStats, setCategoryStats] = useState<Record<string, CategoryStatsItem>>({});
   const [categoryCreatedAt, setCategoryCreatedAt] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -58,10 +49,18 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
 
   const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [detailCategory, setDetailCategory] = useState<CategoryRow | null>(null);
+  const [detailCategory, setDetailCategory] = useState<CategoryDetailRow | null>(null);
   const [detailProducts, setDetailProducts] = useState<Product[]>([]);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const { showToast } = useToast();
+
+  const categoryItemMap = useMemo(() => {
+    const map = new Map<string, CategoryItem>();
+    for (const item of categoryItems) {
+      map.set(item.name.toLowerCase(), item);
+    }
+    return map;
+  }, [categoryItems]);
 
   useEffect(() => {
     if (!detailCategory) {
@@ -72,7 +71,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
     setIsLoadingDetail(true);
     posApi
       .getProducts(
-        { category: detailCategory.name, page: 1, pageSize: 8, sortBy: 'newest', sortDir: 'desc' },
+        { category: detailCategory.name, page: 1, pageSize: 12, sortBy: 'newest', sortDir: 'desc' },
         controller.signal
       )
       .then(res => {
@@ -96,6 +95,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
       .getCategoriesWithStats(controller.signal)
       .then(res => {
         setCategories(res.categories);
+        setCategoryItems(res.items ?? []);
         setCategoryStats(res.stats);
         setCategoryCreatedAt(res.categoryCreatedAt ?? {});
         setIsLoading(false);
@@ -352,7 +352,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                   <button
                     type="button"
                     onClick={handleClearSearch}
-                    className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary-soft hover:bg-primary-soft/80 rounded-xl transition-colors cursor-pointer border border-primary-border"
+                    className={`mt-3 ${BTN_SECONDARY_CLASS}`}
                   >
                     <GoogleIcon name="close" size={14} />
                     <span>Bersihkan Pencarian</span>
@@ -361,7 +361,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                   <button
                     type="button"
                     onClick={onOpenAddCategoryModal}
-                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-800 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors cursor-pointer border border-zinc-200"
+                    className={`mt-3 ${BTN_PRIMARY_CLASS}`}
                   >
                     <GoogleIcon name="add" size={14} />
                     <span>Tambah Kategori Baru</span>
@@ -505,7 +505,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                         <button
                           type="button"
                           onClick={handleClearSearch}
-                          className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary-soft hover:bg-primary-soft/80 rounded-xl transition-colors cursor-pointer border border-primary-border"
+                          className={`mt-3 ${BTN_SECONDARY_CLASS}`}
                         >
                           <GoogleIcon name="close" size={14} />
                           <span>Bersihkan Pencarian</span>
@@ -514,7 +514,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                         <button
                           type="button"
                           onClick={onOpenAddCategoryModal}
-                          className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-800 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors cursor-pointer border border-zinc-200"
+                          className={`mt-3 ${BTN_PRIMARY_CLASS}`}
                         >
                           <GoogleIcon name="add" size={14} />
                           <span>Tambah Kategori Baru</span>
@@ -621,119 +621,18 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
         onConfirm={handleConfirmDelete}
       />
 
-      {/* Detail Kategori Modal */}
-      <ModalShell
-        isOpen={!!detailCategory}
-        onClose={() => setDetailCategory(null)}
-        size="md"
-        title="Detail Kategori"
-        footer={
-          detailCategory ? (
-            <div className={MODAL_FOOTER_END_CLASS}>
-              <button
-                type="button"
-                onClick={() => setDetailCategory(null)}
-                className={MODAL_BTN_SECONDARY_CLASS}
-              >
-                Tutup
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const targetName = detailCategory.name;
-                  setDetailCategory(null);
-                  onEditCategory(targetName);
-                }}
-                className={MODAL_BTN_PRIMARY_CLASS}
-              >
-                <GoogleIcon name="edit" size={15} className="shrink-0" />
-                <span>Edit Kategori</span>
-              </button>
-            </div>
-          ) : undefined
+      <CategoryDetailModal
+        category={detailCategory}
+        categoryItem={
+          detailCategory ? categoryItemMap.get(detailCategory.name.toLowerCase()) ?? null : null
         }
-      >
-        {detailCategory && (() => {
-          const sharePercent =
-            summary.totalSku > 0
-              ? Math.round((detailCategory.count / summary.totalSku) * 100)
-              : 0;
-          return (
-            <div className="space-y-4 text-sm">
-              <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-xl p-4 space-y-2.5">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-zinc-500">Nama Kategori</span>
-                  <span className="font-bold text-zinc-950 text-right">{detailCategory.name}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-zinc-500">Status</span>
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${
-                      detailCategory.count > 0
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-gray-100 text-gray-600 border-gray-200'
-                    }`}
-                  >
-                    {detailCategory.count > 0 ? 'Terisi' : 'Kosong'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-zinc-500">Jumlah Produk</span>
-                  <span className="font-mono font-bold text-zinc-900 tabular-nums">
-                    {detailCategory.count} SKU
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-zinc-500">Total Stok</span>
-                  <span className="font-mono font-semibold text-zinc-900 tabular-nums">
-                    {detailCategory.totalStok} pcs
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-zinc-500">Porsi Katalog</span>
-                  <span className="font-mono font-semibold text-zinc-800 tabular-nums">
-                    {sharePercent}%
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-xl p-4">
-                <div className="flex items-center justify-between pb-2 border-b border-zinc-200/70 mb-2.5">
-                  <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider">
-                    Produk dalam Kategori ({detailCategory.count})
-                  </span>
-                </div>
-                {isLoadingDetail ? (
-                  <div className="py-4 flex items-center justify-center gap-2 text-xs text-zinc-400">
-                    <GoogleIcon name="progress_activity" size={16} className="animate-spin text-primary" />
-                    <span>Memuat produk...</span>
-                  </div>
-                ) : detailProducts.length === 0 ? (
-                  <p className="text-xs text-zinc-500 py-3 text-center">
-                    Belum ada produk pada kategori ini.
-                  </p>
-                ) : (
-                  <div className="bg-white rounded-lg border border-zinc-200/70 divide-y divide-zinc-100 max-h-56 overflow-y-auto">
-                    {detailProducts.map(prod => (
-                      <div key={prod.id} className="p-2.5 flex items-center justify-between gap-3 text-xs">
-                        <div className="min-w-0">
-                          <p className="font-semibold text-zinc-900 truncate">{prod.name}</p>
-                          <p className="text-zinc-400 font-mono">
-                            {prod.sku} &bull; {prod.stok} pcs
-                          </p>
-                        </div>
-                        <span className="font-mono font-bold text-zinc-900 shrink-0 tabular-nums">
-                          {formatIDR(prod.harga)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })()}
-      </ModalShell>
+        stats={detailCategory ? categoryStats[detailCategory.name] : undefined}
+        totalCatalogSku={summary.totalSku}
+        products={detailProducts}
+        isLoadingProducts={isLoadingDetail}
+        onClose={() => setDetailCategory(null)}
+        onEditCategory={onEditCategory}
+      />
     </div>
   );
 };

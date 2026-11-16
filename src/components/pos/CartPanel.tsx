@@ -254,7 +254,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({
                   <button
                     type="submit"
                     disabled={!couponInput.trim() || isValidatingPromo}
-                    className="h-8 px-3 rounded-lg bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-xs font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed shrink-0"
+                    className="h-8 px-3 rounded-lg bg-secondary-soft hover:bg-secondary/15 border border-secondary-border text-secondary-text disabled:bg-zinc-100 disabled:border-zinc-200 disabled:text-zinc-400 text-xs font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed shrink-0"
                   >
                     {isValidatingPromo ? '...' : 'Pakai'}
                   </button>
