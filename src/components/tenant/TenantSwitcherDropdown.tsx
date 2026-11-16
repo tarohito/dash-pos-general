@@ -1,6 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GoogleIcon } from '../common/GoogleIcon';
 import { Tenant } from '../../types';
+import { NewBadge } from '../common/NewBadge';
+import { isRecentlyCreated, useNewBadgeClock } from '../../utils/newBadge';
 
 interface TenantSwitcherDropdownProps {
   tenants: Tenant[];
@@ -23,6 +25,8 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const activeTenant = tenants.find(t => t.id === activeTenantId) || tenants[0];
+  const tenantTimestamps = useMemo(() => tenants.map(t => t.createdAt), [tenants]);
+  const nowMs = useNewBadgeClock(tenantTimestamps);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -87,7 +91,10 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
                     }`}
                   >
                     <div className="min-w-0 flex-1 pr-2">
-                      <p className="truncate font-semibold">{tenant.name}</p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="truncate font-semibold">{tenant.name}</p>
+                        {isRecentlyCreated(tenant.createdAt, nowMs) && <NewBadge />}
+                      </div>
                       <p className={`text-xs truncate ${isSelected ? 'text-white/75' : 'text-gray-500'}`}>
                         {tenant.branchName}
                       </p>
@@ -174,9 +181,9 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
             <p className="text-xs text-gray-600 mt-0.5">{activeTenant.address}</p>
             <div className="mt-2 flex items-center gap-2 text-xs">
               <span className="inline-flex items-center gap-1 text-emerald-700 font-bold bg-emerald-100/80 px-2 py-0.5 rounded">
-                <GoogleIcon name="verified_user" size={13} /> {activeTenant.plan}
+                <GoogleIcon name="verified_user" size={13} /> {activeTenant.status}
               </span>
-              <span className="text-gray-500 font-mono">DB: {activeTenant.databaseSchema}</span>
+              <span className="text-gray-500 truncate">{activeTenant.city}</span>
             </div>
           </div>
 
@@ -209,15 +216,16 @@ export const TenantSwitcherDropdown: React.FC<TenantSwitcherDropdownProps> = ({
                         {t.logoInitial}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
                           <p className="text-sm truncate font-semibold leading-tight">{t.name}</p>
                           <span
-                            className={`text-xs px-1.5 py-0.5 rounded font-mono font-medium ${
+                            className={`text-xs px-1.5 py-0.5 rounded font-mono font-medium shrink-0 ${
                               isSelected ? 'bg-white/25 text-white' : 'bg-zinc-200/80 text-zinc-700'
                             }`}
                           >
                             {t.code}
                           </span>
+                          {isRecentlyCreated(t.createdAt, nowMs) && <NewBadge />}
                         </div>
                         <p
                           className={`text-xs truncate mt-0.5 ${

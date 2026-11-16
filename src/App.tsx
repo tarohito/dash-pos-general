@@ -17,6 +17,7 @@ import {
   CartItem,
   Transaction,
   PromoCampaign,
+  PromoCouponValidationResult,
   Tenant,
   UserAccount,
   UserRole,
@@ -26,6 +27,8 @@ import {
 import { APP_THEME_STORAGE_KEY, normalizeAppTheme } from './constants/themes';
 import { playScannerBeep, playCashRegisterChime } from './utils/audio';
 import { extractBarcodeValue } from './utils/barcode';
+import { formatIDR } from './utils/formatters';
+import { getPromoEffectiveStatus } from './utils/promoDuration';
 import {
   clearAuthToken,
   getAuthToken,
@@ -214,6 +217,9 @@ const App: React.FC = () => {
     clearAuthToken();
     setCurrentUser(null);
     setCart([]);
+    setAppliedPromo(null);
+    setPromoCouponError(null);
+    setActivePromos([]);
     setCustomerName('Pelanggan Umum');
     setIsAdminMenuOpen(false);
     setIsPaymentModalOpen(false);
@@ -248,6 +254,7 @@ const App: React.FC = () => {
       setCategories(data.categories);
       setTenants(data.tenants);
       setActiveTenantId(data.activeTenantId);
+      setActivePromos(Array.isArray(data.activePromos) ? data.activePromos : []);
       if (data.storeSettings) {
         setStoreSettings(data.storeSettings);
       }
@@ -295,6 +302,8 @@ const App: React.FC = () => {
       setActiveTenantId(auth.activeTenantId);
       setActiveMenu('Kasir POS (Penjualan)');
       setCart([]);
+      setAppliedPromo(null);
+      setPromoCouponError(null);
       setCustomerName('Pelanggan Umum');
       // Fetch fresh categories and settings silently in background without full-screen loading flash
       try {
@@ -302,6 +311,7 @@ const App: React.FC = () => {
         setCategories(data.categories);
         setTenants(data.tenants);
         setActiveTenantId(data.activeTenantId);
+        setActivePromos(Array.isArray(data.activePromos) ? data.activePromos : []);
         if (data.storeSettings) {
           setStoreSettings(data.storeSettings);
         }
@@ -346,6 +356,8 @@ const App: React.FC = () => {
     try {
       await posApi.setActiveTenant(tenantId);
       setCart([]);
+      setAppliedPromo(null);
+      setPromoCouponError(null);
       setCustomerName('Pelanggan Umum');
       refreshActiveOutletViews();
       void refreshTenantsMetadata();
@@ -364,6 +376,8 @@ const App: React.FC = () => {
       setTenants(prev => [created, ...prev]);
       setActiveTenantId(created.id);
       setCart([]);
+      setAppliedPromo(null);
+      setPromoCouponError(null);
       setCustomerName('Pelanggan Umum');
       refreshActiveOutletViews();
       void posApi.getStoreSettings().then(res => setStoreSettings(res.storeSettings)).catch(() => {});
@@ -423,6 +437,10 @@ const App: React.FC = () => {
 
   // Cart & POS State
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [activePromos, setActivePromos] = useState<PromoCampaign[]>([]);
+  const [appliedPromo, setAppliedPromo] = useState<PromoCouponValidationResult | null>(null);
+  const [promoCouponError, setPromoCouponError] = useState<string | null>(null);
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
@@ -452,7 +470,92 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.harga * item.qty, 0), [cart]);
+  // Refresh active promos whenever outlet switches or promos are modified
+  useEffect(() => {
+    if (!currentUser) return;
+    const controller = new AbortController();
+    posApi
+      .getActivePromos(controller.signal)
+      .then(list => setActivePromos(Array.isArray(list) ? list : []))
+      .catch(() => {
+        // Abaikan abort atau kegagalan sinkronisasi sementara
+      });
+    return () => controller.abort();
+  }, [currentUser, activeTenantId, promosRefreshKey]);
+
+  // Keep applied promo coupon synchronized with cart & active promo duration window
+  useEffect(() => {
+    if (cart.length === 0) {
+      if (appliedPromo) setAppliedPromo(null);
+      if (promoCouponError) setPromoCouponError(null);
+      return;
+    }
+    if (!appliedPromo) return;
+
+    const livePromo = activePromos.find(p => p.id === appliedPromo.promo.id);
+    if (!livePromo || getPromoEffectiveStatus(livePromo) !== 'active') {
+      const msg = `Kupon "${appliedPromo.promo.code}" tidak lagi aktif atau masa berlakunya berakhir.`;
+      setAppliedPromo(null);
+      setPromoCouponError(msg);
+      showToast('warning', msg);
+      return;
+    }
+
+    const promoIdSet = new Set(livePromo.productIds);
+    let nextGross = 0;
+    let nextEligible = 0;
+    const nextEligibleIds: number[] = [];
+    for (const item of cart) {
+      const lineTotal = item.harga * item.qty;
+      nextGross += lineTotal;
+      if (promoIdSet.size === 0 || promoIdSet.has(item.id)) {
+        nextEligible += lineTotal;
+        nextEligibleIds.push(item.id);
+      }
+    }
+
+    if (nextEligible <= 0) {
+      const msg = `Kupon "${livePromo.code}" dilepas karena produk yang memenuhi syarat tidak ada di keranjang.`;
+      setAppliedPromo(null);
+      setPromoCouponError(msg);
+      return;
+    }
+
+    if (livePromo.minPurchase && livePromo.minPurchase > 0 && nextGross < livePromo.minPurchase) {
+      const msg = `Minimal belanja ${formatIDR(livePromo.minPurchase)} untuk kupon "${livePromo.code}".`;
+      setAppliedPromo(null);
+      setPromoCouponError(msg);
+      return;
+    }
+
+    const nextDiscount = Math.max(
+      0,
+      Math.min(nextEligible, Math.round(nextEligible * (livePromo.discountPercent / 100)))
+    );
+    const nextNet = Math.max(0, nextGross - nextDiscount);
+
+    if (
+      nextGross !== appliedPromo.grossSubtotal ||
+      nextEligible !== appliedPromo.eligibleSubtotal ||
+      nextDiscount !== appliedPromo.discountAmount ||
+      livePromo.discountPercent !== appliedPromo.promo.discountPercent ||
+      livePromo.endDate !== appliedPromo.promo.endDate
+    ) {
+      setAppliedPromo({
+        valid: true,
+        promo: livePromo,
+        grossSubtotal: nextGross,
+        eligibleSubtotal: nextEligible,
+        discountAmount: nextDiscount,
+        netSubtotal: nextNet,
+        eligibleProductIds: nextEligibleIds,
+      });
+    }
+  }, [cart, activePromos, appliedPromo, promoCouponError, showToast]);
+
+  const grossSubtotal = useMemo(() => cart.reduce((sum, item) => sum + item.harga * item.qty, 0), [cart]);
+  const discountAmount = useMemo(() => appliedPromo?.discountAmount ?? 0, [appliedPromo]);
+  const subtotal = useMemo(() => Math.max(0, grossSubtotal - discountAmount), [grossSubtotal, discountAmount]);
   const tax = useMemo(
     () => (storeSettings.enablePpn ? Math.round(subtotal * (storeSettings.ppnPercent / 100)) : 0),
     [subtotal, storeSettings.enablePpn, storeSettings.ppnPercent]
@@ -535,8 +638,48 @@ const App: React.FC = () => {
 
   const handleClearCart = () => {
     setCart([]);
+    setAppliedPromo(null);
+    setPromoCouponError(null);
     showToast('success', 'Keranjang pesanan berhasil dikosongkan.');
   };
+
+  const handleApplyPromoCode = useCallback(
+    async (rawCode: string) => {
+      const cleanCode = rawCode.trim().toUpperCase();
+      if (!cleanCode) return;
+      if (cart.length === 0) {
+        setPromoCouponError('Tambahkan produk ke keranjang terlebih dahulu.');
+        return;
+      }
+      setIsValidatingPromo(true);
+      setPromoCouponError(null);
+      try {
+        const result = await posApi.validatePromoCode(
+          cleanCode,
+          cart.map(item => ({ id: item.id, qty: item.qty }))
+        );
+        setAppliedPromo(result);
+        setPromoCouponError(null);
+        showToast(
+          'success',
+          `Kupon ${result.promo.code} (-${result.promo.discountPercent}%) diterapkan: hemat ${formatIDR(result.discountAmount)}.`
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Kupon promo tidak valid.';
+        setAppliedPromo(null);
+        setPromoCouponError(msg);
+        showToast('warning', msg);
+      } finally {
+        setIsValidatingPromo(false);
+      }
+    },
+    [cart, showToast]
+  );
+
+  const handleRemovePromoCode = useCallback(() => {
+    setAppliedPromo(null);
+    setPromoCouponError(null);
+  }, []);
 
   // Indexed SQLite Lookup for Barcode / SKU / QR / Name Scan
   const handleAutoScanCode = useCallback(
@@ -639,9 +782,12 @@ const App: React.FC = () => {
           transferBank: paymentData.transferBank,
           transferRef: paymentData.transferRef,
         },
+        promoCode: appliedPromo?.promo.code,
       });
 
       setCart([]);
+      setAppliedPromo(null);
+      setPromoCouponError(null);
       setCustomerName('Pelanggan Umum');
       setProductsRefreshKey(k => k + 1);
       setTransactionsRefreshKey(k => k + 1);
@@ -880,9 +1026,17 @@ const App: React.FC = () => {
                     onRemoveItem={handleRemoveItem}
                     onClearCart={handleClearCart}
                     subtotal={subtotal}
+                    grossSubtotal={grossSubtotal}
+                    discountAmount={discountAmount}
                     tax={tax}
                     taxLabel={taxLabel}
                     grandTotal={grandTotal}
+                    activePromos={activePromos}
+                    appliedPromo={appliedPromo}
+                    promoCouponError={promoCouponError}
+                    isValidatingPromo={isValidatingPromo}
+                    onApplyPromoCode={handleApplyPromoCode}
+                    onRemovePromoCode={handleRemovePromoCode}
                     onOpenPaymentModal={() => setIsPaymentModalOpen(true)}
                   />
                 ) : (
@@ -1080,6 +1234,9 @@ const App: React.FC = () => {
               onClose={() => setIsPaymentModalOpen(false)}
               cart={cart}
               subtotal={subtotal}
+              grossSubtotal={grossSubtotal}
+              discountAmount={discountAmount}
+              promoCode={appliedPromo?.promo.code}
               tax={tax}
               taxLabel={taxLabel}
               grandTotal={grandTotal}

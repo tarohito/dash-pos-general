@@ -25,6 +25,12 @@ import {
   SortDirection,
   getNextColumnSort,
 } from '../common/TableSortControls';
+import {
+  ModalShell,
+  MODAL_FOOTER_END_CLASS,
+  MODAL_BTN_SECONDARY_CLASS,
+  MODAL_BTN_PRIMARY_CLASS,
+} from '../common/ModalShell';
 
 interface UserManagementViewProps {
   currentUser: UserAccount;
@@ -54,7 +60,6 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 220);
-  const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all');
   const [sortBy, setSortBy] = useState<string>('newest');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
 
@@ -66,6 +71,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
+    ownerCount: 0,
     managerCount: 0,
     cashierCount: 0,
   });
@@ -76,6 +82,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
+  const [detailUser, setDetailUser] = useState<UserAccount | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserAccount | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -88,7 +95,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, roleFilter, sortBy, sortDir]);
+  }, [debouncedSearch, sortBy, sortDir]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -101,7 +108,6 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
           page: currentPage,
           pageSize,
           search: debouncedSearch,
-          role: roleFilter,
           sortBy,
           sortDir,
         },
@@ -111,7 +117,15 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
         setItems(Array.isArray(res.items) ? res.items : []);
         setTotalItems(res.total ?? 0);
         setTotalPages(res.totalPages ?? 1);
-        if (res.stats) setStats(res.stats);
+        if (res.stats) {
+          setStats({
+            totalUsers: res.stats.totalUsers ?? 0,
+            activeUsers: res.stats.activeUsers ?? 0,
+            ownerCount: res.stats.ownerCount ?? 0,
+            managerCount: res.stats.managerCount ?? 0,
+            cashierCount: res.stats.cashierCount ?? 0,
+          });
+        }
         if (res.page !== currentPage) setCurrentPage(res.page ?? 1);
         setIsLoading(false);
       })
@@ -125,12 +139,28 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       });
 
     return () => controller.abort();
-  }, [currentPage, pageSize, debouncedSearch, roleFilter, sortBy, sortDir, refreshTrigger, retryCount, showToast]);
+  }, [
+    currentPage,
+    pageSize,
+    debouncedSearch,
+    sortBy,
+    sortDir,
+    refreshTrigger,
+    retryCount,
+    showToast,
+  ]);
 
   const handleHeaderSort = (key: string, defaultDir: SortDirection = 'asc') => {
     const next = getNextColumnSort(key, sortBy, sortDir, defaultDir);
     setSortBy(next.sortBy);
     setSortDir(next.sortDir);
+  };
+
+  const hasSearchQuery = searchQuery.trim().length > 0;
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setCurrentPage(1);
   };
 
   const handleSaveUser = async (
@@ -206,7 +236,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
     }
   };
 
-  const renderAllowedTenants = (user: UserAccount) => {
+  const renderOutletAccessSummary = (user: UserAccount) => {
     if (user.role === 'owner') {
       return (
         <span className="inline-block text-xs bg-accent-soft text-accent-text font-semibold px-2 py-0.5 rounded border border-accent-border">
@@ -215,23 +245,20 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       );
     }
     if (!user.allowedTenantIds || user.allowedTenantIds.length === 0) {
-      return <span className="text-xs text-gray-400">Belum ada akses outlet</span>;
+      return <span className="text-xs text-gray-400">Belum ada akses</span>;
+    }
+    if (user.allowedTenantIds.length === 1) {
+      const tenant = tenantMap.get(user.allowedTenantIds[0]);
+      return (
+        <span className="font-mono text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-semibold">
+          {tenant ? tenant.code : user.allowedTenantIds[0]}
+        </span>
+      );
     }
     return (
-      <div className="flex items-center gap-1 flex-wrap">
-        {user.allowedTenantIds.map(id => {
-          const tenant = tenantMap.get(id);
-          return (
-            <span
-              key={id}
-              className="font-mono text-xs bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded font-semibold"
-              title={tenant ? `${tenant.name} (${tenant.branchName})` : id}
-            >
-              {tenant ? tenant.code : id}
-            </span>
-          );
-        })}
-      </div>
+      <span className="font-mono text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-semibold">
+        {user.allowedTenantIds.length} Outlet
+      </span>
     );
   };
 
@@ -279,7 +306,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
           }
           footer={
             <p className="text-xs text-gray-400 mt-1 truncate">
-              Terdaftar di seluruh jaringan
+              {stats.ownerCount} Owner &middot; Terdaftar di jaringan
             </p>
           }
         />
@@ -334,39 +361,12 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       </div>
 
       {/* 3. TABLE WORKSPACE (Unboxed, Tanpa Card Pembungkus) */}
-      <div className="space-y-3.5">
-        {/* Toolbar Pencarian & Segmented Tabs */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          <SearchInput
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Cari nama, username, email, atau shift..."
-          />
-
-          <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 items-center self-start md:self-auto shrink-0 overflow-x-auto max-w-full">
-            {(
-              [
-                { id: 'all', label: 'Semua' },
-                { id: 'owner', label: 'Owner' },
-                { id: 'branch_manager', label: 'Kepala Cabang' },
-                { id: 'cashier', label: 'Kasir' },
-              ] as const
-            ).map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setRoleFilter(tab.id)}
-                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
-                  roleFilter === tab.id
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'text-zinc-500 hover:text-zinc-950'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
+      <div className="space-y-3">
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Cari nama, username, email, role, shift, status, atau outlet..."
+        />
 
         {fetchError && (
           <ErrorBanner
@@ -388,20 +388,18 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
               <GoogleIcon name="group" size={36} className="mx-auto mb-2 text-gray-300" />
               <p className="text-sm font-semibold text-gray-600">Tidak ada pengguna ditemukan</p>
               <p className="text-xs text-gray-400 mt-0.5 max-w-sm mx-auto">
-                {searchQuery
+                {hasSearchQuery
                   ? `Pencarian "${searchQuery}" tidak cocok dengan akun pengguna mana pun.`
-                  : 'Belum ada akun pengguna untuk filter yang dipilih.'}
+                  : 'Belum ada akun pengguna yang terdaftar.'}
               </p>
-              {(searchQuery || roleFilter !== 'all') && (
+              {hasSearchQuery && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setRoleFilter('all');
-                  }}
-                  className="mt-3 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary-soft rounded-xl border border-primary-border hover:bg-primary-soft/80 transition-colors cursor-pointer"
+                  onClick={handleClearSearch}
+                  className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary-soft rounded-xl border border-primary-border hover:bg-primary-soft/80 transition-colors cursor-pointer"
                 >
-                  Reset Filter
+                  <GoogleIcon name="close" size={14} />
+                  <span>Bersihkan Pencarian</span>
                 </button>
               )}
             </div>
@@ -428,7 +426,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                         onSort={key => handleHeaderSort(key, 'asc')}
                         className="py-3 px-3 sm:px-4"
                       />
-                      <th className="py-3 px-3 sm:px-4">Kontak &amp; Shift</th>
+                      <th className="py-3 px-3 sm:px-4">Shift</th>
                       <th className="py-3 px-3 sm:px-4">Akses Outlet</th>
                       <SortableTh
                         label="Status"
@@ -448,7 +446,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                       const isSelf = u.id === currentUser.id;
                       return (
                         <tr key={u.id} className="hover:bg-zinc-100/60 transition-colors">
-                          <td className="py-3.5 px-3.5 sm:px-4 align-top min-w-[200px]">
+                          <td className="py-3.5 px-3.5 sm:px-4 align-middle min-w-[200px]">
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <p className="font-bold text-gray-900 text-xs sm:text-sm leading-tight">
@@ -461,36 +459,29 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                <span className="font-mono text-xs bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded font-semibold">
-                                  @{u.username}
-                                </span>
-                              </div>
+                              <span className="font-mono text-xs text-gray-500 block mt-0.5">
+                                @{u.username}
+                              </span>
                             </div>
                           </td>
 
-                          <td className="py-3.5 px-3 sm:px-4 align-top whitespace-nowrap">
+                          <td className="py-3.5 px-3 sm:px-4 align-middle whitespace-nowrap">
                             <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded ${meta.badgeClass}`}>
                               {meta.label}
                             </span>
                           </td>
 
-                          <td className="py-3.5 px-3 sm:px-4 align-top min-w-[180px] max-w-[250px]">
-                            <div className="space-y-1">
-                              <p className="text-xs font-mono text-gray-800 truncate" title={u.email}>
-                                {u.email}
-                              </p>
-                              <p className="text-xs text-gray-500 truncate">
-                                {u.shiftLabel}
-                              </p>
-                            </div>
+                          <td className="py-3.5 px-3 sm:px-4 align-middle whitespace-nowrap">
+                            <span className="text-xs text-gray-700 font-medium">
+                              {u.shiftLabel}
+                            </span>
                           </td>
 
-                          <td className="py-3.5 px-3 sm:px-4 align-top">
-                            {renderAllowedTenants(u)}
+                          <td className="py-3.5 px-3 sm:px-4 align-middle whitespace-nowrap">
+                            {renderOutletAccessSummary(u)}
                           </td>
 
-                          <td className="py-3.5 px-3 sm:px-4 align-top text-center whitespace-nowrap">
+                          <td className="py-3.5 px-3 sm:px-4 align-middle text-center whitespace-nowrap">
                             <div className="inline-flex justify-center">
                               <StatusToggle
                                 checked={u.isActive}
@@ -510,10 +501,16 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                             </div>
                           </td>
 
-                          <td className="py-3.5 px-4 align-top text-center whitespace-nowrap">
+                          <td className="py-3.5 px-4 align-middle text-center whitespace-nowrap">
                             <ActionDropdownMenu
                               ariaLabel={`Aksi untuk ${u.fullName}`}
                               items={[
+                                {
+                                  id: 'detail',
+                                  label: 'Lihat Detail',
+                                  icon: <GoogleIcon name="visibility" size={14} />,
+                                  onClick: () => setDetailUser(u),
+                                },
                                 {
                                   id: 'edit',
                                   label: 'Edit Pengguna',
@@ -567,7 +564,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                             )}
                           </div>
                           <p className="text-xs text-gray-400 font-mono mt-0.5 truncate">
-                            @{u.username} &bull; {u.email}
+                            @{u.username}
                           </p>
                         </div>
 
@@ -590,13 +587,19 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
                         <span className="text-gray-500 font-medium">{u.shiftLabel}</span>
-                        <div>{renderAllowedTenants(u)}</div>
+                        <div>{renderOutletAccessSummary(u)}</div>
                       </div>
 
                       <div className="pt-2 border-t border-gray-100 flex items-center justify-end">
                         <ActionDropdownMenu
                           ariaLabel={`Aksi untuk ${u.fullName}`}
                           items={[
+                            {
+                              id: 'detail',
+                              label: 'Lihat Detail',
+                              icon: <GoogleIcon name="visibility" size={14} />,
+                              onClick: () => setDetailUser(u),
+                            },
                             {
                               id: 'edit',
                               label: 'Edit Pengguna',
@@ -668,6 +671,120 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
         onCancel={() => setDeletingUser(null)}
         onConfirm={handleConfirmDelete}
       />
+
+      {/* Detail Pengguna Modal */}
+      <ModalShell
+        isOpen={!!detailUser}
+        onClose={() => setDetailUser(null)}
+        size="md"
+        title="Detail Pengguna"
+        footer={
+          detailUser ? (
+            <div className={MODAL_FOOTER_END_CLASS}>
+              <button
+                type="button"
+                onClick={() => setDetailUser(null)}
+                className={MODAL_BTN_SECONDARY_CLASS}
+              >
+                Tutup
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const target = detailUser;
+                  setDetailUser(null);
+                  setEditingUser(target);
+                  setIsModalOpen(true);
+                }}
+                className={MODAL_BTN_PRIMARY_CLASS}
+              >
+                <GoogleIcon name="edit" size={15} className="shrink-0" />
+                <span>Edit Pengguna</span>
+              </button>
+            </div>
+          ) : undefined
+        }
+      >
+        {detailUser && (() => {
+          const meta = ROLE_META[detailUser.role];
+          const allowedList =
+            detailUser.role === 'owner'
+              ? tenants
+              : (detailUser.allowedTenantIds || [])
+                  .map(id => tenantMap.get(id))
+                  .filter((t): t is Tenant => Boolean(t));
+
+          return (
+            <div className="space-y-4 text-sm">
+              <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-xl p-4 space-y-2.5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-zinc-500">Nama Lengkap</span>
+                  <span className="font-bold text-zinc-950 text-right">{detailUser.fullName}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-zinc-500">Username</span>
+                  <span className="font-mono font-semibold text-zinc-900">@{detailUser.username}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-zinc-500">Role / Jabatan</span>
+                  <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded ${meta.badgeClass}`}>
+                    {meta.label}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-zinc-500">Status Akun</span>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${
+                      detailUser.isActive
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-zinc-100 text-zinc-600 border-zinc-200'
+                    }`}
+                  >
+                    {detailUser.isActive ? 'Aktif' : 'Nonaktif'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-zinc-500">Email</span>
+                  <span className="font-mono text-zinc-800 text-right break-all">{detailUser.email}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-zinc-500">Jadwal Shift</span>
+                  <span className="font-medium text-zinc-800 text-right">{detailUser.shiftLabel}</span>
+                </div>
+              </div>
+
+              <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-xl p-4">
+                <div className="flex items-center justify-between pb-2 border-b border-zinc-200/70 mb-2.5">
+                  <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider">
+                    Akses Outlet ({detailUser.role === 'owner' ? 'Semua Outlet' : allowedList.length})
+                  </span>
+                </div>
+                {allowedList.length === 0 ? (
+                  <p className="text-xs text-zinc-500 py-2 text-center">
+                    Pengguna ini belum memiliki akses outlet.
+                  </p>
+                ) : (
+                  <div className="bg-white rounded-lg border border-zinc-200/70 divide-y divide-zinc-100 max-h-48 overflow-y-auto">
+                    {allowedList.map(t => (
+                      <div key={t.id} className="p-2.5 flex items-center justify-between gap-3 text-xs">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-zinc-900 truncate">{t.name}</p>
+                          <p className="text-zinc-500 truncate">
+                            {t.branchName} &bull; {t.city}
+                          </p>
+                        </div>
+                        <span className="font-mono font-bold text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded shrink-0">
+                          {t.code}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+      </ModalShell>
     </div>
   );
 };

@@ -1,13 +1,16 @@
 import React, { memo } from 'react';
 import { Product } from '../../types';
 import { formatIDR } from '../../utils/formatters';
+import { NewBadge } from '../common/NewBadge';
+import { GoogleIcon } from '../common/GoogleIcon';
 
 interface ProductCardProps {
   product: Product;
+  isNew?: boolean;
   onAddToCart: (product: Product) => void;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart }) => {
+export const ProductCard: React.FC<ProductCardProps> = memo(({ product, isNew = false, onAddToCart }) => {
   const isOutOfStock = product.stok <= 0;
 
   return (
@@ -26,21 +29,28 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToC
       <div className="flex flex-col flex-1">
         {/* Product Image (1:1 Aspect Ratio) */}
         <div className="w-full aspect-square relative overflow-hidden bg-zinc-50 flex items-center justify-center">
-          <img
-            src={product.image}
-            alt={product.name}
-            loading="lazy"
-            decoding="async"
-            className={`w-full h-full object-cover transition-transform duration-300 ${
-              !isOutOfStock ? 'group-hover:scale-105' : 'grayscale-40'
-            }`}
-          />
-          {/* Promo Badge (jika ada promo aktif) */}
-          {product.isPromo && (
-            <div className="absolute top-2 left-2">
-              <span className="text-xs font-bold px-2.5 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-md shadow-xs">
-                {product.promoLabel || 'PROMO'}
-              </span>
+          {product.image ? (
+            <img
+              src={product.image}
+              alt={product.name}
+              loading="lazy"
+              decoding="async"
+              className={`w-full h-full object-cover transition-transform duration-300 ${
+                !isOutOfStock ? 'group-hover:scale-105' : 'grayscale-40'
+              }`}
+            />
+          ) : (
+            <GoogleIcon name="deployed_code" size={32} className="text-zinc-300" />
+          )}
+          {/* New / Promo Badges */}
+          {(isNew || product.isPromo) && (
+            <div className="absolute top-2 left-2 flex flex-wrap items-center gap-1 max-w-[calc(100%-3.25rem)]">
+              {isNew && <NewBadge />}
+              {product.isPromo && (
+                <span className="text-xs font-bold px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-md shadow-xs">
+                  {product.promoLabel || 'PROMO'}
+                </span>
+              )}
             </div>
           )}
 

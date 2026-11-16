@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleIcon } from '../common/GoogleIcon';
 import { useToast } from '../../contexts/ToastContext';
+import { CategoryItem } from '../../types';
 import {
   ModalShell,
   MODAL_FOOTER_END_CLASS,
@@ -11,7 +12,7 @@ import {
 interface AddCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  editingCategory?: string | null;
+  editingCategory?: CategoryItem | string | null;
   onSaveCategory: (categoryName: string, oldName?: string) => Promise<void> | void;
 }
 
@@ -21,6 +22,11 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
   editingCategory,
   onSaveCategory,
 }) => {
+  const editingName =
+    typeof editingCategory === 'string'
+      ? editingCategory
+      : editingCategory?.name || '';
+
   const [categoryName, setCategoryName] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,10 +34,10 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setCategoryName(editingCategory || '');
+      setCategoryName(editingName);
       setErrorMsg(null);
     }
-  }, [isOpen, editingCategory]);
+  }, [isOpen, editingName]);
 
   const failValidation = (msg: string) => {
     setErrorMsg(msg);
@@ -49,7 +55,7 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
       failValidation('Nama kategori minimal 2 karakter.');
       return;
     }
-    if (editingCategory && trimmed === editingCategory) {
+    if (editingName && trimmed === editingName) {
       failValidation('Nama kategori baru tidak boleh sama dengan nama sebelumnya.');
       return;
     }
@@ -57,7 +63,7 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
-      await onSaveCategory(trimmed, editingCategory || undefined);
+      await onSaveCategory(trimmed, editingName || undefined);
       setCategoryName('');
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Gagal menyimpan kategori.');
@@ -71,7 +77,7 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size="sm"
-      title={editingCategory ? 'Edit Kategori' : 'Tambah Kategori'}
+      title={editingName ? 'Edit Kategori' : 'Tambah Kategori'}
       disableEscapeClose={isSubmitting}
       footer={
         <div className={MODAL_FOOTER_END_CLASS}>
@@ -89,7 +95,7 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
             disabled={isSubmitting}
             className={MODAL_BTN_PRIMARY_CLASS}
           >
-            {isSubmitting ? 'Menyimpan...' : editingCategory ? 'Simpan Perubahan' : 'Simpan Kategori'}
+            {isSubmitting ? 'Menyimpan...' : editingName ? 'Simpan Perubahan' : 'Simpan Kategori'}
           </button>
         </div>
       }
@@ -112,13 +118,13 @@ export const AddCategoryModal: React.FC<AddCategoryModalProps> = ({
             autoFocus
             value={categoryName}
             onChange={e => setCategoryName(e.target.value)}
-            placeholder="Cth: Parfum, Skincare, Body Care, Make Up..."
+            placeholder="Cth: Parfum, Skincare, Elektronik, Fashion, Makanan..."
             className="w-full h-10 px-3.5 text-sm font-medium bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white transition-colors"
           />
           <p className="text-xs text-gray-500 mt-1.5">
-            {editingCategory
+            {editingName
               ? 'Perubahan nama kategori akan otomatis diperbarui pada seluruh produk terkait.'
-              : 'Kategori baru akan langsung tersedia di filter etalase dan formulir tambah produk.'}
+              : 'Kategori baru akan langsung tersedia di etalase kasir dan formulir produk.'}
           </p>
         </div>
       </form>

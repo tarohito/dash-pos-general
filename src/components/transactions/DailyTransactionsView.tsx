@@ -37,7 +37,6 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
   onNavigateToPos,
   canVoid = true,
 }) => {
-  const [txFilterMethod, setTxFilterMethod] = useState<string>('semua');
   const [txSearchQuery, setTxSearchQuery] = useState<string>('');
   const debouncedSearch = useDebounce(txSearchQuery, 220);
   const [sortBy, setSortBy] = useState<string>('newest');
@@ -52,7 +51,9 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
   const [stats, setStats] = useState<TransactionStatsSummary>({
     totalOmzetPenjualan: 0,
     totalBeratTerjual: 0,
+    totalQtyTerjual: 0,
     totalTransaksi: 0,
+    voidCount: 0,
     avgPerTransaksi: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -69,7 +70,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, txFilterMethod, sortBy, sortDir]);
+  }, [debouncedSearch, sortBy, sortDir]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -82,7 +83,6 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
           page: currentPage,
           pageSize,
           search: debouncedSearch,
-          method: txFilterMethod,
           sortBy,
           sortDir,
         },
@@ -97,17 +97,23 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
           setStats({
             totalOmzetPenjualan: res.stats.totalOmzetPenjualan ?? 0,
             totalBeratTerjual: res.stats.totalBeratTerjual ?? 0,
+            totalQtyTerjual: res.stats.totalQtyTerjual ?? 0,
             totalTransaksi: res.stats.totalTransaksi ?? 0,
+            voidCount: res.stats.voidCount ?? 0,
             avgPerTransaksi: res.stats.avgPerTransaksi ?? 0,
           });
         } else {
           const activeList = list.filter(tx => tx.status !== 'void');
           const sumOmzet = activeList.reduce((acc, tx) => acc + (tx.grandTotal || 0), 0);
           const sumBerat = activeList.reduce((acc, tx) => acc + (tx.totalBerat || 0), 0);
+          const sumQty = activeList.reduce((acc, tx) => acc + (tx.totalQty || 0), 0);
+          const voidTotal = list.filter(tx => tx.status === 'void').length;
           setStats({
             totalOmzetPenjualan: sumOmzet,
             totalBeratTerjual: sumBerat,
+            totalQtyTerjual: sumQty,
             totalTransaksi: activeList.length,
+            voidCount: voidTotal,
             avgPerTransaksi: activeList.length > 0 ? Math.round(sumOmzet / activeList.length) : 0,
           });
         }
@@ -124,12 +130,28 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
       });
 
     return () => controller.abort();
-  }, [currentPage, pageSize, debouncedSearch, txFilterMethod, sortBy, sortDir, refreshTrigger, retryCount, showToast]);
+  }, [
+    currentPage,
+    pageSize,
+    debouncedSearch,
+    sortBy,
+    sortDir,
+    refreshTrigger,
+    retryCount,
+    showToast,
+  ]);
 
   const handleHeaderSort = (key: string, defaultDir: SortDirection = 'desc') => {
     const next = getNextColumnSort(key, sortBy, sortDir, defaultDir);
     setSortBy(next.sortBy);
     setSortDir(next.sortDir);
+  };
+
+  const hasSearchQuery = txSearchQuery.trim().length > 0;
+
+  const handleClearSearch = () => {
+    setTxSearchQuery('');
+    setCurrentPage(1);
   };
 
   const handleOpenDetail = async (tx: Transaction) => {
@@ -236,17 +258,17 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
         />
 
         <KpiCard
-          title="Total Berat Terjual"
+          title="Total Produk Terjual"
           accent="secondary"
-          icon={<GoogleIcon name="balance" size={16} />}
+          icon={<GoogleIcon name="deployed_code" size={16} />}
           value={
             <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
-              {Number((stats?.totalBeratTerjual ?? 0).toFixed(2))} gr
+              {stats?.totalQtyTerjual ?? 0} Pcs
             </div>
           }
           footer={
             <p className="text-xs text-zinc-500 mt-1 truncate">
-              Akumulasi berat produk terjual
+              Total unit produk terjual
             </p>
           }
         />
@@ -262,7 +284,9 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
           }
           footer={
             <p className="text-xs text-zinc-500 mt-1 truncate">
-              Lunas &amp; terverifikasi
+              {stats?.voidCount
+                ? `${stats.voidCount} nota dibatalkan (void)`
+                : 'Semua nota lunas & terverifikasi'}
             </p>
           }
         />
@@ -270,7 +294,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
         <KpiCard
           title="Rata-rata / Nota"
           accent="emerald"
-          icon={<GoogleIcon name="apartment" size={16} />}
+          icon={<GoogleIcon name="trending_up" size={16} />}
           value={
             <MoneyAmount
               value={stats?.avgPerTransaksi ?? 0}
@@ -281,44 +305,19 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
           }
           footer={
             <p className="text-xs text-zinc-500 mt-1 truncate">
-              Rata-rata per pelanggan
+              Rata-rata nilai per transaksi
             </p>
           }
         />
       </div>
 
       {/* Table Workspace (Unboxed, Tanpa Card Pembungkus) */}
-      <div className="space-y-3.5">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          <SearchInput
-            value={txSearchQuery}
-            onChange={setTxSearchQuery}
-            placeholder="Cari no nota, pelanggan, kasir, produk/SKU..."
-          />
-
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-            <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 items-center overflow-x-auto max-w-full">
-              {[
-                { id: 'semua', label: 'Semua' },
-                { id: 'cash', label: 'Tunai' },
-                { id: 'transfer', label: 'Transfer' },
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setTxFilterMethod(tab.id)}
-                  className={`h-full px-3.5 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
-                    txFilterMethod === tab.id
-                      ? 'bg-primary text-white shadow-xs'
-                      : 'text-zinc-500 hover:text-zinc-950'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+      <div className="space-y-3">
+        <SearchInput
+          value={txSearchQuery}
+          onChange={setTxSearchQuery}
+          placeholder="Cari no. nota, pelanggan, kasir, metode (tunai/transfer), status, kupon, atau produk..."
+        />
 
         {fetchError && (
           <ErrorBanner
@@ -339,11 +338,20 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
               <GoogleIcon name="receipt_long" size={36} className="mx-auto mb-2 text-zinc-300" />
               <p className="text-sm font-semibold text-zinc-700">Tidak ada transaksi penjualan</p>
               <p className="text-xs text-zinc-400 mt-0.5">
-                {txSearchQuery
-                  ? 'Coba gunakan kata kunci pencarian yang lain.'
+                {hasSearchQuery
+                  ? `Pencarian "${txSearchQuery}" tidak cocok dengan transaksi mana pun.`
                   : 'Belum ada transaksi penjualan kasir yang tercatat.'}
               </p>
-              {!txSearchQuery && (
+              {hasSearchQuery ? (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-primary bg-primary-soft hover:bg-primary-soft/80 rounded-xl transition-colors cursor-pointer border border-primary-border"
+                >
+                  <GoogleIcon name="close" size={14} />
+                  <span>Bersihkan Pencarian</span>
+                </button>
+              ) : (
                 <button
                   type="button"
                   onClick={onNavigateToPos}
@@ -395,38 +403,12 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                       <div className="text-xs space-y-1.5">
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-bold text-zinc-950 truncate">{tx.customerName}</span>
-                          <span className="text-zinc-500 shrink-0">Kasir: {tx.cashier}</span>
                         </div>
-                        <div className="flex items-start justify-between gap-2 text-zinc-600">
-                          <div className="min-w-0 flex-1 space-y-0.5">
-                            <span className="font-semibold text-zinc-900 block truncate">
-                              {firstItem ? firstItem.name : '-'}
-                              {remainingItems > 0 ? ` (+${remainingItems} item)` : ''}
-                            </span>
-                            {firstItem && (
-                              <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-zinc-500">
-                                {firstItem.category && (
-                                  <span className="font-medium text-zinc-600">{firstItem.category}</span>
-                                )}
-                                {firstItem.brand && firstItem.brand !== 'No Brand' && (
-                                  <span className="px-1.5 py-0.2 text-[10px] font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200 rounded-md">
-                                    {firstItem.brand}
-                                  </span>
-                                )}
-                                {firstItem.kondisi && (
-                                  <span
-                                    className={`px-1.5 py-0.2 text-[10px] font-semibold rounded-md border ${
-                                      firstItem.kondisi === 'Bekas'
-                                        ? 'bg-zinc-100 text-zinc-700 border-zinc-300'
-                                        : 'bg-blue-50 text-blue-700 border-blue-200'
-                                    }`}
-                                  >
-                                    {firstItem.kondisi}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                        <div className="flex items-center justify-between gap-2 text-zinc-600">
+                          <span className="font-semibold text-zinc-900 truncate min-w-0 flex-1">
+                            {firstItem ? firstItem.name : '-'}
+                            {remainingItems > 0 ? ` (+${remainingItems} item)` : ''}
+                          </span>
                           <span className="font-mono font-bold text-zinc-800 shrink-0 tabular-nums text-right">
                             {tx.totalQty} pcs
                           </span>
@@ -558,18 +540,8 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                           </td>
 
                           <td className="py-3.5 px-3.5 align-middle max-w-[175px]">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="font-bold text-zinc-950 truncate text-xs sm:text-sm">
-                                {tx.customerName}
-                              </span>
-                              {tx.customerMemberCode && (
-                                <span className="font-mono text-[10px] bg-zinc-100 text-zinc-600 px-1.5 py-0.5 rounded-md font-semibold shrink-0">
-                                  {tx.customerMemberCode}
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-xs text-zinc-500 block mt-0.5 truncate">
-                              Kasir: {tx.cashier}
+                            <span className="font-bold text-zinc-950 truncate block text-xs sm:text-sm">
+                              {tx.customerName}
                             </span>
                           </td>
 
@@ -587,40 +559,6 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                                 </span>
                               )}
                             </div>
-                            {isVoid && tx.voidReason ? (
-                              <span
-                                className="text-xs block mt-0.5 truncate text-red-600"
-                                title={tx.voidReason}
-                              >
-                                Alasan: {tx.voidReason}
-                              </span>
-                            ) : firstItem ? (
-                              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                                {firstItem.category && (
-                                  <span className="text-[11px] text-zinc-500 font-medium">
-                                    {firstItem.category}
-                                  </span>
-                                )}
-                                {firstItem.brand && firstItem.brand !== 'No Brand' && (
-                                  <span className="px-1.5 py-0.2 rounded-md text-[10px] font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200/80">
-                                    {firstItem.brand}
-                                  </span>
-                                )}
-                                {firstItem.kondisi && (
-                                  <span
-                                    className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold uppercase border ${
-                                      firstItem.kondisi === 'Bekas'
-                                        ? 'bg-zinc-100 text-zinc-700 border-zinc-300'
-                                        : 'bg-blue-50 text-blue-700 border-blue-200'
-                                    }`}
-                                  >
-                                    {firstItem.kondisi}
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-zinc-400 block mt-0.5">-</span>
-                            )}
                           </td>
 
                           <td className="py-3.5 px-3 text-center whitespace-nowrap align-middle font-mono font-semibold text-zinc-800 text-xs sm:text-sm tabular-nums">
@@ -643,11 +581,6 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                             >
                               {formatIDR(tx.grandTotal)}
                             </span>
-                            {tx.tax > 0 && (
-                              <span className="text-[11px] font-mono text-zinc-400 block mt-0.5 tabular-nums">
-                                + PPN {formatIDR(tx.tax)}
-                              </span>
-                            )}
                           </td>
 
                           <td className="py-3.5 px-3 text-center whitespace-nowrap align-middle">

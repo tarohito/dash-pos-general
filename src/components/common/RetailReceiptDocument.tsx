@@ -229,6 +229,8 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
   const cashierSignLabel = storeSettings?.receiptCashierSignLabel?.trim() || 'Kasir';
 
   const subtotalAmount = receipt.subtotal || 0;
+  const discountAmount = receipt.discountAmount || 0;
+  const grossSubtotalAmount = subtotalAmount + discountAmount;
   const taxAmount = receipt.tax || 0;
   const totalAmount = receipt.grandTotal || 0;
   const thumbSrc = useMemo(() => receipt.items.find(it => Boolean(it.image))?.image || '', [receipt.items]);
@@ -519,8 +521,16 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
           <div className="py-2.5 space-y-1 text-xs border-b border-dashed border-zinc-300">
             <div className="flex justify-between gap-2 text-zinc-600">
               <span>Subtotal ({receipt.totalQty} item)</span>
-              <span className="font-mono tabular-nums">{formatIDR(subtotalAmount)}</span>
+              <span className="font-mono tabular-nums">
+                {formatIDR(discountAmount > 0 ? grossSubtotalAmount : subtotalAmount)}
+              </span>
             </div>
+            {discountAmount > 0 && (
+              <div className="flex justify-between gap-2 text-emerald-700 font-medium">
+                <span>Diskon ({receipt.promoCode || 'Promo'})</span>
+                <span className="font-mono tabular-nums">-{formatIDR(discountAmount)}</span>
+              </div>
+            )}
             {showTaxLine && (
               <div className="flex justify-between gap-2 text-zinc-600">
                 <span>{taxAmount > 0 ? `PPN (${storeSettings?.ppnPercent ?? 11}%)` : 'PPN'}</span>
@@ -576,8 +586,16 @@ export const RetailReceiptDocument: React.FC<RetailReceiptDocumentProps> = ({
             <div className={`${isA6 ? 'w-full sm:w-52' : 'w-full sm:w-64'} space-y-1.5 shrink-0`}>
               <div className="flex justify-between gap-3 text-zinc-600">
                 <span>Subtotal</span>
-                <span className="font-mono tabular-nums text-zinc-900">{formatIDR(subtotalAmount)}</span>
+                <span className="font-mono tabular-nums text-zinc-900">
+                  {formatIDR(discountAmount > 0 ? grossSubtotalAmount : subtotalAmount)}
+                </span>
               </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between gap-3 text-emerald-700 font-medium">
+                  <span>Diskon ({receipt.promoCode || 'Promo'})</span>
+                  <span className="font-mono tabular-nums">-{formatIDR(discountAmount)}</span>
+                </div>
+              )}
               {showTaxLine && (
                 <div className="flex justify-between gap-3 text-zinc-600">
                   <span>{taxAmount > 0 ? `PPN (${storeSettings?.ppnPercent ?? 11}%)` : 'PPN'}</span>

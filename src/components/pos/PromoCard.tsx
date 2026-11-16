@@ -14,23 +14,30 @@ export const PromoCard: React.FC<PromoCardProps> = ({
   onToggleFilter,
   className = '',
 }) => {
+  const isInteractive = Boolean(onToggleFilter);
   return (
     <div
       onClick={onToggleFilter}
-      role="button"
-      tabIndex={0}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onToggleFilter?.();
-        }
-      }}
-      className={`rounded-2xl p-4 sm:p-5 relative overflow-hidden flex flex-col justify-between select-none cursor-pointer min-h-[220px] sm:min-h-[240px] transition-all duration-200 active:scale-[0.98] shadow-sm text-white ${
+      role={isInteractive ? 'button' : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+      onKeyDown={
+        isInteractive
+          ? e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onToggleFilter?.();
+              }
+            }
+          : undefined
+      }
+      className={`rounded-2xl p-4 sm:p-5 relative overflow-hidden flex flex-col justify-between select-none min-h-[220px] sm:min-h-[240px] transition-all duration-200 shadow-sm text-white ${
+        isInteractive ? 'cursor-pointer active:scale-[0.98] ' : ''
+      }${
         isActiveFilter
           ? 'bg-gradient-to-br from-amber-500 via-orange-500 to-orange-600 ring-2 ring-white ring-offset-2 ring-offset-orange-500 shadow-md'
-          : 'bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 hover:shadow-md'
+          : 'bg-gradient-to-br from-amber-500 to-orange-500 hover:shadow-md'
       } ${className}`}
-      title="Klik untuk memfilter produk promo"
+      title={isInteractive ? 'Klik untuk memfilter produk promo' : undefined}
     >
       {/* Giant Dominant Discount Icon Watermark (Overflowing Top-Right) */}
       <div

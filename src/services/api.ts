@@ -7,6 +7,8 @@ import type {
   BuybackItem,
   BuybacksPageResponse,
   CategoriesWithStatsResponse,
+  CategoryItem,
+  CategoryPayload,
   Customer,
   CustomersPageResponse,
   DashboardSummaryResponse,
@@ -17,6 +19,7 @@ import type {
   PromoBroadcastCreatePayload,
   PromoBroadcastRecord,
   PromoCampaign,
+  PromoCouponValidationResult,
   PromosPageResponse,
   ShiftClosingCreatePayload,
   ShiftClosingRecord,
@@ -137,6 +140,9 @@ export const posApi = {
       pageSize?: number;
       search?: string;
       role?: string;
+      status?: 'all' | 'active' | 'inactive';
+      tenantId?: string;
+      shift?: 'all' | 'shift_1' | 'shift_2' | 'full_day';
       sortBy?: string;
       sortDir?: 'asc' | 'desc';
     } = {},
@@ -148,6 +154,9 @@ export const posApi = {
         pageSize: params.pageSize ?? 10,
         search: params.search,
         role: params.role,
+        status: params.status && params.status !== 'all' ? params.status : undefined,
+        tenantId: params.tenantId && params.tenantId !== 'all' ? params.tenantId : undefined,
+        shift: params.shift && params.shift !== 'all' ? params.shift : undefined,
         sortBy: params.sortBy,
         sortDir: params.sortDir,
       })}`,
@@ -179,8 +188,11 @@ export const posApi = {
       pageSize?: number;
       search?: string;
       category?: string;
+      brand?: string;
       promoOnly?: boolean;
-      filterTab?: 'all' | 'active' | 'promo' | 'low_stock';
+      filterTab?: 'all' | 'active' | 'inactive' | 'promo' | 'low_stock';
+      statusFilter?: 'all' | 'Aktif' | 'Nonaktif';
+      stockFilter?: 'all' | 'available' | 'low' | 'out';
       sortBy?: string;
       sortDir?: 'asc' | 'desc';
     } = {},
@@ -192,8 +204,11 @@ export const posApi = {
         pageSize: params.pageSize ?? 10,
         search: params.search,
         category: params.category,
+        brand: params.brand && params.brand !== 'Semua' ? params.brand : undefined,
         promoOnly: params.promoOnly ? 'true' : undefined,
         filterTab: params.filterTab,
+        statusFilter: params.statusFilter && params.statusFilter !== 'all' ? params.statusFilter : undefined,
+        stockFilter: params.stockFilter && params.stockFilter !== 'all' ? params.stockFilter : undefined,
         sortBy: params.sortBy,
         sortDir: params.sortDir,
       })}`,
@@ -239,26 +254,59 @@ export const posApi = {
   // Categories
   getCategoriesWithStats: (signal?: AbortSignal) =>
     requestJson<CategoriesWithStatsResponse>('/api/categories?withStats=true', { signal }),
-  createCategory: (name: string) =>
-    requestJson<{ name: string; categories: string[] }>('/api/categories', {
+  getCategoryDetails: (signal?: AbortSignal) =>
+    requestJson<CategoryItem[]>('/api/categories?detailed=true', { signal }),
+  createCategory: (payload: string | CategoryPayload) => {
+    const body: CategoryPayload = typeof payload === 'string' ? { name: payload } : payload;
+    return requestJson<{
+      name: string;
+      item: CategoryItem;
+      categories: string[];
+      categoryDetails: CategoryItem[];
+    }>('/api/categories', {
       method: 'POST',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(body),
+    });
+  },
+  updateCategory: (oldName: string, payload: CategoryPayload) =>
+    requestJson<{
+      oldName: string;
+      newName: string;
+      item: CategoryItem;
+      categories: string[];
+      categoryDetails: CategoryItem[];
+    }>(`/api/categories/${encodeURIComponent(oldName)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
     }),
   renameCategory: (oldName: string, newName: string) =>
-    requestJson<{ oldName: string; newName: string; categories: string[] }>(
-      `/api/categories/${encodeURIComponent(oldName)}`,
-      {
-        method: 'PUT',
-        body: JSON.stringify({ name: newName }),
-      }
-    ),
+    requestJson<{
+      oldName: string;
+      newName: string;
+      item: CategoryItem;
+      categories: string[];
+      categoryDetails: CategoryItem[];
+    }>(`/api/categories/${encodeURIComponent(oldName)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name: newName }),
+    }),
+  toggleCategoryStatus: (name: string, isActive: boolean) =>
+    requestJson<{
+      item: CategoryItem;
+      categories: string[];
+      categoryDetails: CategoryItem[];
+    }>(`/api/categories/${encodeURIComponent(name)}/toggle`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive }),
+    }),
   deleteCategory: (name: string) =>
-    requestJson<{ deletedName: string; categories: string[] }>(
-      `/api/categories/${encodeURIComponent(name)}`,
-      {
-        method: 'DELETE',
-      }
-    ),
+    requestJson<{
+      deletedName: string;
+      categories: string[];
+      categoryDetails: CategoryItem[];
+    }>(`/api/categories/${encodeURIComponent(name)}`, {
+      method: 'DELETE',
+    }),
 
   // Transactions (Paginated)
   getTransactions: (
@@ -267,6 +315,11 @@ export const posApi = {
       pageSize?: number;
       search?: string;
       method?: string;
+      status?: 'all' | 'completed' | 'void';
+      cashier?: string;
+      promoFilter?: 'all' | 'with_promo' | 'no_promo';
+      dateFrom?: string;
+      dateTo?: string;
       sortBy?: string;
       sortDir?: 'asc' | 'desc';
     } = {},
@@ -278,6 +331,11 @@ export const posApi = {
         pageSize: params.pageSize ?? 10,
         search: params.search,
         method: params.method,
+        status: params.status && params.status !== 'all' ? params.status : undefined,
+        cashier: params.cashier && params.cashier !== 'all' ? params.cashier : undefined,
+        promoFilter: params.promoFilter && params.promoFilter !== 'all' ? params.promoFilter : undefined,
+        dateFrom: params.dateFrom || undefined,
+        dateTo: params.dateTo || undefined,
         sortBy: params.sortBy,
         sortDir: params.sortDir,
       })}`,
@@ -292,6 +350,7 @@ export const posApi = {
     items: Array<{ id: number; qty: number }>;
     paymentMethod: 'cash' | 'debit' | 'transfer' | 'qris';
     paymentDetails: PaymentDetails;
+    promoCode?: string;
   }) =>
     requestJson<{ transaction: Transaction }>('/api/transactions', {
       method: 'POST',
@@ -462,6 +521,9 @@ export const posApi = {
       pageSize?: number;
       search?: string;
       status?: string;
+      discountRange?: 'all' | 'under_10' | '10_to_15' | 'over_15';
+      minPurchaseFilter?: 'all' | 'no_min' | 'has_min';
+      scopeFilter?: 'all' | 'selected_sku' | 'all_sku';
       sortBy?: string;
       sortDir?: 'asc' | 'desc';
     } = {},
@@ -473,6 +535,10 @@ export const posApi = {
         pageSize: params.pageSize ?? 10,
         search: params.search,
         status: params.status,
+        discountRange: params.discountRange && params.discountRange !== 'all' ? params.discountRange : undefined,
+        minPurchaseFilter:
+          params.minPurchaseFilter && params.minPurchaseFilter !== 'all' ? params.minPurchaseFilter : undefined,
+        scopeFilter: params.scopeFilter && params.scopeFilter !== 'all' ? params.scopeFilter : undefined,
         sortBy: params.sortBy,
         sortDir: params.sortDir,
       })}`,
@@ -495,6 +561,13 @@ export const posApi = {
   deletePromo: (id: string) =>
     requestJson<{ deletedId: string }>(`/api/promos/${encodeURIComponent(id)}`, {
       method: 'DELETE',
+    }),
+  getActivePromos: (signal?: AbortSignal) =>
+    requestJson<PromoCampaign[]>('/api/promos/active', { signal }),
+  validatePromoCode: (code: string, items: Array<{ id: number; qty: number }>) =>
+    requestJson<PromoCouponValidationResult>('/api/promos/validate', {
+      method: 'POST',
+      body: JSON.stringify({ code, items }),
     }),
   getPromoBroadcastConfig: (signal?: AbortSignal) =>
     requestJson<PromoBroadcastConfig>('/api/promos/broadcast-config', { signal }),

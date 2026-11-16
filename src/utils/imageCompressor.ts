@@ -120,6 +120,87 @@ export async function compressAndCropSquareToWebP(
 }
 
 /**
+ * Loads a user-uploaded image file, scales it proportionally to fit within maxDimension,
+ * preserves transparency, and converts it to WebP format.
+ */
+export async function compressImageToWebP(
+  file: File,
+  options: { maxDimension?: number; quality?: number } = {}
+): Promise<CompressedImageResult> {
+  const maxDimension = options.maxDimension ?? 320;
+  const quality = options.quality ?? 0.88;
+
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      reject(new Error('File yang dipilih bukan merupakan format gambar valid.'));
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      try {
+        URL.revokeObjectURL(objectUrl);
+
+        const naturalWidth = img.naturalWidth || img.width || maxDimension;
+        const naturalHeight = img.naturalHeight || img.height || maxDimension;
+
+        const scale = Math.min(1, maxDimension / Math.max(naturalWidth, naturalHeight));
+        const width = Math.max(1, Math.round(naturalWidth * scale));
+        const height = Math.max(1, Math.round(naturalHeight * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+          reject(new Error('Gagal membuat context rendering canvas.'));
+          return;
+        }
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        let format: 'image/webp' | 'image/jpeg' = 'image/webp';
+        let dataUrl = canvas.toDataURL('image/webp', quality);
+
+        if (!dataUrl.startsWith('data:image/webp')) {
+          format = 'image/jpeg';
+          dataUrl = canvas.toDataURL('image/png');
+        }
+
+        const base64Index = dataUrl.indexOf(',');
+        const base64Content = base64Index >= 0 ? dataUrl.slice(base64Index + 1) : dataUrl;
+        const sizeBytes = Math.round((base64Content.length * 3) / 4);
+
+        resolve({
+          dataUrl,
+          sizeBytes,
+          width,
+          height,
+          format,
+          originalFileName: file.name,
+          originalSizeBytes: file.size,
+        });
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error('Gagal memproses gambar.'));
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Gagal memuat file gambar. Pastikan file tidak rusak.'));
+    };
+
+    img.src = objectUrl;
+  });
+}
+
+/**
  * Format bytes into human-readable string (KB / MB)
  */
 export function formatBytes(bytes: number): string {

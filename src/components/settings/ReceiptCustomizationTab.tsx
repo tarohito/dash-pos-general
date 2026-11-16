@@ -12,6 +12,7 @@ import { RetailReceiptDocument } from '../common/RetailReceiptDocument';
 import { CustomSelect } from '../common/CustomSelect';
 import { StatusToggle } from '../common/StatusToggle';
 import { useToast } from '../../contexts/ToastContext';
+import { compressImageToWebP } from '../../utils/imageCompressor';
 
 export const DEFAULT_RECEIPT_TERMS_TEMPLATE = [
   'Simpan struk ini sebagai bukti pembayaran yang sah dari {TOKO}.',
@@ -81,50 +82,6 @@ const WATERMARK_OPACITY_OPTIONS = [
   { value: 10, label: 'Sedang (10%)' },
   { value: 14, label: 'Tegas (14%)' },
 ];
-
-async function resizeImageToDataUrl(file: File): Promise<string> {
-  const rawUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Gagal membaca file gambar.'));
-    reader.readAsDataURL(file);
-  });
-
-  if (file.type === 'image/svg+xml') {
-    if (rawUrl.length > 350_000) {
-      throw new Error('Ukuran file SVG terlalu besar (maksimal 250KB).');
-    }
-    return rawUrl;
-  }
-
-  return await new Promise<string>((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const maxDim = 240;
-      const scale = Math.min(1, maxDim / Math.max(img.width || maxDim, img.height || maxDim));
-      const w = Math.max(1, Math.round((img.width || maxDim) * scale));
-      const h = Math.max(1, Math.round((img.height || maxDim) * scale));
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Browser tidak mendukung pemrosesan gambar.'));
-        return;
-      }
-      ctx.clearRect(0, 0, w, h);
-      ctx.drawImage(img, 0, 0, w, h);
-      const output = canvas.toDataURL('image/png');
-      if (output.length > 350_000) {
-        resolve(canvas.toDataURL('image/webp', 0.85));
-      } else {
-        resolve(output);
-      }
-    };
-    img.onerror = () => reject(new Error('File gambar tidak valid.'));
-    img.src = rawUrl;
-  });
-}
 
 export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = ({
   settings,
@@ -199,12 +156,12 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
     e.target.value = '';
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      showToast('error', 'Pilih file gambar PNG, JPG, WebP, atau SVG.');
+      showToast('error', 'Pilih file gambar yang valid.');
       return;
     }
     try {
-      const dataUrl = await resizeImageToDataUrl(file);
-      onUpdateField('receiptCustomLogoUrl', dataUrl);
+      const result = await compressImageToWebP(file, { maxDimension: 320, quality: 0.88 });
+      onUpdateField('receiptCustomLogoUrl', result.dataUrl);
       onUpdateField('receiptLogoPreset', 'custom');
       showToast('success', 'Logo custom nota siap digunakan.');
     } catch (err) {
@@ -448,9 +405,6 @@ export const ReceiptCustomizationTab: React.FC<ReceiptCustomizationTabProps> = (
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-gray-800 truncate">
                         {settings.receiptCustomLogoUrl ? 'Logo Custom Aktif' : 'Belum Ada Logo Custom'}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        PNG/JPG/WebP transparan disarankan (otomatis dioptimasi).
                       </p>
                     </div>
                   </div>

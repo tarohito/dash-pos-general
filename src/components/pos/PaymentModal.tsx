@@ -17,6 +17,9 @@ interface PaymentModalProps {
   onClose: () => void;
   cart: CartItem[];
   subtotal: number;
+  grossSubtotal?: number;
+  discountAmount?: number;
+  promoCode?: string;
   tax: number;
   taxLabel?: string;
   grandTotal: number;
@@ -35,6 +38,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   onClose,
   cart,
   subtotal,
+  grossSubtotal,
+  discountAmount = 0,
+  promoCode,
   tax,
   taxLabel = 'PPN (11%)',
   grandTotal,
@@ -196,8 +202,18 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           <div className="text-right text-xs text-white/85 shrink-0 space-y-0.5 font-medium">
             <div>
               Subtotal:{' '}
-              <span className="font-mono font-semibold text-white">{formatIDR(subtotal)}</span>
+              <span className="font-mono font-semibold text-white">
+                {formatIDR(discountAmount > 0 ? grossSubtotal ?? subtotal + discountAmount : subtotal)}
+              </span>
             </div>
+            {discountAmount > 0 && (
+              <div className="text-emerald-200">
+                Diskon ({promoCode || 'Kupon'}):{' '}
+                <span className="font-mono font-semibold text-emerald-100">
+                  -{formatIDR(discountAmount)}
+                </span>
+              </div>
+            )}
             <div>
               {taxLabel}:{' '}
               <span className="font-mono font-semibold text-white">{formatIDR(tax)}</span>

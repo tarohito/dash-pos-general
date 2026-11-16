@@ -6,7 +6,6 @@ import { PaginationControls } from '../common/PaginationControls';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { BarcodeLabelModal } from './BarcodeLabelModal';
 import { ActionDropdownMenu } from '../common/ActionDropdownMenu';
-import { CustomSelect } from '../common/CustomSelect';
 import { posApi } from '../../services/api';
 import { useDebounce } from '../../hooks/useDebounce';
 import { SearchInput } from '../common/SearchInput';
@@ -22,6 +21,12 @@ import {
   SortDirection,
   getNextColumnSort,
 } from '../common/TableSortControls';
+import {
+  ModalShell,
+  MODAL_FOOTER_END_CLASS,
+  MODAL_BTN_SECONDARY_CLASS,
+  MODAL_BTN_PRIMARY_CLASS,
+} from '../common/ModalShell';
 
 interface ProductListViewProps {
   refreshTrigger: number;
@@ -40,8 +45,6 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 220);
-  const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
-  const [filterTab, setFilterTab] = useState<'all' | 'active' | 'promo' | 'low_stock'>('all');
   const [sortBy, setSortBy] = useState<string>('newest');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
 
@@ -50,11 +53,11 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
   const [items, setItems] = useState<Product[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [totalAllProducts, setTotalAllProducts] = useState(0);
+  const [activeCount, setActiveCount] = useState(0);
+  const [lowStockCount, setLowStockCount] = useState(0);
   const [promoCount, setPromoCount] = useState(0);
   const [totalStockQty, setTotalStockQty] = useState(0);
-  const [totalWeightGrams, setTotalWeightGrams] = useState(0);
   const [totalInventoryValue, setTotalInventoryValue] = useState(0);
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -64,12 +67,13 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [printingBarcodeProduct, setPrintingBarcodeProduct] = useState<Product | null>(null);
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const productTimestamps = useMemo(() => items.map(p => p.createdAt), [items]);
   const nowMs = useNewBadgeClock(productTimestamps);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, selectedCategory, filterTab, sortBy, sortDir]);
+  }, [debouncedSearch, sortBy, sortDir]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -82,8 +86,6 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
           page: currentPage,
           pageSize,
           search: debouncedSearch,
-          category: selectedCategory !== 'Semua' ? selectedCategory : undefined,
-          filterTab,
           sortBy,
           sortDir,
         },
@@ -93,11 +95,11 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
         setItems(res.items);
         setTotalItems(res.total);
         setTotalAllProducts(res.totalAllProducts);
+        setActiveCount(res.activeCount ?? 0);
+        setLowStockCount(res.lowStockCount ?? 0);
         setPromoCount(res.promoCount ?? 0);
         setTotalStockQty(res.totalStockQty ?? 0);
-        setTotalWeightGrams(res.totalWeightGrams ?? 0);
         setTotalInventoryValue(res.totalInventoryValue ?? 0);
-        setCategoryCounts(res.categoryCounts ?? {});
         setTotalPages(res.totalPages);
         if (res.page !== currentPage) setCurrentPage(res.page);
         setIsLoading(false);
@@ -112,7 +114,16 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
       });
 
     return () => controller.abort();
-  }, [currentPage, pageSize, debouncedSearch, selectedCategory, filterTab, sortBy, sortDir, refreshTrigger, retryCount, showToast]);
+  }, [
+    currentPage,
+    pageSize,
+    debouncedSearch,
+    sortBy,
+    sortDir,
+    refreshTrigger,
+    retryCount,
+    showToast,
+  ]);
 
   const handleHeaderSort = (key: string, defaultDir: SortDirection = 'desc') => {
     const next = getNextColumnSort(key, sortBy, sortDir, defaultDir);
@@ -120,23 +131,12 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
     setSortDir(next.sortDir);
   };
 
-  const availableCategories = useMemo(() => {
-    const cats = Object.keys(categoryCounts).filter(k => k !== 'Semua');
-    return ['Semua', ...cats];
-  }, [categoryCounts]);
+  const hasSearchQuery = search.trim().length > 0;
 
-  const categoryOptions = useMemo(() => {
-    return availableCategories.map(cat => ({
-      value: cat,
-      label: cat === 'Semua' ? 'Semua Kategori' : cat,
-      badge:
-        cat === 'Semua'
-          ? `${totalAllProducts} SKU`
-          : categoryCounts[cat] !== undefined
-          ? `${categoryCounts[cat]} SKU`
-          : undefined,
-    }));
-  }, [availableCategories, categoryCounts, totalAllProducts]);
+  const handleClearSearch = () => {
+    setSearch('');
+    setCurrentPage(1);
+  };
 
   const handleConfirmDelete = async () => {
     if (!deletingProduct) return;
@@ -156,6 +156,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
     setItems(prev =>
       prev.map(item => (item.id === product.id ? { ...item, status: newStatus } : item))
     );
+    setActiveCount(prev => Math.max(0, prev + (newStatus === 'Aktif' ? 1 : -1)));
     try {
       await posApi.updateProduct(product.id, { status: newStatus });
       showToast(
@@ -168,6 +169,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
       setItems(prev =>
         prev.map(item => (item.id === product.id ? { ...item, status: product.status } : item))
       );
+      setActiveCount(prev => Math.max(0, prev + (newStatus === 'Aktif' ? -1 : 1)));
       showToast('error', 'Gagal memperbarui status produk.');
     }
   };
@@ -202,7 +204,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
       {/* 4 Modern KPI Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <KpiCard
-          title="Total Koleksi"
+          title="Total Produk"
           accent="primary"
           icon={<GoogleIcon name="layers" size={16} />}
           value={
@@ -211,8 +213,8 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
             </div>
           }
           footer={
-            <p className="text-xs text-zinc-400 mt-1 truncate">
-              Jenis produk aktif
+            <p className="text-xs text-zinc-500 mt-1 truncate">
+              {activeCount} aktif &middot; {lowStockCount} stok menipis
             </p>
           }
         />
@@ -227,24 +229,24 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
             </div>
           }
           footer={
-            <p className="text-xs text-zinc-400 mt-1 truncate">
-              Stok tersedia di etalase
+            <p className="text-xs text-zinc-500 mt-1 truncate">
+              Stok tersedia di etalase outlet
             </p>
           }
         />
 
         <KpiCard
-          title="Total Berat Stok"
-          accent="accent"
-          icon={<GoogleIcon name="balance" size={16} />}
+          title="Produk Sedang Promo"
+          accent="amber"
+          icon={<GoogleIcon name="sell" size={16} />}
           value={
-            <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
-              {Number((totalWeightGrams ?? 0).toFixed(2))} gr
+            <div className="text-xl sm:text-2xl font-bold font-mono text-amber-600 tracking-tight truncate tabular-nums">
+              {promoCount ?? 0} SKU
             </div>
           }
           footer={
-            <p className="text-xs text-zinc-400 mt-1 truncate">
-              Akumulasi berat stok produk
+            <p className="text-xs text-zinc-500 mt-1 truncate">
+              Terhubung kampanye promo aktif
             </p>
           }
         />
@@ -262,7 +264,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
             />
           }
           footer={
-            <p className="text-xs text-zinc-400 mt-1 truncate">
+            <p className="text-xs text-zinc-500 mt-1 truncate">
               Estimasi total harga jual
             </p>
           }
@@ -270,53 +272,12 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
       </div>
 
       {/* Table Workspace (Unboxed, Tanpa Card Pembungkus) */}
-      <div className="space-y-3.5">
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Cari kode barcode, nama produk, merek, atau kategori..."
-          />
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
-            <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 items-center overflow-x-auto max-w-full no-scrollbar">
-              {(
-                [
-                  { id: 'all', label: `Semua (${totalAllProducts})` },
-                  { id: 'active', label: 'Aktif' },
-                  { id: 'promo', label: `Promo (${promoCount})` },
-                  { id: 'low_stock', label: 'Stok Menipis' },
-                ] as const
-              ).map(tab => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setFilterTab(tab.id)}
-                  className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
-                    filterTab === tab.id
-                      ? 'bg-primary text-white shadow-xs'
-                      : 'text-zinc-500 hover:text-zinc-950'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="w-full sm:w-56 shrink-0">
-              <CustomSelect
-                value={selectedCategory}
-                onChange={setSelectedCategory}
-                options={categoryOptions}
-                placeholder="Pilih Kategori"
-                ariaLabel="Filter kategori barang"
-                icon={<GoogleIcon name="filter_list" size={14} />}
-                columns={2}
-                className="!h-9 sm:!h-9 !rounded-xl !border-zinc-200 hover:!border-zinc-300"
-              />
-            </div>
-          </div>
-        </div>
+      <div className="space-y-3">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Cari nama produk, SKU/barcode, kategori, merek, promo, atau status..."
+        />
 
         {fetchError && (
           <ErrorBanner
@@ -338,11 +299,20 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
               <GoogleIcon name="deployed_code" size={36} className="mx-auto mb-2 text-zinc-300" />
               <p className="text-sm font-semibold text-zinc-600">Tidak ada data produk</p>
               <p className="text-xs text-gray-400 mt-0.5">
-                {search || selectedCategory !== 'Semua'
-                  ? 'Coba ubah filter kategori atau kata kunci pencarian.'
+                {hasSearchQuery
+                  ? `Pencarian "${search}" tidak cocok dengan produk mana pun.`
                   : 'Belum ada produk terdaftar di toko.'}
               </p>
-              {canManageInventory && !search && selectedCategory === 'Semua' && (
+              {hasSearchQuery ? (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary-soft hover:bg-primary-soft/80 rounded-xl transition-colors cursor-pointer border border-primary-border"
+                >
+                  <GoogleIcon name="close" size={14} />
+                  <span>Bersihkan Pencarian</span>
+                </button>
+              ) : canManageInventory ? (
                 <button
                   type="button"
                   onClick={onOpenAddModal}
@@ -351,7 +321,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                   <GoogleIcon name="add" size={14} />
                   <span>Tambah Barang Baru</span>
                 </button>
-              )}
+              ) : null}
             </div>
           ) : (
             <>
@@ -361,48 +331,32 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                   <div key={p.id} className="p-4 space-y-2.5 hover:bg-zinc-50/70 transition-colors">
                     <div className="flex items-start justify-between gap-2.5">
                       <div className="flex items-center gap-3 min-w-0">
-                        <img
-                          src={p.image}
-                          alt={p.name}
-                          loading="lazy"
-                          className="w-12 h-12 aspect-square rounded-xl object-cover border border-zinc-200 shrink-0"
-                        />
+                        {p.image ? (
+                          <img
+                            src={p.image}
+                            alt={p.name}
+                            loading="lazy"
+                            className="w-12 h-12 aspect-square rounded-xl object-cover border border-zinc-200 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 aspect-square rounded-xl bg-zinc-100 border border-zinc-200 shrink-0 flex items-center justify-center text-zinc-400">
+                            <GoogleIcon name="deployed_code" size={20} />
+                          </div>
+                        )}
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="font-mono font-bold text-zinc-900 text-xs">{p.sku}</span>
                             <span className="text-zinc-300">&bull;</span>
                             <span className="text-xs text-zinc-500 font-medium">{p.category}</span>
-                            {p.brand && p.brand !== 'No Brand' && (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200/70">
-                                {p.brand}
-                              </span>
-                            )}
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase border ${
-                              p.kondisi === 'Bekas'
-                                ? 'bg-zinc-100 text-zinc-700 border-zinc-300'
-                                : 'bg-blue-50 text-blue-700 border-blue-200'
-                            }`}>
-                              {p.kondisi ?? 'Baru'}
-                            </span>
                           </div>
                           <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
                             <h4 className="text-sm font-bold text-zinc-900 truncate">{p.name}</h4>
                             {isRecentlyCreated(p.createdAt, nowMs) && <NewBadge />}
                           </div>
                           <div className="flex items-center gap-2 mt-1 text-xs text-zinc-500 flex-wrap">
-                            <span>
-                              Berat: <strong className="text-zinc-800 font-mono">{Number(p.berat.toFixed(2))} gr</strong>
-                            </span>
-                            <span className="text-zinc-300">&bull;</span>
-                            <span className="font-medium text-zinc-600">
+                            <span className="font-medium text-zinc-600 tabular-nums">
                               {p.salesCount ?? 0} terjual
                             </span>
-                            {p.isPromo && p.promoLabel && (
-                              <span className="text-xs font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-md inline-flex items-center gap-1 shadow-2xs">
-                                <GoogleIcon name="sell" size={11} className="text-amber-600" />
-                                {p.promoLabel}
-                              </span>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -437,19 +391,18 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                     </div>
 
                     <div className="pt-2 border-t border-zinc-100 flex items-center justify-between gap-2">
-                      <div>
-                        <span className="text-sm font-bold text-zinc-900 font-mono tabular-nums">
-                          {formatIDR(p.harga)}
-                        </span>
-                        {p.hpp !== undefined && p.hpp > 0 && (
-                          <span className="block text-[11px] text-zinc-400 font-mono">
-                            HPP: {formatIDR(p.hpp)}
-                          </span>
-                        )}
-                      </div>
+                      <span className="text-sm font-bold text-zinc-900 font-mono tabular-nums">
+                        {formatIDR(p.harga)}
+                      </span>
                       <ActionDropdownMenu
                         ariaLabel={`Aksi untuk ${p.name}`}
                         items={[
+                          {
+                            id: 'detail',
+                            label: 'Lihat Detail',
+                            icon: <GoogleIcon name="visibility" size={14} />,
+                            onClick: () => setDetailProduct(p),
+                          },
                           {
                             id: 'barcode',
                             label: 'Cetak Barcode',
@@ -533,15 +486,6 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                         align="center"
                         className="py-3 px-4 w-[105px]"
                       />
-                      <SortableTh
-                        label="Berat"
-                        sortKey="berat"
-                        currentSortBy={sortBy}
-                        currentSortDir={sortDir}
-                        onSort={key => handleHeaderSort(key, 'desc')}
-                        align="center"
-                        className="py-3 px-4 w-[95px]"
-                      />
                       <th className="py-3 px-3 text-center w-[90px]">Status</th>
                       <th className="py-3 px-3 text-center w-[60px]">Aksi</th>
                     </tr>
@@ -551,12 +495,18 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                       <tr key={p.id} className="hover:bg-zinc-100/60 transition-colors">
                         <td className="py-3.5 px-4 align-middle max-w-[320px]">
                           <div className="flex items-center gap-3 min-w-0">
-                            <img
-                              src={p.image}
-                              alt={p.name}
-                              loading="lazy"
-                              className="w-10 h-10 aspect-square rounded-xl object-cover border border-zinc-200 shrink-0"
-                            />
+                            {p.image ? (
+                              <img
+                                src={p.image}
+                                alt={p.name}
+                                loading="lazy"
+                                className="w-10 h-10 aspect-square rounded-xl object-cover border border-zinc-200 shrink-0"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 aspect-square rounded-xl bg-zinc-100 border border-zinc-200 shrink-0 flex items-center justify-center text-zinc-400">
+                                <GoogleIcon name="deployed_code" size={18} />
+                              </div>
+                            )}
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 min-w-0">
                                 <span className="font-bold text-zinc-950 text-xs sm:text-sm truncate" title={p.name}>
@@ -564,27 +514,9 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                                 </span>
                                 {isRecentlyCreated(p.createdAt, nowMs) && <NewBadge />}
                               </div>
-                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                <span className="text-[11px] text-zinc-500 font-medium">{p.category}</span>
-                                {p.brand && p.brand !== 'No Brand' && (
-                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200/80">
-                                    {p.brand}
-                                  </span>
-                                )}
-                                <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold uppercase border ${
-                                  p.kondisi === 'Bekas'
-                                    ? 'bg-zinc-100 text-zinc-700 border-zinc-300'
-                                    : 'bg-blue-50 text-blue-700 border-blue-200'
-                                }`}>
-                                  {p.kondisi ?? 'Baru'}
-                                </span>
-                                {p.isPromo && p.promoLabel && (
-                                  <span className="text-[10px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded-md inline-flex items-center gap-1 shadow-2xs">
-                                    <GoogleIcon name="sell" size={10} className="text-amber-600" />
-                                    {p.promoLabel}
-                                  </span>
-                                )}
-                              </div>
+                              <span className="text-xs text-zinc-500 font-medium block mt-0.5 truncate">
+                                {p.category}
+                              </span>
                             </div>
                           </div>
                         </td>
@@ -594,14 +526,9 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                           </span>
                         </td>
                         <td className="py-3.5 px-4 text-right align-middle whitespace-nowrap">
-                          <span className="font-bold text-sm text-zinc-950 font-mono tabular-nums block">
+                          <span className="font-bold text-sm text-zinc-950 font-mono tabular-nums">
                             {formatIDR(p.harga)}
                           </span>
-                          {p.hpp !== undefined && p.hpp > 0 && (
-                            <span className="text-[11px] text-zinc-400 font-mono block">
-                              HPP: {formatIDR(p.hpp)}
-                            </span>
-                          )}
                         </td>
                         <td className="py-3.5 px-4 text-center whitespace-nowrap align-middle">
                           <span
@@ -618,11 +545,8 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                         </td>
                         <td className="py-3.5 px-4 text-center whitespace-nowrap align-middle">
                           <span className="font-semibold text-zinc-700 text-xs tabular-nums">
-                            {p.salesCount ?? 0} terjual
+                            {p.salesCount ?? 0} pcs
                           </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-center font-bold text-zinc-800 font-mono tabular-nums whitespace-nowrap align-middle text-xs sm:text-sm">
-                          {Number(p.berat.toFixed(2))} gr
                         </td>
                         <td className="py-3.5 px-3 text-center whitespace-nowrap align-middle">
                           <div className="inline-flex justify-center">
@@ -645,6 +569,12 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                           <ActionDropdownMenu
                             ariaLabel={`Aksi untuk ${p.name}`}
                             items={[
+                              {
+                                id: 'detail',
+                                label: 'Lihat Detail',
+                                icon: <GoogleIcon name="visibility" size={14} />,
+                                onClick: () => setDetailProduct(p),
+                              },
                               {
                                 id: 'barcode',
                                 label: 'Cetak Barcode',
@@ -717,6 +647,204 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
         product={printingBarcodeProduct}
         onClose={() => setPrintingBarcodeProduct(null)}
       />
+
+      {/* Detail Produk Modal */}
+      <ModalShell
+        isOpen={!!detailProduct}
+        onClose={() => setDetailProduct(null)}
+        size="lg"
+        title="Detail Produk"
+        footer={
+          detailProduct ? (
+            <div className={MODAL_FOOTER_END_CLASS}>
+              <button
+                type="button"
+                onClick={() => setDetailProduct(null)}
+                className={MODAL_BTN_SECONDARY_CLASS}
+              >
+                Tutup
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const target = detailProduct;
+                  setDetailProduct(null);
+                  setPrintingBarcodeProduct(target);
+                }}
+                className={MODAL_BTN_SECONDARY_CLASS}
+              >
+                <GoogleIcon name="barcode_scanner" size={15} className="shrink-0" />
+                <span>Cetak Barcode</span>
+              </button>
+              {canManageInventory && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = detailProduct;
+                    setDetailProduct(null);
+                    onEditProduct(target);
+                  }}
+                  className={MODAL_BTN_PRIMARY_CLASS}
+                >
+                  <GoogleIcon name="edit" size={15} className="shrink-0" />
+                  <span>Edit Barang</span>
+                </button>
+              )}
+            </div>
+          ) : undefined
+        }
+      >
+        {detailProduct && (() => {
+          const margin =
+            detailProduct.hpp && detailProduct.hpp > 0
+              ? detailProduct.harga - detailProduct.hpp
+              : null;
+          const marginPct =
+            margin !== null && detailProduct.hpp && detailProduct.hpp > 0
+              ? ((margin / detailProduct.hpp) * 100).toFixed(1)
+              : null;
+          const hasDimensions =
+            (detailProduct.panjang ?? 0) > 0 ||
+            (detailProduct.lebar ?? 0) > 0 ||
+            (detailProduct.tinggi ?? 0) > 0;
+
+          return (
+            <div className="space-y-4 text-sm">
+              {/* Header Identity Card */}
+              <div className="bg-zinc-50/80 border border-zinc-200/80 rounded-2xl p-4 flex items-center gap-4">
+                {detailProduct.image ? (
+                  <img
+                    src={detailProduct.image}
+                    alt={detailProduct.name}
+                    className="w-16 h-16 aspect-square rounded-xl object-cover border border-zinc-200 shrink-0"
+                  />
+                ) : (
+                  <div className="w-16 h-16 aspect-square rounded-xl bg-zinc-100 border border-zinc-200 shrink-0 flex items-center justify-center text-zinc-400">
+                    <GoogleIcon name="deployed_code" size={26} />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-white border border-zinc-200 text-zinc-800">
+                      {detailProduct.sku}
+                    </span>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${
+                        (detailProduct.status ?? 'Aktif') === 'Aktif'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-zinc-100 text-zinc-600 border-zinc-200'
+                      }`}
+                    >
+                      {detailProduct.status ?? 'Aktif'}
+                    </span>
+                    {detailProduct.isPromo && detailProduct.promoLabel && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                        <GoogleIcon name="sell" size={12} className="text-amber-600" />
+                        {detailProduct.promoLabel}
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="font-bold text-base text-zinc-950 leading-snug">
+                    {detailProduct.name}
+                  </h4>
+                </div>
+              </div>
+
+              {/* Info Grids */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-xl p-4 space-y-2.5">
+                  <div className="text-xs font-bold text-zinc-800 uppercase tracking-wider pb-2 border-b border-zinc-200/70">
+                    Harga &amp; Inventaris
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-zinc-500">Harga Jual</span>
+                    <span className="font-mono font-bold text-zinc-950 tabular-nums">
+                      {formatIDR(detailProduct.harga)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-zinc-500">Harga Modal (HPP)</span>
+                    <span className="font-mono font-semibold text-zinc-800 tabular-nums">
+                      {detailProduct.hpp && detailProduct.hpp > 0
+                        ? formatIDR(detailProduct.hpp)
+                        : '-'}
+                    </span>
+                  </div>
+                  {margin !== null && marginPct !== null && (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-zinc-500">Estimasi Margin</span>
+                      <span className="font-mono font-bold text-emerald-700 tabular-nums">
+                        +{marginPct}% ({formatIDR(margin)})
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-zinc-500">Stok Fisik</span>
+                    <span className="font-mono font-bold text-zinc-900 tabular-nums">
+                      {detailProduct.stok} pcs
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-zinc-500">Total Terjual</span>
+                    <span className="font-mono font-semibold text-zinc-800 tabular-nums">
+                      {detailProduct.salesCount ?? 0} pcs
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-xl p-4 space-y-2.5">
+                  <div className="text-xs font-bold text-zinc-800 uppercase tracking-wider pb-2 border-b border-zinc-200/70">
+                    Katalog &amp; Logistik
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-zinc-500">Kategori</span>
+                    <span className="font-semibold text-zinc-900 text-right">
+                      {detailProduct.category}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-zinc-500">Merek / Brand</span>
+                    <span className="font-semibold text-zinc-900 text-right">
+                      {detailProduct.brand || 'No Brand'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-zinc-500">Kondisi</span>
+                    <span className="font-semibold text-zinc-900">
+                      {detailProduct.kondisi ?? 'Baru'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-zinc-500">Berat Paket</span>
+                    <span className="font-mono font-semibold text-zinc-900 tabular-nums">
+                      {Number(detailProduct.berat.toFixed(2))} gr
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-zinc-500">Dimensi (P×L×T)</span>
+                    <span className="font-mono text-zinc-800 tabular-nums">
+                      {hasDimensions
+                        ? `${detailProduct.panjang ?? 0} × ${detailProduct.lebar ?? 0} × ${detailProduct.tinggi ?? 0} cm`
+                        : '-'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {detailProduct.deskripsi && (
+                <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-xl p-4">
+                  <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider block mb-1.5">
+                    Deskripsi &amp; Spesifikasi
+                  </span>
+                  <p className="text-zinc-600 leading-relaxed whitespace-pre-line">
+                    {detailProduct.deskripsi}
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+      </ModalShell>
     </div>
   );
 };

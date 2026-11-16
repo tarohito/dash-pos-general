@@ -151,7 +151,7 @@ export const NumericInput: React.FC<NumericInputProps> = ({
         onChange={handleChange}
         onBlur={handleBlur}
         placeholder={placeholder}
-        className={`w-full ${prefix ? 'pl-10' : ''} ${suffix ? 'pr-9' : ''} ${className}`}
+        className={`w-full ${className} ${prefix ? '!pl-10' : ''} ${suffix ? '!pr-11' : ''}`}
       />
       {suffix && (
         <span className="absolute right-3.5 text-xs font-semibold text-gray-400 select-none pointer-events-none">

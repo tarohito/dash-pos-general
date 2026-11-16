@@ -18,11 +18,44 @@ export interface Product {
   tinggi?: number; // Dimensi paket T (cm)
   status?: ProductStatus; // Status katalog (Aktif / Nonaktif)
   image: string;
+  attributes?: Record<string, string>; // Atribut spesifikasi dinamis sesuai kategori Shopee
   isPromo?: boolean;
   promoDiscountPercent?: number;
   promoLabel?: string;
   salesCount?: number;
   createdAt?: string;
+}
+
+export interface CategoryAttributeField {
+  key: string;
+  label: string;
+  type?: 'text' | 'select' | 'number' | 'date';
+  placeholder?: string;
+  required?: boolean;
+  options?: string[];
+}
+
+export interface CategoryItem {
+  name: string;
+  parentName?: string | null;
+  icon: string;
+  skuPrefix: string;
+  sortOrder: number;
+  isActive: boolean;
+  description: string;
+  attributeFields: CategoryAttributeField[];
+  createdAt?: string;
+}
+
+export interface CategoryPayload {
+  name: string;
+  parentName?: string | null;
+  icon?: string;
+  skuPrefix?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+  description?: string;
+  attributeFields?: CategoryAttributeField[];
 }
 
 export interface PromoCampaign {
@@ -91,6 +124,9 @@ export interface Transaction {
   totalQty: number;
   totalBerat: number;
   subtotal: number;
+  discountAmount?: number;
+  promoCode?: string;
+  promoName?: string;
   tax: number;
   grandTotal: number;
   paymentMethod: 'cash' | 'debit' | 'transfer' | 'qris';
@@ -217,7 +253,13 @@ export interface PaginatedResponse<T> {
 export interface ProductsPageResponse extends PaginatedResponse<Product> {
   promoCount: number;
   categoryCounts: Record<string, number>;
+  categoryDetails?: CategoryItem[];
+  brandCounts?: Record<string, number>;
   totalAllProducts: number;
+  activeCount?: number;
+  inactiveCount?: number;
+  lowStockCount?: number;
+  outOfStockCount?: number;
   totalStockQty?: number;
   totalWeightGrams?: number;
   totalInventoryValue?: number;
@@ -226,12 +268,15 @@ export interface ProductsPageResponse extends PaginatedResponse<Product> {
 export interface TransactionStatsSummary {
   totalOmzetPenjualan: number;
   totalBeratTerjual: number;
+  totalQtyTerjual?: number;
   totalTransaksi: number;
+  voidCount?: number;
   avgPerTransaksi: number;
 }
 
 export interface TransactionsPageResponse extends PaginatedResponse<Transaction> {
   stats: TransactionStatsSummary;
+  cashiers?: string[];
 }
 
 export type TransactionExportPeriod = 'monthly' | 'daily' | 'custom' | 'yearly' | 'all';
@@ -273,6 +318,9 @@ export interface CustomersPageResponse extends PaginatedResponse<CustomerWithSta
 export interface PromoStatsSummary {
   totalPromos: number;
   activeCount: number;
+  scheduledCount?: number;
+  expiredCount?: number;
+  inactiveCount?: number;
   totalPromoProducts: number;
   avgDiscount: number;
 }
@@ -281,16 +329,33 @@ export interface PromosPageResponse extends PaginatedResponse<PromoCampaign> {
   stats: PromoStatsSummary;
 }
 
+export interface PromoCouponValidationResult {
+  valid: boolean;
+  promo: PromoCampaign;
+  grossSubtotal: number;
+  eligibleSubtotal: number;
+  discountAmount: number;
+  netSubtotal: number;
+  eligibleProductIds: number[];
+}
+
 export interface CategoryStatsItem {
   count: number;
   totalStok: number;
   totalGram: number;
+  directCount?: number;
+  directStok?: number;
+  directGram?: number;
+  childrenCount?: number;
 }
 
 export interface CategoriesWithStatsResponse {
   categories: string[];
+  items?: CategoryItem[];
   stats: Record<string, CategoryStatsItem>;
   categoryCreatedAt?: Record<string, string>;
+  totalUniqueProducts?: number;
+  totalUniqueStok?: number;
 }
 
 export interface DashboardSummaryResponse {
@@ -301,6 +366,16 @@ export interface DashboardSummaryResponse {
   displayPenerimaan: number;
   displayTransaksi: number;
   displayProduk: number;
+  totalTax?: number;
+  enablePpn?: boolean;
+  ppnPercent?: number;
+  marginPercent?: number;
+  avgPerTransaksi?: number;
+  cashPercent?: number;
+  transferPercent?: number;
+  voidCount?: number;
+  activeSkuCount?: number;
+  lowStockCount?: number;
   activeLabels: string[];
   salesData: number[];
   trxData: number[];
@@ -353,6 +428,7 @@ export interface UsersPageResponse extends PaginatedResponse<UserAccount> {
   stats: {
     totalUsers: number;
     activeUsers: number;
+    ownerCount?: number;
     managerCount: number;
     cashierCount: number;
   };
@@ -509,6 +585,7 @@ export interface ShiftClosingsPageResponse extends PaginatedResponse<ShiftClosin
 export interface BootstrapPayload {
   user: UserAccount;
   categories: string[];
+  categoryDetails?: CategoryItem[];
   tenants: Tenant[];
   activeTenantId: string;
   activePromos: PromoCampaign[];

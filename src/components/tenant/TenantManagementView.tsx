@@ -22,8 +22,6 @@ interface TenantManagementViewProps {
   canCreateOutlet?: boolean;
 }
 
-type TenantFilterTab = 'all' | 'active' | 'enterprise' | 'pro';
-
 const OUTLET_BATCH_SIZE = 6;
 
 export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
@@ -35,7 +33,6 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
   canCreateOutlet = true,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterTab, setFilterTab] = useState<TenantFilterTab>('all');
   const [detailTenant, setDetailTenant] = useState<Tenant | null>(null);
 
   const activeTenant = useMemo(
@@ -46,17 +43,17 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
   const summary = useMemo(() => {
     const activeCount = tenants.filter(t => t.status === 'Aktif').length;
     const totalCashiers = tenants.reduce((acc, t) => acc + (t.cashierCount || 0), 0);
-    const uniqueCities = new Set(tenants.map(t => t.city.trim()).filter(Boolean)).size;
-    const enterpriseCount = tenants.filter(t => t.plan === 'Enterprise Multi-Tenant').length;
-    const proCount = tenants.filter(t => t.plan !== 'Enterprise Multi-Tenant').length;
+    const citySet = new Set<string>();
+    for (const t of tenants) {
+      const c = t.city.trim();
+      if (c) citySet.add(c);
+    }
 
     return {
       totalTenants: tenants.length,
       activeCount,
       totalCashiers,
-      uniqueCities,
-      enterpriseCount,
-      proCount,
+      uniqueCities: citySet.size,
     };
   }, [tenants]);
 
@@ -66,12 +63,14 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
   const filteredTenants = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const list = tenants.filter(t => {
-      if (filterTab === 'active' && t.status !== 'Aktif') return false;
-      if (filterTab === 'enterprise' && t.plan !== 'Enterprise Multi-Tenant') return false;
-      if (filterTab === 'pro' && t.plan === 'Enterprise Multi-Tenant') return false;
-
       if (!q) return true;
+      const statusLower = t.status.toLowerCase();
+      const matchesStatus =
+        q === 'aktif' || q === 'nonaktif'
+          ? statusLower === q
+          : statusLower.includes(q) || (t.status === 'Trial' && 'uji coba'.includes(q));
       return (
+        matchesStatus ||
         t.name.toLowerCase().includes(q) ||
         t.branchName.toLowerCase().includes(q) ||
         t.city.toLowerCase().includes(q) ||
@@ -89,7 +88,7 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
       }
       return 0;
     });
-  }, [tenants, searchQuery, filterTab, nowMs]);
+  }, [tenants, searchQuery, nowMs]);
 
   const [visibleCount, setVisibleCount] = useState(OUTLET_BATCH_SIZE);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -125,12 +124,12 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
     setVisibleCount(OUTLET_BATCH_SIZE);
   };
 
-  const handleTabChange = (nextTab: TenantFilterTab) => {
-    setFilterTab(nextTab);
+  const hasSearchQuery = searchQuery.trim().length > 0;
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
     setVisibleCount(OUTLET_BATCH_SIZE);
   };
-
-  const hasActiveFilter = searchQuery.trim().length > 0 || filterTab !== 'all';
 
   return (
     <div className="space-y-4 pb-8">
@@ -194,17 +193,17 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
         />
 
         <KpiCard
-          title="Total Staf Kasir"
+          title="Total Staf Outlet"
           accent="secondary"
           icon={<GoogleIcon name="group" size={16} />}
           value={
             <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900 tracking-tight truncate tabular-nums">
-              {summary.totalCashiers} Kasir
+              {summary.totalCashiers} Staf
             </div>
           }
           footer={
             <p className="text-xs text-gray-400 mt-1 truncate">
-              Akumulasi operator POS aktif
+              Kepala cabang &amp; kasir aktif
             </p>
           }
         />
@@ -226,37 +225,13 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
         />
       </div>
 
-      {/* Search, Filter & Outlet Cards Workspace (Unboxed, Tanpa Card Pembungkus) */}
-      <div className="space-y-4">
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-          <SearchInput
-            value={searchQuery}
-            onChange={handleSearchChange}
-            placeholder="Cari nama outlet, kode gerai, cabang, kota, atau kontak..."
-          />
-
-          <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 items-center self-start lg:self-auto overflow-x-auto max-w-full shrink-0">
-            {[
-              { id: 'all' as const, label: `Semua (${summary.totalTenants})` },
-              { id: 'active' as const, label: `Aktif (${summary.activeCount})` },
-              { id: 'enterprise' as const, label: `Enterprise (${summary.enterpriseCount})` },
-              { id: 'pro' as const, label: `Pro / Basic (${summary.proCount})` },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => handleTabChange(tab.id)}
-                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
-                  filterTab === tab.id
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'text-zinc-500 hover:text-zinc-950'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Search & Outlet Cards Workspace (Unboxed, Tanpa Card Pembungkus) */}
+      <div className="space-y-3">
+        <SearchInput
+          value={searchQuery}
+          onChange={handleSearchChange}
+          placeholder="Cari nama outlet, kode gerai, cabang, kota, status, atau kontak..."
+        />
 
         {/* Outlet Card Grid or Empty State */}
         {visibleTenants.length === 0 ? (
@@ -264,21 +239,18 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
             <GoogleIcon name="storefront" size={36} className="mx-auto mb-2 text-gray-300" />
             <p className="text-sm font-semibold text-gray-600">Tidak ada outlet ditemukan</p>
             <p className="text-xs text-gray-400 mt-0.5 max-w-sm mx-auto">
-              {hasActiveFilter
-                ? 'Coba ubah filter atau kata kunci pencarian outlet.'
+              {hasSearchQuery
+                ? `Pencarian "${searchQuery}" tidak cocok dengan outlet mana pun.`
                 : 'Belum ada outlet bisnis yang terdaftar.'}
             </p>
-            {hasActiveFilter ? (
+            {hasSearchQuery ? (
               <button
                 type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setFilterTab('all');
-                  setVisibleCount(OUTLET_BATCH_SIZE);
-                }}
-                className="mt-3 px-3.5 py-1.5 text-xs font-bold text-zinc-900 bg-white rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-colors cursor-pointer"
+                onClick={handleClearSearch}
+                className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary-soft rounded-xl border border-primary-border hover:bg-primary-soft/80 transition-colors cursor-pointer"
               >
-                Reset Filter
+                <GoogleIcon name="close" size={14} />
+                <span>Bersihkan Pencarian</span>
               </button>
             ) : canCreateOutlet ? (
               <button
@@ -404,12 +376,6 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
                         <span className="text-gray-500 shrink-0">No. Telepon</span>
                         <span className="font-mono font-semibold text-gray-800 tabular-nums text-right truncate">
                           {tenant.phone}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-gray-500 shrink-0">Paket Layanan</span>
-                        <span className="font-semibold text-gray-800 text-right truncate">
-                          {tenant.plan}
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-2">
@@ -594,10 +560,6 @@ export const TenantManagementView: React.FC<TenantManagementViewProps> = ({
               <div className="flex items-center justify-between gap-3">
                 <span className="text-gray-500">Email</span>
                 <span className="font-medium text-gray-800">{detailTenant.email}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-gray-500">Paket Layanan</span>
-                <span className="font-semibold text-gray-900">{detailTenant.plan}</span>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-gray-500">Kapasitas Kasir &amp; Katalog</span>

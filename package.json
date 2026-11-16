@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "bun server.ts",
-    "start": "bun server.ts",
+    "dev": "tsx server.ts",
+    "start": "node server.ts",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
@@ -33,7 +33,6 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
-    "@types/bun": "^1.4.4",
     "@types/compression": "^1.8.1",
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",

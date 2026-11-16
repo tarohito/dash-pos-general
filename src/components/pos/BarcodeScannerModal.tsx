@@ -355,11 +355,17 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           {scanStatus === 'idle' && lastScannedProduct && (
             <div className="p-2.5 bg-gray-50 border border-gray-200 rounded-md flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <img
-                  src={lastScannedProduct.image}
-                  alt={lastScannedProduct.name}
-                  className="w-8 h-8 rounded object-cover border border-gray-200 shrink-0"
-                />
+                {lastScannedProduct.image ? (
+                  <img
+                    src={lastScannedProduct.image}
+                    alt={lastScannedProduct.name}
+                    className="w-8 h-8 rounded object-cover border border-gray-200 shrink-0"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded bg-zinc-100 border border-gray-200 shrink-0 flex items-center justify-center text-zinc-400">
+                    <GoogleIcon name="deployed_code" size={14} />
+                  </div>
+                )}
                 <div className="min-w-0">
                   <p className="text-xs text-gray-400 font-medium uppercase">Scan Terakhir</p>
                   <p className="text-sm font-semibold text-gray-800 truncate">

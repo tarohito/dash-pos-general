@@ -12,6 +12,9 @@ import type {
   BuybackItem,
   BuybacksPageResponse,
   CategoriesWithStatsResponse,
+  CategoryAttributeField,
+  CategoryItem,
+  CategoryPayload,
   CategoryStatsItem,
   Customer,
   CustomersPageResponse,
@@ -24,6 +27,7 @@ import type {
   PromoBroadcastRecipient,
   PromoBroadcastRecord,
   PromoCampaign,
+  PromoCouponValidationResult,
   PromosPageResponse,
   ReceiptLogoPreset,
   ReceiptPaperSize,
@@ -44,6 +48,16 @@ import type {
   UsersPageResponse,
   UserUpdatePayload,
 } from '../src/types/index.ts';
+import {
+  formatPromoDate,
+  getTodayWibDateStr,
+} from '../src/utils/promoDuration.ts';
+import {
+  compactSeedTo5V1,
+  migrateHolidayPromosV1,
+  expandProductsAndTransactionsV1,
+} from './seedExpand100.ts';
+import { migrateShopeeCategoriesV1 } from './shopeeCategorySeed.ts';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 if (!fs.existsSync(DATA_DIR)) {
@@ -373,6 +387,9 @@ ensureColumn('transactions', 'status', "TEXT NOT NULL DEFAULT 'completed'");
 ensureColumn('transactions', 'voidReason', 'TEXT');
 ensureColumn('transactions', 'voidedAt', 'TEXT');
 ensureColumn('transactions', 'customerId', 'TEXT');
+ensureColumn('transactions', 'promoCode', 'TEXT');
+ensureColumn('transactions', 'promoName', 'TEXT');
+ensureColumn('transactions', 'discountAmount', 'INTEGER NOT NULL DEFAULT 0');
 
 ensureColumn('buybacks', 'status', "TEXT NOT NULL DEFAULT 'completed'");
 ensureColumn('buybacks', 'voidReason', 'TEXT');
@@ -395,7 +412,14 @@ ensureColumn('products', 'lebar', "REAL NOT NULL DEFAULT 0");
 ensureColumn('products', 'tinggi', "REAL NOT NULL DEFAULT 0");
 ensureColumn('products', 'status', "TEXT NOT NULL DEFAULT 'Aktif'");
 ensureColumn('products', 'createdAt', 'TEXT');
+ensureColumn('products', 'attributesJson', "TEXT NOT NULL DEFAULT '{}'");
 ensureColumn('categories', 'createdAt', 'TEXT');
+ensureColumn('categories', 'parentName', 'TEXT');
+ensureColumn('categories', 'icon', "TEXT NOT NULL DEFAULT 'category'");
+ensureColumn('categories', 'skuPrefix', "TEXT NOT NULL DEFAULT ''");
+ensureColumn('categories', 'isActive', 'INTEGER NOT NULL DEFAULT 1');
+ensureColumn('categories', 'description', "TEXT NOT NULL DEFAULT ''");
+ensureColumn('categories', 'attributeFieldsJson', "TEXT NOT NULL DEFAULT '[]'");
 ensureColumn('transactions', 'tenantId', "TEXT NOT NULL DEFAULT 'tenant-tms-001'");
 ensureColumn('buybacks', 'tenantId', "TEXT NOT NULL DEFAULT 'tenant-tms-001'");
 ensureColumn('promos', 'tenantId', "TEXT NOT NULL DEFAULT 'tenant-tms-001'");
@@ -1491,6 +1515,10 @@ export function seedInitialDataIfEmpty(): void {
     migratePaymentMethodsTwoOptionsV1();
     seedSecondaryOutletsIfNeeded();
     seedUsersIfNeeded();
+    compactSeedTo5V1(db, hashPassword);
+    migrateHolidayPromosV1(db);
+    expandProductsAndTransactionsV1(db);
+    migrateShopeeCategoriesV1(db);
     return;
   }
 
@@ -1666,11 +1694,158 @@ export function seedInitialDataIfEmpty(): void {
   migrateGeneralRetailReceiptFormatV1();
   migrateSimpleRetailReceiptV2();
   migrateReceiptHeaderLogoV3();
+  compactSeedTo5V1(db, hashPassword);
+  migrateHolidayPromosV1(db);
+  expandProductsAndTransactionsV1(db);
+  migrateShopeeCategoriesV1(db);
+}
+
+export function parseProductAttributes(rawJson?: string | null): Record<string, string> {
+  if (!rawJson || typeof rawJson !== 'string') return {};
+  try {
+    const parsed = JSON.parse(rawJson) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      const cleanKey = String(k).trim();
+      const cleanVal = String(v ?? '').trim();
+      if (cleanKey && cleanVal) {
+        out[cleanKey] = cleanVal;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function normalizeCategoryAttributesInput(fields?: CategoryAttributeField[]): CategoryAttributeField[] {
+  if (!Array.isArray(fields)) return [];
+  const seen = new Set<string>();
+  const normalized: CategoryAttributeField[] = [];
+  for (const f of fields) {
+    if (!f || typeof f !== 'object') continue;
+    const label = String(f.label ?? '').trim();
+    const rawKey = String(f.key ?? label)
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    if (!rawKey || !label || seen.has(rawKey)) continue;
+    seen.add(rawKey);
+    const type = f.type === 'select' || f.type === 'number' || f.type === 'date' ? f.type : 'text';
+    const options = Array.isArray(f.options)
+      ? f.options.map(o => String(o).trim()).filter(Boolean)
+      : undefined;
+    normalized.push({
+      key: rawKey,
+      label,
+      type,
+      placeholder: f.placeholder ? String(f.placeholder).trim() : undefined,
+      required: Boolean(f.required),
+      options: options && options.length > 0 ? options : undefined,
+    });
+  }
+  return normalized;
+}
+
+function suggestServerSkuPrefix(name: string): string {
+  const words = name
+    .trim()
+    .replace(/[^a-zA-Z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length >= 2) {
+    return `${words[0][0]}${words[1][0]}`.toUpperCase();
+  }
+  const alpha = name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  return (alpha.slice(0, 2) || 'PR').toUpperCase();
+}
+
+function parseCategoryRow(row: {
+  name: string;
+  parentName?: string | null;
+  icon?: string | null;
+  skuPrefix?: string | null;
+  sortOrder?: number | null;
+  isActive?: number | null;
+  description?: string | null;
+  attributeFieldsJson?: string | null;
+  createdAt?: string | null;
+}): CategoryItem {
+  let attributeFields: CategoryAttributeField[] = [];
+  if (row.attributeFieldsJson) {
+    try {
+      const parsed = JSON.parse(row.attributeFieldsJson) as CategoryAttributeField[];
+      if (Array.isArray(parsed)) attributeFields = normalizeCategoryAttributesInput(parsed);
+    } catch {
+      attributeFields = [];
+    }
+  }
+  return {
+    name: row.name,
+    parentName: row.parentName ? row.parentName.trim() : null,
+    icon: (row.icon ?? '').trim() || 'category',
+    skuPrefix: (row.skuPrefix ?? '').trim().toUpperCase() || suggestServerSkuPrefix(row.name),
+    sortOrder: Number.isFinite(row.sortOrder) ? Number(row.sortOrder) : 0,
+    isActive: row.isActive === undefined || row.isActive === null ? true : Number(row.isActive) === 1,
+    description: (row.description ?? '').trim(),
+    attributeFields,
+    createdAt: row.createdAt ?? undefined,
+  };
+}
+
+export function getAllCategoryItems(): CategoryItem[] {
+  const rawRows = db
+    .prepare(
+      `SELECT name, parentName, icon, skuPrefix, sortOrder, isActive, description, attributeFieldsJson, createdAt
+       FROM categories
+       ORDER BY sortOrder ASC, LOWER(name) ASC`
+    )
+    .all() as Array<{
+    name: string;
+    parentName?: string | null;
+    icon?: string | null;
+    skuPrefix?: string | null;
+    sortOrder?: number | null;
+    isActive?: number | null;
+    description?: string | null;
+    attributeFieldsJson?: string | null;
+    createdAt?: string | null;
+  }>;
+
+  const parsed = rawRows.map(parseCategoryRow);
+  const parents = parsed.filter(c => !c.parentName);
+  const parentNameSet = new Set(parents.map(p => p.name.toLowerCase()));
+  const childrenByParent = new Map<string, CategoryItem[]>();
+  const orphans: CategoryItem[] = [];
+
+  for (const item of parsed) {
+    if (item.parentName) {
+      const key = item.parentName.toLowerCase();
+      if (parentNameSet.has(key)) {
+        const list = childrenByParent.get(key) ?? [];
+        list.push(item);
+        childrenByParent.set(key, list);
+      } else {
+        orphans.push(item);
+      }
+    }
+  }
+
+  const ordered: CategoryItem[] = [];
+  for (const parent of parents) {
+    ordered.push(parent);
+    const children = childrenByParent.get(parent.name.toLowerCase()) ?? [];
+    ordered.push(...children);
+  }
+  ordered.push(...orphans);
+  return ordered;
 }
 
 // Query Helpers
 export function getAllProducts(tenantId: string = getActiveTenantId()): Product[] {
-  return db
+  const rows = db
     .prepare(
       `SELECT id, sku, name, berat, harga, COALESCE(hpp, 0) AS hpp, stok, category, image,
               COALESCE(brand, 'No Brand') AS brand,
@@ -1679,15 +1854,20 @@ export function getAllProducts(tenantId: string = getActiveTenantId()): Product[
               COALESCE(panjang, 0) AS panjang,
               COALESCE(lebar, 0) AS lebar,
               COALESCE(tinggi, 0) AS tinggi,
-              COALESCE(status, 'Aktif') AS status
+              COALESCE(status, 'Aktif') AS status,
+              COALESCE(attributesJson, '{}') AS attributesJson,
+              createdAt
        FROM products WHERE tenantId = ? ORDER BY id DESC`
     )
-    .all(tenantId) as Product[];
+    .all(tenantId) as Array<Product & { attributesJson?: string }>;
+  return rows.map(({ attributesJson, ...rest }) => ({
+    ...rest,
+    attributes: parseProductAttributes(attributesJson),
+  }));
 }
 
 export function getAllCategories(): string[] {
-  const rows = db.prepare('SELECT name FROM categories ORDER BY sortOrder ASC, name ASC').all() as Array<{ name: string }>;
-  return rows.map(r => r.name);
+  return getAllCategoryItems().map(c => c.name);
 }
 
 export function getAllTransactions(tenantId: string = getActiveTenantId()): Transaction[] {
@@ -1904,23 +2084,23 @@ export function generateNextMemberCode(): string {
   return candidate;
 }
 
-export function getAllPromos(tenantId: string = getActiveTenantId()): PromoCampaign[] {
-  const rows = db.prepare('SELECT * FROM promos WHERE tenantId = ? ORDER BY rowid DESC').all(tenantId) as Array<{
-    id: string;
-    name: string;
-    code: string;
-    discountPercent: number;
-    label: string;
-    startDate: string;
-    endDate: string;
-    productIdsJson: string;
-    isActive: number;
-    minPurchase: number | null;
-    description: string | null;
-    createdAt?: string | null;
-  }>;
+type PromoDbRow = {
+  id: string;
+  name: string;
+  code: string;
+  discountPercent: number;
+  label: string;
+  startDate: string;
+  endDate: string;
+  productIdsJson: string;
+  isActive: number;
+  minPurchase: number | null;
+  description: string | null;
+  createdAt?: string | null;
+};
 
-  return rows.map(r => ({
+function mapPromoRow(r: PromoDbRow): PromoCampaign {
+  return {
     id: r.id,
     name: r.name,
     code: r.code,
@@ -1933,7 +2113,26 @@ export function getAllPromos(tenantId: string = getActiveTenantId()): PromoCampa
     minPurchase: r.minPurchase ?? undefined,
     description: r.description ?? undefined,
     createdAt: r.createdAt ?? undefined,
-  }));
+  };
+}
+
+export function syncExpiredPromos(tenantId?: string): string {
+  const today = getTodayWibDateStr();
+  if (tenantId) {
+    db.prepare('UPDATE promos SET isActive = 0 WHERE tenantId = ? AND isActive = 1 AND endDate < ?').run(
+      tenantId,
+      today
+    );
+  } else {
+    db.prepare('UPDATE promos SET isActive = 0 WHERE isActive = 1 AND endDate < ?').run(today);
+  }
+  return today;
+}
+
+export function getAllPromos(tenantId: string = getActiveTenantId()): PromoCampaign[] {
+  syncExpiredPromos(tenantId);
+  const rows = db.prepare('SELECT * FROM promos WHERE tenantId = ? ORDER BY rowid DESC').all(tenantId) as PromoDbRow[];
+  return rows.map(mapPromoRow);
 }
 
 export function getAllTenants(): Tenant[] {
@@ -1944,9 +2143,22 @@ export function getAllTenants(): Tenant[] {
     .prepare('SELECT tenantId, COUNT(*) as cnt FROM products GROUP BY tenantId')
     .all() as Array<{ tenantId: string; cnt: number }>;
   const countMap = new Map(counts.map(c => [c.tenantId, c.cnt]));
+
+  const staffRows = db
+    .prepare("SELECT role, allowedTenantIdsJson FROM users WHERE isActive = 1 AND role != 'owner'")
+    .all() as Array<{ role: UserRole; allowedTenantIdsJson: string }>;
+  const staffCountMap = new Map<string, number>();
+  for (const s of staffRows) {
+    const allowed = safeJsonParse<string[]>(s.allowedTenantIdsJson, []);
+    for (const tid of allowed) {
+      staffCountMap.set(tid, (staffCountMap.get(tid) ?? 0) + 1);
+    }
+  }
+
   const mapped = tenants.map(t => ({
     ...t,
     logoUrl: t.logoUrl || '',
+    cashierCount: staffCountMap.get(t.id) ?? 0,
     productCount: countMap.get(t.id) ?? 0,
     createdAt: t.createdAt ?? undefined,
   }));
@@ -1973,37 +2185,108 @@ export function getActiveTenantId(): string {
 }
 
 export function getActivePromos(tenantId: string = getActiveTenantId()): PromoCampaign[] {
+  const today = syncExpiredPromos(tenantId);
   const rows = db
-    .prepare('SELECT * FROM promos WHERE tenantId = ? AND isActive = 1 ORDER BY rowid DESC')
-    .all(tenantId) as Array<{
-    id: string;
-    name: string;
-    code: string;
-    discountPercent: number;
-    label: string;
-    startDate: string;
-    endDate: string;
-    productIdsJson: string;
-    isActive: number;
-    minPurchase: number | null;
-    description: string | null;
-    createdAt?: string | null;
-  }>;
+    .prepare(
+      'SELECT * FROM promos WHERE tenantId = ? AND isActive = 1 AND startDate <= ? AND endDate >= ? ORDER BY rowid DESC'
+    )
+    .all(tenantId, today, today) as PromoDbRow[];
 
-  return rows.map(r => ({
-    id: r.id,
-    name: r.name,
-    code: r.code,
-    discountPercent: r.discountPercent,
-    label: r.label,
-    startDate: r.startDate,
-    endDate: r.endDate,
-    productIds: safeJsonParse<number[]>(r.productIdsJson, []),
-    isActive: Boolean(r.isActive),
-    minPurchase: r.minPurchase ?? undefined,
-    description: r.description ?? undefined,
-    createdAt: r.createdAt ?? undefined,
-  }));
+  return rows.map(mapPromoRow);
+}
+
+export function validatePromoCouponForCart(
+  tenantId: string,
+  rawCode: string,
+  cartItems: Array<{ id: number; qty: number }>
+): PromoCouponValidationResult {
+  const cleanCode = (rawCode || '').trim().toUpperCase();
+  if (!cleanCode) {
+    throw new Error('Masukkan kode kupon promo terlebih dahulu.');
+  }
+
+  const today = syncExpiredPromos(tenantId);
+  const row = db
+    .prepare('SELECT * FROM promos WHERE tenantId = ? AND LOWER(code) = LOWER(?) LIMIT 1')
+    .get(tenantId, cleanCode) as PromoDbRow | undefined;
+
+  if (!row) {
+    throw new Error(`Kode kupon "${cleanCode}" tidak ditemukan di outlet aktif.`);
+  }
+
+  const promo = mapPromoRow(row);
+
+  if (promo.endDate < today) {
+    throw new Error(
+      `Kupon "${promo.code}" sudah kedaluwarsa (berakhir ${formatPromoDate(promo.endDate)}).`
+    );
+  }
+  if (!promo.isActive) {
+    throw new Error(`Kupon "${promo.code}" sedang dinonaktifkan.`);
+  }
+  if (promo.startDate > today) {
+    throw new Error(
+      `Kupon "${promo.code}" belum berlaku (aktif mulai ${formatPromoDate(promo.startDate)}).`
+    );
+  }
+
+  if (!Array.isArray(cartItems) || cartItems.length === 0) {
+    throw new Error('Keranjang belanja masih kosong.');
+  }
+
+  let grossSubtotal = 0;
+  let eligibleSubtotal = 0;
+  const eligibleProductIds: number[] = [];
+  const promoIdSet = new Set(promo.productIds);
+
+  for (const item of cartItems) {
+    const prod = db
+      .prepare('SELECT id, harga FROM products WHERE id = ? AND tenantId = ?')
+      .get(item.id, tenantId) as { id: number; harga: number } | undefined;
+    if (!prod) continue;
+    const qty = Math.max(0, Math.round(Number(item.qty) || 0));
+    if (qty <= 0) continue;
+
+    const lineSubtotal = prod.harga * qty;
+    grossSubtotal += lineSubtotal;
+
+    const isEligible = promoIdSet.size === 0 || promoIdSet.has(prod.id);
+    if (isEligible) {
+      eligibleSubtotal += lineSubtotal;
+      if (!eligibleProductIds.includes(prod.id)) {
+        eligibleProductIds.push(prod.id);
+      }
+    }
+  }
+
+  if (eligibleSubtotal <= 0) {
+    throw new Error(
+      `Kupon "${promo.code}" tidak berlaku untuk produk yang ada di keranjang saat ini.`
+    );
+  }
+
+  if (promo.minPurchase && promo.minPurchase > 0 && grossSubtotal < promo.minPurchase) {
+    const formattedMin = `Rp ${promo.minPurchase.toLocaleString('id-ID')}`;
+    throw new Error(
+      `Minimal belanja ${formattedMin} untuk menggunakan kupon "${promo.code}".`
+    );
+  }
+
+  const discountAmount = Math.max(
+    0,
+    Math.min(eligibleSubtotal, Math.round(eligibleSubtotal * (promo.discountPercent / 100)))
+  );
+  const netSubtotal = Math.max(0, grossSubtotal - discountAmount);
+
+  return {
+    valid: true,
+    promo,
+    grossSubtotal,
+    eligibleSubtotal,
+    discountAmount,
+    netSubtotal,
+    eligibleProductIds,
+  };
 }
 
 function buildActivePromoMap(tenantId: string = getActiveTenantId()): Map<number, PromoCampaign> {
@@ -2019,18 +2302,28 @@ function buildActivePromoMap(tenantId: string = getActiveTenantId()): Map<number
   return map;
 }
 
-function attachPromoFlags(product: Product, promoMap: Map<number, PromoCampaign>): Product {
+function attachPromoFlags(
+  product: Product & { attributesJson?: string },
+  promoMap: Map<number, PromoCampaign>
+): Product {
+  const { attributesJson, attributes, ...rest } = product;
+  const resolvedAttributes =
+    attributes && Object.keys(attributes).length > 0
+      ? attributes
+      : parseProductAttributes(attributesJson);
   const promo = promoMap.get(product.id);
   if (!promo) {
     return {
-      ...product,
+      ...rest,
+      attributes: resolvedAttributes,
       isPromo: false,
       promoDiscountPercent: undefined,
       promoLabel: undefined,
     };
   }
   return {
-    ...product,
+    ...rest,
+    attributes: resolvedAttributes,
     isPromo: true,
     promoDiscountPercent: promo.discountPercent,
     promoLabel: promo.label,
@@ -2046,8 +2339,11 @@ export function queryProducts(opts: {
   pageSize?: number;
   search?: string;
   category?: string;
+  brand?: string;
   promoOnly?: boolean;
-  filterTab?: 'all' | 'active' | 'promo' | 'low_stock';
+  filterTab?: 'all' | 'active' | 'inactive' | 'promo' | 'low_stock';
+  statusFilter?: 'all' | 'Aktif' | 'Nonaktif';
+  stockFilter?: 'all' | 'available' | 'low' | 'out';
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
   tenantId?: string;
@@ -2057,7 +2353,10 @@ export function queryProducts(opts: {
   const pageSize = Math.min(200, Math.max(1, Math.floor(opts.pageSize ?? 10)));
   const search = (opts.search ?? '').trim().toLowerCase();
   const category = (opts.category ?? '').trim();
+  const brand = (opts.brand ?? '').trim();
   const filterTab = opts.filterTab ?? (opts.promoOnly ? 'promo' : 'all');
+  const statusFilter = opts.statusFilter ?? 'all';
+  const stockFilter = opts.stockFilter ?? 'all';
   const promoOnly = Boolean(opts.promoOnly) || filterTab === 'promo';
   const sortDir = normalizeSortDir(opts.sortDir);
 
@@ -2099,19 +2398,88 @@ export function queryProducts(opts: {
 
   if (search) {
     const like = `%${search}%`;
-    conditions.push('(LOWER(name) LIKE ? OR LOWER(sku) LIKE ? OR LOWER(category) LIKE ? OR LOWER(COALESCE(brand, \'\')) LIKE ?)');
-    params.push(like, like, like, like);
+    const orClauses = [
+      'LOWER(name) LIKE ?',
+      'LOWER(sku) LIKE ?',
+      'LOWER(category) LIKE ?',
+      "LOWER(COALESCE(brand, '')) LIKE ?",
+      "LOWER(COALESCE(kondisi, 'Baru')) LIKE ?",
+      search === 'aktif' || search === 'nonaktif'
+        ? "LOWER(COALESCE(status, 'Aktif')) = ?"
+        : "LOWER(COALESCE(status, 'Aktif')) LIKE ?",
+      "LOWER(COALESCE(deskripsi, '')) LIKE ?",
+      "LOWER(COALESCE(attributesJson, '')) LIKE ?",
+    ];
+    const searchParams: Array<string | number> = [
+      like,
+      like,
+      like,
+      like,
+      like,
+      search === 'aktif' || search === 'nonaktif' ? search : like,
+      like,
+      like,
+    ];
+
+    if (search.includes('promo') || search.includes('diskon')) {
+      if (promoProductIds.length > 0) {
+        orClauses.push(`id IN (${promoProductIds.map(() => '?').join(', ')})`);
+        searchParams.push(...promoProductIds);
+      }
+    } else {
+      const matchedPromoIds = Array.from(promoMap.entries())
+        .filter(
+          ([, promo]) =>
+            promo.name.toLowerCase().includes(search) ||
+            promo.code.toLowerCase().includes(search) ||
+            (promo.label || '').toLowerCase().includes(search)
+        )
+        .map(([pid]) => pid);
+      if (matchedPromoIds.length > 0) {
+        orClauses.push(`id IN (${matchedPromoIds.map(() => '?').join(', ')})`);
+        searchParams.push(...matchedPromoIds);
+      }
+    }
+
+    conditions.push(`(${orClauses.join(' OR ')})`);
+    params.push(...searchParams);
   }
 
   if (category && category !== 'Semua') {
-    conditions.push('category = ?');
-    params.push(category);
+    const childCats = db
+      .prepare("SELECT name FROM categories WHERE LOWER(COALESCE(parentName, '')) = LOWER(?)")
+      .all(category) as Array<{ name: string }>;
+    const catTargets = Array.from(new Set([category, ...childCats.map(c => c.name)]));
+    if (catTargets.length === 1) {
+      conditions.push('category = ?');
+      params.push(catTargets[0]);
+    } else {
+      conditions.push(`category IN (${catTargets.map(() => '?').join(', ')})`);
+      params.push(...catTargets);
+    }
   }
 
-  if (filterTab === 'active') {
+  if (brand && brand !== 'Semua') {
+    conditions.push("COALESCE(NULLIF(TRIM(brand), ''), 'No Brand') = ?");
+    params.push(brand);
+  }
+
+  if (filterTab === 'active' || statusFilter === 'Aktif') {
     conditions.push("COALESCE(status, 'Aktif') = 'Aktif'");
-  } else if (filterTab === 'low_stock') {
+  } else if (filterTab === 'inactive' || statusFilter === 'Nonaktif') {
+    conditions.push("COALESCE(status, 'Aktif') = 'Nonaktif'");
+  }
+
+  if (filterTab === 'low_stock') {
     conditions.push('stok <= 5');
+  }
+
+  if (stockFilter === 'available') {
+    conditions.push('stok > 5');
+  } else if (stockFilter === 'low') {
+    conditions.push('stok > 0 AND stok <= 5');
+  } else if (stockFilter === 'out') {
+    conditions.push('stok <= 0');
   }
 
   if (promoOnly) {
@@ -2143,6 +2511,7 @@ export function queryProducts(opts: {
               COALESCE(p.lebar, 0) AS lebar,
               COALESCE(p.tinggi, 0) AS tinggi,
               COALESCE(p.status, 'Aktif') AS status,
+              COALESCE(p.attributesJson, '{}') AS attributesJson,
               p.createdAt AS createdAt,
               COALESCE(si.cnt, 0) AS salesCount
        FROM products p
@@ -2151,11 +2520,11 @@ export function queryProducts(opts: {
          FROM transaction_items
          GROUP BY productId
        ) si ON si.productId = p.id
-       ${whereSql.replace(/\b(tenantId|name|sku|category|id)\b/g, 'p.$1')}
+       ${whereSql.replace(/\b(tenantId|name|sku|category|brand|status|stok|id|attributesJson)\b/g, 'p.$1')}
        ORDER BY ${orderBySql.replace(/\b(harga|berat|stok|id)\b/g, 'p.$1').replace(/LOWER\((name|sku|brand)\)/g, 'LOWER(p.$1)')}
        LIMIT ? OFFSET ?`
     )
-    .all(...params, pageSize, offset) as Array<Product & { salesCount: number }>;
+    .all(...params, pageSize, offset) as Array<Product & { attributesJson?: string; salesCount: number }>;
 
   const catRows = db
     .prepare(
@@ -2173,15 +2542,54 @@ export function queryProducts(opts: {
   let totalStockQty = 0;
   let totalWeightGrams = 0;
   let totalInventoryValue = 0;
-  const categoryCounts: Record<string, number> = {};
+  const directCatCounts: Record<string, number> = {};
   for (const r of catRows) {
-    categoryCounts[r.category] = r.cnt;
+    directCatCounts[r.category] = r.cnt;
     totalAllProducts += r.cnt;
     totalStockQty += r.stokSum;
     totalWeightGrams += r.weightSum;
     totalInventoryValue += r.assetSum;
   }
+
+  const categoryDetails = getAllCategoryItems();
+  const categoryCounts: Record<string, number> = { ...directCatCounts };
+  for (const item of categoryDetails) {
+    if (!item.parentName) {
+      const children = categoryDetails.filter(
+        c => c.parentName && c.parentName.toLowerCase() === item.name.toLowerCase()
+      );
+      const childSum = children.reduce((acc, c) => acc + (directCatCounts[c.name] ?? 0), 0);
+      categoryCounts[item.name] = (directCatCounts[item.name] ?? 0) + childSum;
+    } else if (categoryCounts[item.name] === undefined) {
+      categoryCounts[item.name] = 0;
+    }
+  }
   categoryCounts['Semua'] = totalAllProducts;
+
+  const brandRows = db
+    .prepare(
+      "SELECT COALESCE(NULLIF(TRIM(brand), ''), 'No Brand') as brandName, COUNT(*) as cnt FROM products WHERE tenantId = ? GROUP BY brandName ORDER BY cnt DESC, LOWER(brandName) ASC"
+    )
+    .all(tenantId) as Array<{ brandName: string; cnt: number }>;
+  const brandCounts: Record<string, number> = {};
+  for (const br of brandRows) {
+    brandCounts[br.brandName] = br.cnt;
+  }
+
+  const statusAgg = db
+    .prepare(
+      `SELECT SUM(CASE WHEN COALESCE(status, 'Aktif') = 'Aktif' THEN 1 ELSE 0 END) as activeCount,
+              SUM(CASE WHEN COALESCE(status, 'Aktif') = 'Nonaktif' THEN 1 ELSE 0 END) as inactiveCount,
+              SUM(CASE WHEN stok <= 5 THEN 1 ELSE 0 END) as lowStockCount,
+              SUM(CASE WHEN stok <= 0 THEN 1 ELSE 0 END) as outOfStockCount
+       FROM products WHERE tenantId = ?`
+    )
+    .get(tenantId) as {
+    activeCount: number | null;
+    inactiveCount: number | null;
+    lowStockCount: number | null;
+    outOfStockCount: number | null;
+  };
 
   let promoCount = 0;
   if (promoProductIds.length > 0) {
@@ -2200,7 +2608,13 @@ export function queryProducts(opts: {
     totalPages,
     promoCount,
     categoryCounts,
+    categoryDetails,
+    brandCounts,
     totalAllProducts,
+    activeCount: statusAgg.activeCount ?? 0,
+    inactiveCount: statusAgg.inactiveCount ?? 0,
+    lowStockCount: statusAgg.lowStockCount ?? 0,
+    outOfStockCount: statusAgg.outOfStockCount ?? 0,
     totalStockQty,
     totalWeightGrams: Number(totalWeightGrams.toFixed(2)),
     totalInventoryValue,
@@ -2243,6 +2657,7 @@ export function lookupProductByCode(rawCode: string, tenantId: string = getActiv
     COALESCE(lebar, 0) AS lebar,
     COALESCE(tinggi, 0) AS tinggi,
     COALESCE(status, 'Aktif') AS status,
+    COALESCE(attributesJson, '{}') AS attributesJson,
     createdAt
   `;
 
@@ -2323,11 +2738,15 @@ export function generateUniqueProductSku(
   tenantId: string = getActiveTenantId(),
   currentSku?: string
 ): string {
+  const catRow = db
+    .prepare('SELECT skuPrefix FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1')
+    .get(category.trim()) as { skuPrefix?: string | null } | undefined;
+  const dbPrefix = (catRow?.skuPrefix ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+
   const normalizedCat = category.trim().toLowerCase();
-  let prefix = SKU_CATEGORY_PREFIX_MAP[normalizedCat];
+  let prefix = dbPrefix || SKU_CATEGORY_PREFIX_MAP[normalizedCat];
   if (!prefix) {
-    const alpha = normalizedCat.replace(/[^a-z]/g, '');
-    prefix = (alpha.slice(0, 2) || 'PR').toUpperCase();
+    prefix = suggestServerSkuPrefix(category);
   }
 
   const rows = db
@@ -2368,12 +2787,10 @@ export function generateUniqueProductSku(
 }
 
 export function getCategoriesWithStats(tenantId: string = getActiveTenantId()): CategoriesWithStatsResponse {
-  const categories = getAllCategories();
-  const catMetaRows = db
-    .prepare('SELECT name, createdAt FROM categories')
-    .all() as Array<{ name: string; createdAt?: string | null }>;
+  const items = getAllCategoryItems();
+  const categories = items.map(c => c.name);
   const categoryCreatedAt: Record<string, string> = {};
-  for (const c of catMetaRows) {
+  for (const c of items) {
     if (c.createdAt) categoryCreatedAt[c.name] = c.createdAt;
   }
 
@@ -2383,15 +2800,303 @@ export function getCategoriesWithStats(tenantId: string = getActiveTenantId()): 
     )
     .all(tenantId) as Array<{ category: string; count: number; totalStok: number; totalGram: number }>;
 
-  const stats: Record<string, CategoryStatsItem> = {};
+  const directMap = new Map<string, { count: number; totalStok: number; totalGram: number }>();
+  let totalUniqueProducts = 0;
+  let totalUniqueStok = 0;
   for (const r of rows) {
-    stats[r.category] = {
+    directMap.set(r.category, {
       count: r.count,
       totalStok: r.totalStok,
       totalGram: r.totalGram,
+    });
+    totalUniqueProducts += r.count;
+    totalUniqueStok += r.totalStok;
+  }
+
+  const childrenByParent = new Map<string, CategoryItem[]>();
+  for (const c of items) {
+    if (c.parentName) {
+      const key = c.parentName.toLowerCase();
+      const arr = childrenByParent.get(key) ?? [];
+      arr.push(c);
+      childrenByParent.set(key, arr);
+    }
+  }
+
+  const stats: Record<string, CategoryStatsItem> = {};
+  for (const c of items) {
+    const direct = directMap.get(c.name) ?? { count: 0, totalStok: 0, totalGram: 0 };
+    const children = !c.parentName ? (childrenByParent.get(c.name.toLowerCase()) ?? []) : [];
+    let rolledCount = direct.count;
+    let rolledStok = direct.totalStok;
+    let rolledGram = direct.totalGram;
+    for (const child of children) {
+      const cs = directMap.get(child.name) ?? { count: 0, totalStok: 0, totalGram: 0 };
+      rolledCount += cs.count;
+      rolledStok += cs.totalStok;
+      rolledGram += cs.totalGram;
+    }
+    stats[c.name] = {
+      count: rolledCount,
+      totalStok: rolledStok,
+      totalGram: Number(rolledGram.toFixed(2)),
+      directCount: direct.count,
+      directStok: direct.totalStok,
+      directGram: Number(direct.totalGram.toFixed(2)),
+      childrenCount: children.length,
     };
   }
-  return { categories, stats, categoryCreatedAt };
+
+  return {
+    categories,
+    items,
+    stats,
+    categoryCreatedAt,
+    totalUniqueProducts,
+    totalUniqueStok,
+  };
+}
+
+export function createCategoryItem(payload: CategoryPayload): CategoryItem {
+  const name = String(payload.name ?? '').trim();
+  if (!name || name.length < 2) {
+    throw new Error('Nama kategori wajib diisi minimal 2 karakter.');
+  }
+  const existing = db.prepare('SELECT name FROM categories WHERE LOWER(name) = LOWER(?)').get(name);
+  if (existing) {
+    throw new Error(`Kategori "${name}" sudah ada.`);
+  }
+
+  const parentName = payload.parentName ? String(payload.parentName).trim() : null;
+  if (parentName) {
+    if (parentName.toLowerCase() === name.toLowerCase()) {
+      throw new Error('Kategori tidak dapat menjadi induk bagi dirinya sendiri.');
+    }
+    const parentRow = db
+      .prepare('SELECT name, parentName FROM categories WHERE LOWER(name) = LOWER(?)')
+      .get(parentName) as { name: string; parentName?: string | null } | undefined;
+    if (!parentRow) {
+      throw new Error(`Kategori induk "${parentName}" tidak ditemukan.`);
+    }
+    if (parentRow.parentName) {
+      throw new Error('Sub-kategori hanya dapat ditempatkan di bawah Kategori Utama (Level 1).');
+    }
+  }
+
+  const icon = String(payload.icon ?? 'category').trim() || 'category';
+  const rawPrefix = String(payload.skuPrefix ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 5);
+  const skuPrefix = rawPrefix || suggestServerSkuPrefix(name);
+  const isActive = payload.isActive === false ? 0 : 1;
+  const description = String(payload.description ?? '').trim();
+  const attributeFields = normalizeCategoryAttributesInput(payload.attributeFields);
+  const maxOrder = (
+    db.prepare('SELECT COALESCE(MAX(sortOrder), 0) as m FROM categories').get() as { m: number }
+  ).m;
+  const sortOrder =
+    payload.sortOrder !== undefined && Number.isFinite(Number(payload.sortOrder)) && Number(payload.sortOrder) > 0
+      ? Math.round(Number(payload.sortOrder))
+      : maxOrder + 1;
+  const createdAt = new Date().toISOString();
+
+  db.prepare(`
+    INSERT INTO categories (
+      name, sortOrder, parentName, icon, skuPrefix, isActive, description, attributeFieldsJson, createdAt
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    name,
+    sortOrder,
+    parentName,
+    icon,
+    skuPrefix,
+    isActive,
+    description,
+    JSON.stringify(attributeFields),
+    createdAt
+  );
+
+  return parseCategoryRow({
+    name,
+    sortOrder,
+    parentName,
+    icon,
+    skuPrefix,
+    isActive,
+    description,
+    attributeFieldsJson: JSON.stringify(attributeFields),
+    createdAt,
+  });
+}
+
+export function updateCategoryItem(oldName: string, payload: CategoryPayload): { oldName: string; item: CategoryItem } {
+  const cleanOld = oldName.trim();
+  const existingRow = db
+    .prepare(
+      'SELECT name, parentName, icon, skuPrefix, sortOrder, isActive, description, attributeFieldsJson, createdAt FROM categories WHERE name = ?'
+    )
+    .get(cleanOld) as
+    | {
+        name: string;
+        parentName?: string | null;
+        icon?: string | null;
+        skuPrefix?: string | null;
+        sortOrder?: number | null;
+        isActive?: number | null;
+        description?: string | null;
+        attributeFieldsJson?: string | null;
+        createdAt?: string | null;
+      }
+    | undefined;
+  if (!existingRow) {
+    throw new Error('Kategori tidak ditemukan.');
+  }
+
+  const newName = String(payload.name ?? existingRow.name).trim();
+  if (!newName || newName.length < 2) {
+    throw new Error('Nama kategori baru minimal 2 karakter.');
+  }
+  if (cleanOld.toLowerCase() !== newName.toLowerCase()) {
+    const clash = db.prepare('SELECT name FROM categories WHERE LOWER(name) = LOWER(?)').get(newName);
+    if (clash) {
+      throw new Error(`Kategori "${newName}" sudah terdaftar.`);
+    }
+  }
+
+  let nextParent = existingRow.parentName ? existingRow.parentName.trim() : null;
+  if (payload.parentName !== undefined) {
+    nextParent = payload.parentName ? String(payload.parentName).trim() : null;
+  }
+
+  if (nextParent) {
+    if (nextParent.toLowerCase() === cleanOld.toLowerCase() || nextParent.toLowerCase() === newName.toLowerCase()) {
+      throw new Error('Kategori tidak dapat menjadi induk bagi dirinya sendiri.');
+    }
+    const childCount = (
+      db
+        .prepare("SELECT COUNT(*) as cnt FROM categories WHERE LOWER(COALESCE(parentName, '')) = LOWER(?)")
+        .get(cleanOld) as { cnt: number }
+    ).cnt;
+    if (childCount > 0) {
+      throw new Error(
+        `Kategori "${cleanOld}" memiliki ${childCount} sub-kategori sehingga tetap harus menjadi Kategori Utama.`
+      );
+    }
+    const parentRow = db
+      .prepare('SELECT name, parentName FROM categories WHERE LOWER(name) = LOWER(?)')
+      .get(nextParent) as { name: string; parentName?: string | null } | undefined;
+    if (!parentRow) {
+      throw new Error(`Kategori induk "${nextParent}" tidak ditemukan.`);
+    }
+    if (parentRow.parentName) {
+      throw new Error('Sub-kategori hanya dapat ditempatkan di bawah Kategori Utama (Level 1).');
+    }
+    nextParent = parentRow.name;
+  }
+
+  const icon =
+    payload.icon !== undefined ? (String(payload.icon).trim() || 'category') : (existingRow.icon ?? 'category');
+  const rawPrefix =
+    payload.skuPrefix !== undefined
+      ? String(payload.skuPrefix).trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5)
+      : (existingRow.skuPrefix ?? '');
+  const skuPrefix = rawPrefix || suggestServerSkuPrefix(newName);
+  const isActive =
+    payload.isActive !== undefined ? (payload.isActive ? 1 : 0) : (existingRow.isActive ?? 1);
+  const description =
+    payload.description !== undefined ? String(payload.description).trim() : (existingRow.description ?? '');
+  const sortOrder =
+    payload.sortOrder !== undefined && Number.isFinite(Number(payload.sortOrder))
+      ? Math.max(0, Math.round(Number(payload.sortOrder)))
+      : (existingRow.sortOrder ?? 0);
+  const attributeFieldsJson =
+    payload.attributeFields !== undefined
+      ? JSON.stringify(normalizeCategoryAttributesInput(payload.attributeFields))
+      : (existingRow.attributeFieldsJson ?? '[]');
+
+  const updateTx = db.transaction(() => {
+    db.prepare(`
+      UPDATE categories
+      SET name = ?, parentName = ?, icon = ?, skuPrefix = ?, isActive = ?, description = ?, sortOrder = ?, attributeFieldsJson = ?
+      WHERE name = ?
+    `).run(newName, nextParent, icon, skuPrefix, isActive, description, sortOrder, attributeFieldsJson, cleanOld);
+
+    if (cleanOld !== newName) {
+      db.prepare('UPDATE products SET category = ? WHERE category = ?').run(newName, cleanOld);
+      db.prepare('UPDATE categories SET parentName = ? WHERE parentName = ?').run(newName, cleanOld);
+    }
+  });
+  updateTx();
+
+  return {
+    oldName: cleanOld,
+    item: parseCategoryRow({
+      name: newName,
+      parentName: nextParent,
+      icon,
+      skuPrefix,
+      isActive,
+      description,
+      sortOrder,
+      attributeFieldsJson,
+      createdAt: existingRow.createdAt,
+    }),
+  };
+}
+
+export function toggleCategoryItemActive(name: string, isActive: boolean): CategoryItem {
+  const existingRow = db
+    .prepare(
+      'SELECT name, parentName, icon, skuPrefix, sortOrder, isActive, description, attributeFieldsJson, createdAt FROM categories WHERE name = ?'
+    )
+    .get(name.trim()) as
+    | {
+        name: string;
+        parentName?: string | null;
+        icon?: string | null;
+        skuPrefix?: string | null;
+        sortOrder?: number | null;
+        isActive?: number | null;
+        description?: string | null;
+        attributeFieldsJson?: string | null;
+        createdAt?: string | null;
+      }
+    | undefined;
+  if (!existingRow) {
+    throw new Error('Kategori tidak ditemukan.');
+  }
+  const flag = isActive ? 1 : 0;
+  db.prepare('UPDATE categories SET isActive = ? WHERE name = ?').run(flag, existingRow.name);
+  return parseCategoryRow({ ...existingRow, isActive: flag });
+}
+
+export function deleteCategoryItem(name: string): string {
+  const cleanName = name.trim();
+  const usedCount = (
+    db.prepare('SELECT COUNT(*) as cnt FROM products WHERE category = ?').get(cleanName) as { cnt: number }
+  ).cnt;
+  if (usedCount > 0) {
+    throw new Error(
+      `Kategori "${cleanName}" masih digunakan oleh ${usedCount} barang. Ubah kategori barang terkait terlebih dahulu.`
+    );
+  }
+  const childCount = (
+    db
+      .prepare("SELECT COUNT(*) as cnt FROM categories WHERE LOWER(COALESCE(parentName, '')) = LOWER(?)")
+      .get(cleanName) as { cnt: number }
+  ).cnt;
+  if (childCount > 0) {
+    throw new Error(
+      `Kategori "${cleanName}" masih memiliki ${childCount} sub-kategori. Hapus atau pindahkan sub-kategori terkait terlebih dahulu.`
+    );
+  }
+  const result = db.prepare('DELETE FROM categories WHERE name = ?').run(cleanName);
+  if (result.changes === 0) {
+    throw new Error('Kategori tidak ditemukan.');
+  }
+  return cleanName;
 }
 
 export function queryTransactions(opts: {
@@ -2399,6 +3104,11 @@ export function queryTransactions(opts: {
   pageSize?: number;
   search?: string;
   method?: string;
+  status?: 'all' | 'completed' | 'void';
+  cashier?: string;
+  promoFilter?: 'all' | 'with_promo' | 'no_promo';
+  dateFrom?: string;
+  dateTo?: string;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
   tenantId?: string;
@@ -2408,6 +3118,11 @@ export function queryTransactions(opts: {
   const pageSize = Math.min(200, Math.max(1, Math.floor(opts.pageSize ?? 10)));
   const search = (opts.search ?? '').trim().toLowerCase();
   const method = (opts.method ?? 'semua').trim();
+  const status = (opts.status ?? 'all').trim();
+  const cashier = (opts.cashier ?? '').trim();
+  const promoFilter = (opts.promoFilter ?? 'all').trim();
+  const dateFrom = (opts.dateFrom ?? '').trim();
+  const dateTo = (opts.dateTo ?? '').trim();
   const sortDir = normalizeSortDir(opts.sortDir);
 
   let orderBySql = `t.dateTime ${sortDir}, t.rowid ${sortDir}`;
@@ -2438,10 +3153,49 @@ export function queryTransactions(opts: {
 
   if (search) {
     const like = `%${search}%`;
-    conditions.push(
-      `(LOWER(t.invoiceNo) LIKE ? OR LOWER(t.customerName) LIKE ? OR LOWER(t.cashier) LIKE ? OR EXISTS (SELECT 1 FROM transaction_items ti WHERE ti.transactionId = t.id AND (LOWER(ti.name) LIKE ? OR LOWER(ti.sku) LIKE ?)))`
-    );
-    params.push(like, like, like, like, like);
+    const orClauses = [
+      'LOWER(t.invoiceNo) LIKE ?',
+      'LOWER(t.customerName) LIKE ?',
+      'LOWER(t.cashier) LIKE ?',
+      "LOWER(COALESCE(c.memberCode, '')) LIKE ?",
+      "LOWER(COALESCE(t.promoCode, '')) LIKE ?",
+      "LOWER(COALESCE(t.promoName, '')) LIKE ?",
+      'LOWER(t.dateStr) LIKE ?',
+      'LOWER(t.dateTime) LIKE ?',
+      'LOWER(t.paymentMethod) LIKE ?',
+      "LOWER(COALESCE(t.paymentDetailsJson, '')) LIKE ?",
+      "LOWER(COALESCE(t.status, 'completed')) LIKE ?",
+      "EXISTS (SELECT 1 FROM transaction_items ti LEFT JOIN products p ON p.id = ti.productId WHERE ti.transactionId = t.id AND (LOWER(ti.name) LIKE ? OR LOWER(ti.sku) LIKE ? OR LOWER(COALESCE(p.category, '')) LIKE ?))",
+    ];
+    const searchParams: Array<string | number> = [
+      like,
+      like,
+      like,
+      like,
+      like,
+      like,
+      like,
+      like,
+      like,
+      like,
+      like,
+      like,
+      like,
+      like,
+    ];
+
+    if (search === 'tunai' || 'tunai'.includes(search)) {
+      orClauses.push("t.paymentMethod = 'cash'");
+    }
+    if (search === 'void' || search === 'batal' || search === 'dibatalkan' || 'dibatalkan'.includes(search)) {
+      orClauses.push("COALESCE(t.status, 'completed') = 'void'");
+    }
+    if (search === 'lunas' || search === 'sukses' || search === 'selesai') {
+      orClauses.push("COALESCE(t.status, 'completed') != 'void'");
+    }
+
+    conditions.push(`(${orClauses.join(' OR ')})`);
+    params.push(...searchParams);
   }
 
   if (method && method !== 'semua') {
@@ -2449,9 +3203,38 @@ export function queryTransactions(opts: {
     params.push(method);
   }
 
+  if (status === 'completed') {
+    conditions.push("COALESCE(t.status, 'completed') != 'void'");
+  } else if (status === 'void') {
+    conditions.push("COALESCE(t.status, 'completed') = 'void'");
+  }
+
+  if (cashier && cashier !== 'all') {
+    conditions.push('t.cashier = ?');
+    params.push(cashier);
+  }
+
+  if (promoFilter === 'with_promo') {
+    conditions.push("(COALESCE(t.discountAmount, 0) > 0 OR COALESCE(TRIM(t.promoCode), '') != '')");
+  } else if (promoFilter === 'no_promo') {
+    conditions.push("COALESCE(t.discountAmount, 0) <= 0 AND COALESCE(TRIM(t.promoCode), '') = ''");
+  }
+
+  if (dateFrom && /^\d{4}-\d{2}-\d{2}$/.test(dateFrom)) {
+    conditions.push('substr(t.dateTime, 1, 10) >= ?');
+    params.push(dateFrom);
+  }
+
+  if (dateTo && /^\d{4}-\d{2}-\d{2}$/.test(dateTo)) {
+    conditions.push('substr(t.dateTime, 1, 10) <= ?');
+    params.push(dateTo);
+  }
+
   const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   const total = (
-    db.prepare(`SELECT COUNT(*) as cnt FROM transactions t ${whereSql}`).get(...params) as { cnt: number }
+    db
+      .prepare(`SELECT COUNT(*) as cnt FROM transactions t LEFT JOIN customers c ON c.id = t.customerId ${whereSql}`)
+      .get(...params) as { cnt: number }
   ).cnt;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -2462,7 +3245,9 @@ export function queryTransactions(opts: {
       `SELECT t.id, t.invoiceNo, t.dateTime, t.dateStr, t.timeStr, t.cashier, t.customerId,
               c.memberCode AS customerMemberCode, t.customerName,
               c.phone AS customerPhone, c.address AS customerAddress,
-              t.totalQty, t.totalBerat, t.subtotal, t.tax, t.grandTotal, t.paymentMethod, t.paymentDetailsJson,
+              t.totalQty, t.totalBerat, t.subtotal,
+              COALESCE(t.discountAmount, 0) AS discountAmount, t.promoCode, t.promoName,
+              t.tax, t.grandTotal, t.paymentMethod, t.paymentDetailsJson,
               COALESCE(t.status, 'completed') AS status, t.voidReason, t.voidedAt
        FROM transactions t
        LEFT JOIN customers c ON c.id = t.customerId
@@ -2483,6 +3268,9 @@ export function queryTransactions(opts: {
     totalQty: number;
     totalBerat: number;
     subtotal: number;
+    discountAmount: number;
+    promoCode: string | null;
+    promoName: string | null;
     tax: number;
     grandTotal: number;
     paymentMethod: 'cash' | 'debit' | 'transfer' | 'qris';
@@ -2554,9 +3342,25 @@ export function queryTransactions(opts: {
 
   const agg = db
     .prepare(
-      "SELECT COALESCE(SUM(grandTotal), 0) as totalOmzet, COALESCE(SUM(totalBerat), 0) as totalBerat, COUNT(*) as totalCount FROM transactions WHERE tenantId = ? AND COALESCE(status, 'completed') != 'void'"
+      `SELECT COALESCE(SUM(CASE WHEN COALESCE(status, 'completed') != 'void' THEN grandTotal ELSE 0 END), 0) as totalOmzet,
+              COALESCE(SUM(CASE WHEN COALESCE(status, 'completed') != 'void' THEN totalBerat ELSE 0 END), 0) as totalBerat,
+              COALESCE(SUM(CASE WHEN COALESCE(status, 'completed') != 'void' THEN totalQty ELSE 0 END), 0) as totalQtyTerjual,
+              SUM(CASE WHEN COALESCE(status, 'completed') != 'void' THEN 1 ELSE 0 END) as totalCount,
+              SUM(CASE WHEN COALESCE(status, 'completed') = 'void' THEN 1 ELSE 0 END) as voidCount
+       FROM transactions WHERE tenantId = ?`
     )
-    .get(tenantId) as { totalOmzet: number; totalBerat: number; totalCount: number };
+    .get(tenantId) as {
+    totalOmzet: number;
+    totalBerat: number;
+    totalQtyTerjual: number;
+    totalCount: number | null;
+    voidCount: number | null;
+  };
+  const completedCount = agg.totalCount ?? 0;
+
+  const cashierRows = db
+    .prepare("SELECT DISTINCT cashier FROM transactions WHERE tenantId = ? AND TRIM(cashier) != '' ORDER BY LOWER(cashier) ASC")
+    .all(tenantId) as Array<{ cashier: string }>;
 
   return {
     items: txRows.map(tx => ({
@@ -2575,6 +3379,9 @@ export function queryTransactions(opts: {
       totalQty: tx.totalQty,
       totalBerat: tx.totalBerat,
       subtotal: tx.subtotal,
+      discountAmount: tx.discountAmount > 0 ? tx.discountAmount : undefined,
+      promoCode: tx.promoCode ?? undefined,
+      promoName: tx.promoName ?? undefined,
       tax: tx.tax,
       grandTotal: tx.grandTotal,
       paymentMethod: tx.paymentMethod,
@@ -2587,11 +3394,14 @@ export function queryTransactions(opts: {
     page: safePage,
     pageSize,
     totalPages,
+    cashiers: cashierRows.map(r => r.cashier),
     stats: {
       totalOmzetPenjualan: agg.totalOmzet,
       totalBeratTerjual: agg.totalBerat,
-      totalTransaksi: agg.totalCount,
-      avgPerTransaksi: agg.totalCount > 0 ? Math.round(agg.totalOmzet / agg.totalCount) : 0,
+      totalQtyTerjual: agg.totalQtyTerjual,
+      totalTransaksi: completedCount,
+      voidCount: agg.voidCount ?? 0,
+      avgPerTransaksi: completedCount > 0 ? Math.round(agg.totalOmzet / completedCount) : 0,
     },
   };
 }
@@ -2600,7 +3410,9 @@ export function getTransactionById(id: string, tenantId?: string): Transaction |
   const txQuery = `SELECT t.id, t.invoiceNo, t.dateTime, t.dateStr, t.timeStr, t.cashier, t.customerId,
                           c.memberCode AS customerMemberCode, t.customerName,
                           c.phone AS customerPhone, c.address AS customerAddress,
-                          t.totalQty, t.totalBerat, t.subtotal, t.tax, t.grandTotal, t.paymentMethod, t.paymentDetailsJson,
+                          t.totalQty, t.totalBerat, t.subtotal,
+                          COALESCE(t.discountAmount, 0) AS discountAmount, t.promoCode, t.promoName,
+                          t.tax, t.grandTotal, t.paymentMethod, t.paymentDetailsJson,
                           COALESCE(t.status, 'completed') AS status, t.voidReason, t.voidedAt
                    FROM transactions t
                    LEFT JOIN customers c ON c.id = t.customerId
@@ -2623,6 +3435,9 @@ export function getTransactionById(id: string, tenantId?: string): Transaction |
         totalQty: number;
         totalBerat: number;
         subtotal: number;
+        discountAmount: number;
+        promoCode: string | null;
+        promoName: string | null;
         tax: number;
         grandTotal: number;
         paymentMethod: 'cash' | 'debit' | 'transfer' | 'qris';
@@ -2699,6 +3514,9 @@ export function getTransactionById(id: string, tenantId?: string): Transaction |
     totalQty: tx.totalQty,
     totalBerat: tx.totalBerat,
     subtotal: tx.subtotal,
+    discountAmount: tx.discountAmount > 0 ? tx.discountAmount : undefined,
+    promoCode: tx.promoCode ?? undefined,
+    promoName: tx.promoName ?? undefined,
     tax: tx.tax,
     grandTotal: tx.grandTotal,
     paymentMethod: tx.paymentMethod,
@@ -3298,15 +4116,22 @@ export function queryPromos(opts: {
   pageSize?: number;
   search?: string;
   status?: string;
+  discountRange?: 'all' | 'under_10' | '10_to_15' | 'over_15';
+  minPurchaseFilter?: 'all' | 'no_min' | 'has_min';
+  scopeFilter?: 'all' | 'selected_sku' | 'all_sku';
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
   tenantId?: string;
 }): PromosPageResponse {
   const tenantId = opts.tenantId ?? getActiveTenantId();
+  const today = syncExpiredPromos(tenantId);
   const page = Math.max(1, Math.floor(opts.page ?? 1));
   const pageSize = Math.min(200, Math.max(1, Math.floor(opts.pageSize ?? 10)));
   const search = (opts.search ?? '').trim().toLowerCase();
   const status = (opts.status ?? 'all').trim();
+  const discountRange = opts.discountRange ?? 'all';
+  const minPurchaseFilter = opts.minPurchaseFilter ?? 'all';
+  const scopeFilter = opts.scopeFilter ?? 'all';
   const sortDir = opts.sortDir === 'asc' ? 'ASC' : 'DESC';
 
   const sortMap: Record<string, string> = {
@@ -3323,14 +4148,72 @@ export function queryPromos(opts: {
 
   if (search) {
     const like = `%${search}%`;
-    conditions.push("(LOWER(name) LIKE ? OR LOWER(code) LIKE ? OR LOWER(COALESCE(description, '')) LIKE ?)");
-    params.push(like, like, like);
+    const cleanPercent = search.replace('%', '').trim();
+    const orClauses = [
+      'LOWER(name) LIKE ?',
+      'LOWER(code) LIKE ?',
+      "LOWER(COALESCE(label, '')) LIKE ?",
+      "LOWER(COALESCE(description, '')) LIKE ?",
+      'CAST(discountPercent AS TEXT) LIKE ?',
+    ];
+    const searchParams: Array<string | number> = [
+      like,
+      like,
+      like,
+      like,
+      `%${cleanPercent || search}%`,
+    ];
+
+    if (search === 'aktif' || search === 'active') {
+      orClauses.push('(isActive = 1 AND startDate <= ? AND endDate >= ?)');
+      searchParams.push(today, today);
+    } else if (search === 'terjadwal' || search === 'scheduled') {
+      orClauses.push('(isActive = 1 AND startDate > ? AND endDate >= ?)');
+      searchParams.push(today, today);
+    } else if (search === 'berakhir' || search === 'expired') {
+      orClauses.push('(endDate < ?)');
+      searchParams.push(today);
+    } else if (search === 'nonaktif' || search === 'inactive') {
+      orClauses.push('(isActive = 0 AND endDate >= ?)');
+      searchParams.push(today);
+    }
+
+    conditions.push(`(${orClauses.join(' OR ')})`);
+    params.push(...searchParams);
   }
 
   if (status === 'active') {
-    conditions.push('isActive = 1');
+    conditions.push('isActive = 1 AND startDate <= ? AND endDate >= ?');
+    params.push(today, today);
+  } else if (status === 'scheduled') {
+    conditions.push('isActive = 1 AND startDate > ? AND endDate >= ?');
+    params.push(today, today);
+  } else if (status === 'expired') {
+    conditions.push('endDate < ?');
+    params.push(today);
   } else if (status === 'inactive') {
-    conditions.push('isActive = 0');
+    conditions.push('isActive = 0 AND endDate >= ?');
+    params.push(today);
+  }
+
+  if (discountRange === 'under_10') {
+    conditions.push('discountPercent < 10');
+  } else if (discountRange === '10_to_15') {
+    conditions.push('discountPercent >= 10 AND discountPercent <= 15');
+  } else if (discountRange === 'over_15') {
+    conditions.push('discountPercent > 15');
+  }
+
+  if (minPurchaseFilter === 'no_min') {
+    conditions.push('COALESCE(minPurchase, 0) <= 0');
+  } else if (minPurchaseFilter === 'has_min') {
+    conditions.push('COALESCE(minPurchase, 0) > 0');
+  }
+
+  if (scopeFilter === 'selected_sku') {
+    conditions.push("COALESCE(TRIM(productIdsJson), '[]') != '[]' AND COALESCE(TRIM(productIdsJson), '') != ''");
+  } else if (scopeFilter === 'all_sku') {
+    conditions.push("(COALESCE(TRIM(productIdsJson), '[]') = '[]' OR COALESCE(TRIM(productIdsJson), '') = '')");
   }
 
   const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -3343,54 +4226,49 @@ export function queryPromos(opts: {
 
   const rows = db
     .prepare(`SELECT * FROM promos ${whereSql} ORDER BY ${sortCol} ${sortDir}, rowid DESC LIMIT ? OFFSET ?`)
-    .all(...params, pageSize, offset) as Array<{
-    id: string;
-    name: string;
-    code: string;
-    discountPercent: number;
-    label: string;
-    startDate: string;
-    endDate: string;
-    productIdsJson: string;
-    isActive: number;
-    minPurchase: number | null;
-    description: string | null;
-    createdAt?: string | null;
-  }>;
+    .all(...params, pageSize, offset) as PromoDbRow[];
 
   const allActive = getActivePromos(tenantId);
-  const totalPromos = (db.prepare('SELECT COUNT(*) as cnt FROM promos WHERE tenantId = ?').get(tenantId) as { cnt: number }).cnt;
+  const lifecycleAgg = db
+    .prepare(
+      `SELECT COUNT(*) as totalPromos,
+              SUM(CASE WHEN isActive = 1 AND startDate > ? AND endDate >= ? THEN 1 ELSE 0 END) as scheduledCount,
+              SUM(CASE WHEN endDate < ? THEN 1 ELSE 0 END) as expiredCount,
+              SUM(CASE WHEN isActive = 0 AND endDate >= ? THEN 1 ELSE 0 END) as inactiveCount
+       FROM promos WHERE tenantId = ?`
+    )
+    .get(today, today, today, today, tenantId) as {
+    totalPromos: number;
+    scheduledCount: number | null;
+    expiredCount: number | null;
+    inactiveCount: number | null;
+  };
+  const existingProductIds = new Set(
+    (db.prepare('SELECT id FROM products WHERE tenantId = ?').all(tenantId) as Array<{ id: number }>).map(p => p.id)
+  );
   const productSet = new Set<number>();
   let discountSum = 0;
   for (const p of allActive) {
     discountSum += p.discountPercent;
     for (const pid of p.productIds) {
-      productSet.add(pid);
+      if (existingProductIds.has(pid)) {
+        productSet.add(pid);
+      }
     }
   }
 
   return {
-    items: rows.map(r => ({
-      id: r.id,
-      name: r.name,
-      code: r.code,
-      discountPercent: r.discountPercent,
-      label: r.label,
-      startDate: r.startDate,
-      endDate: r.endDate,
-      productIds: safeJsonParse<number[]>(r.productIdsJson, []),
-      isActive: Boolean(r.isActive),
-      minPurchase: r.minPurchase ?? undefined,
-      description: r.description ?? undefined,
-      createdAt: r.createdAt ?? undefined,
-    })),
+    items: rows.map(mapPromoRow),
     total,
     page: safePage,
     pageSize,
     totalPages,
     stats: {
-      totalPromos,
+      totalPromos: lifecycleAgg.totalPromos ?? 0,
       activeCount: allActive.length,
+      scheduledCount: lifecycleAgg.scheduledCount ?? 0,
+      expiredCount: lifecycleAgg.expiredCount ?? 0,
+      inactiveCount: lifecycleAgg.inactiveCount ?? 0,
       totalPromoProducts: productSet.size,
       avgDiscount: allActive.length > 0 ? Math.round(discountSum / allActive.length) : 0,
     },
@@ -3398,21 +4276,64 @@ export function queryPromos(opts: {
 }
 
 export function getDashboardSummary(period: 'HARI' | 'BULAN', tenantId: string = getActiveTenantId()): DashboardSummaryResponse {
+  const settings = getStoreSettings(tenantId);
+
   const txAgg = db
     .prepare(
-      "SELECT COALESCE(SUM(grandTotal), 0) as totalOmzet, COALESCE(SUM(subtotal), 0) as totalSubtotal, COALESCE(SUM(totalQty), 0) as totalProduk, COUNT(*) as countTransaksi FROM transactions WHERE tenantId = ? AND COALESCE(status, 'completed') != 'void'"
+      `SELECT COALESCE(SUM(CASE WHEN COALESCE(status, 'completed') != 'void' THEN grandTotal ELSE 0 END), 0) as totalOmzet,
+              COALESCE(SUM(CASE WHEN COALESCE(status, 'completed') != 'void' THEN subtotal ELSE 0 END), 0) as totalSubtotal,
+              COALESCE(SUM(CASE WHEN COALESCE(status, 'completed') != 'void' THEN COALESCE(discountAmount, 0) ELSE 0 END), 0) as totalDiscount,
+              COALESCE(SUM(CASE WHEN COALESCE(status, 'completed') != 'void' THEN tax ELSE 0 END), 0) as totalTax,
+              COALESCE(SUM(CASE WHEN COALESCE(status, 'completed') != 'void' THEN totalQty ELSE 0 END), 0) as totalProduk,
+              COALESCE(SUM(CASE WHEN COALESCE(status, 'completed') != 'void' AND paymentMethod = 'cash' THEN grandTotal ELSE 0 END), 0) as cashTotal,
+              SUM(CASE WHEN COALESCE(status, 'completed') != 'void' THEN 1 ELSE 0 END) as countTransaksi,
+              SUM(CASE WHEN COALESCE(status, 'completed') = 'void' THEN 1 ELSE 0 END) as voidCount
+       FROM transactions WHERE tenantId = ?`
     )
-    .get(tenantId) as { totalOmzet: number; totalSubtotal: number; totalProduk: number; countTransaksi: number };
+    .get(tenantId) as {
+    totalOmzet: number;
+    totalSubtotal: number;
+    totalDiscount: number;
+    totalTax: number;
+    totalProduk: number;
+    cashTotal: number;
+    countTransaksi: number | null;
+    voidCount: number | null;
+  };
 
-  const bbAgg = db
-    .prepare("SELECT COALESCE(SUM(totalBayar), 0) as totalBuybackBayar FROM buybacks WHERE tenantId = ? AND COALESCE(status, 'completed') != 'void'")
-    .get(tenantId) as { totalBuybackBayar: number };
+  const profitAgg = db
+    .prepare(
+      `SELECT COALESCE(SUM(
+                CASE WHEN COALESCE(p.hpp, 0) > 0
+                  THEN (ti.harga - p.hpp) * ti.qty
+                  ELSE ROUND(ti.subtotal * 0.25)
+                END
+              ), 0) as grossProfit
+       FROM transaction_items ti
+       JOIN transactions t ON t.id = ti.transactionId
+       LEFT JOIN products p ON p.id = ti.productId
+       WHERE t.tenantId = ? AND COALESCE(t.status, 'completed') != 'void'`
+    )
+    .get(tenantId) as { grossProfit: number };
+
+  const invAgg = db
+    .prepare(
+      `SELECT SUM(CASE WHEN COALESCE(status, 'Aktif') = 'Aktif' THEN 1 ELSE 0 END) as activeSkuCount,
+              SUM(CASE WHEN stok <= 5 THEN 1 ELSE 0 END) as lowStockCount
+       FROM products WHERE tenantId = ?`
+    )
+    .get(tenantId) as { activeSkuCount: number | null; lowStockCount: number | null };
 
   const totalPenjualan = txAgg.totalOmzet;
   const penjualanKotor = txAgg.totalSubtotal > 0 ? txAgg.totalSubtotal : txAgg.totalOmzet;
-  const labaKotor = Math.round(totalPenjualan * 0.18);
-  const penerimaan = Math.max(0, txAgg.totalOmzet - bbAgg.totalBuybackBayar);
-  const countTransaksi = txAgg.countTransaksi;
+  const labaKotor = Math.max(0, Math.round(profitAgg.grossProfit - (txAgg.totalDiscount ?? 0)));
+  const marginPercent = penjualanKotor > 0 ? Number(((labaKotor / penjualanKotor) * 100).toFixed(1)) : 0;
+  const penerimaan = txAgg.totalOmzet;
+  const countTransaksi = txAgg.countTransaksi ?? 0;
+  const voidCount = txAgg.voidCount ?? 0;
+  const avgPerTransaksi = countTransaksi > 0 ? Math.round(totalPenjualan / countTransaksi) : 0;
+  const cashPercent = totalPenjualan > 0 ? Math.round((txAgg.cashTotal / totalPenjualan) * 100) : 0;
+  const transferPercent = totalPenjualan > 0 ? Math.max(0, 100 - cashPercent) : 0;
 
   const dayLabels = [
     '00:00', '02:00', '04:00', '06:00', '08:00', '10:00',
@@ -3476,6 +4397,16 @@ export function getDashboardSummary(period: 'HARI' | 'BULAN', tenantId: string =
     displayPenerimaan: penerimaan,
     displayTransaksi: countTransaksi,
     displayProduk: txAgg.totalProduk,
+    totalTax: txAgg.totalTax,
+    enablePpn: settings.enablePpn,
+    ppnPercent: settings.ppnPercent,
+    marginPercent,
+    avgPerTransaksi,
+    cashPercent,
+    transferPercent,
+    voidCount,
+    activeSkuCount: invAgg.activeSkuCount ?? 0,
+    lowStockCount: invAgg.lowStockCount ?? 0,
     activeLabels: labels,
     salesData: salesArr,
     trxData: trxArr,
@@ -3728,6 +4659,9 @@ export function queryUsers(opts: {
   pageSize?: number;
   search?: string;
   role?: string;
+  status?: 'all' | 'active' | 'inactive';
+  tenantId?: string;
+  shift?: 'all' | 'shift_1' | 'shift_2' | 'full_day';
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
 }): UsersPageResponse {
@@ -3735,6 +4669,9 @@ export function queryUsers(opts: {
   const pageSize = Math.min(200, Math.max(1, Math.floor(opts.pageSize ?? 10)));
   const search = (opts.search ?? '').trim().toLowerCase();
   const role = (opts.role ?? 'all').trim();
+  const status = opts.status ?? 'all';
+  const tenantId = (opts.tenantId ?? 'all').trim();
+  const shift = opts.shift ?? 'all';
   const sortDir = normalizeSortDir(opts.sortDir);
 
   let orderBySql = `rowid ${sortDir}`;
@@ -3762,13 +4699,54 @@ export function queryUsers(opts: {
 
   if (search) {
     const like = `%${search}%`;
-    conditions.push('(LOWER(fullName) LIKE ? OR LOWER(username) LIKE ? OR LOWER(email) LIKE ? OR LOWER(shiftLabel) LIKE ?)');
-    params.push(like, like, like, like);
+    const orClauses = [
+      'LOWER(fullName) LIKE ?',
+      'LOWER(username) LIKE ?',
+      'LOWER(email) LIKE ?',
+      'LOWER(shiftLabel) LIKE ?',
+      'LOWER(role) LIKE ?',
+      "EXISTS (SELECT 1 FROM tenants tn WHERE (LOWER(tn.code) LIKE ? OR LOWER(tn.name) LIKE ? OR LOWER(tn.city) LIKE ?) AND (users.role = 'owner' OR EXISTS (SELECT 1 FROM json_each(users.allowedTenantIdsJson) WHERE value = tn.id)))",
+    ];
+    const searchParams: Array<string | number> = [like, like, like, like, like, like, like, like];
+
+    if ('kepala cabang'.includes(search) || search === 'cabang' || search === 'manager') {
+      orClauses.push("role = 'branch_manager'");
+    }
+    if ('kasir'.includes(search) || 'cashier'.includes(search)) {
+      orClauses.push("role = 'cashier'");
+    }
+    if (search === 'aktif' || search === 'active') {
+      orClauses.push('isActive = 1');
+    } else if (search === 'nonaktif' || search === 'inactive') {
+      orClauses.push('isActive = 0');
+    }
+
+    conditions.push(`(${orClauses.join(' OR ')})`);
+    params.push(...searchParams);
   }
 
   if (role && role !== 'all') {
     conditions.push('role = ?');
     params.push(role);
+  }
+
+  if (status === 'active') {
+    conditions.push('isActive = 1');
+  } else if (status === 'inactive') {
+    conditions.push('isActive = 0');
+  }
+
+  if (tenantId && tenantId !== 'all') {
+    conditions.push("(role = 'owner' OR EXISTS (SELECT 1 FROM json_each(allowedTenantIdsJson) WHERE value = ?))");
+    params.push(tenantId);
+  }
+
+  if (shift === 'shift_1') {
+    conditions.push("LOWER(shiftLabel) LIKE '%shift 1%'");
+  } else if (shift === 'shift_2') {
+    conditions.push("LOWER(shiftLabel) LIKE '%shift 2%'");
+  } else if (shift === 'full_day') {
+    conditions.push("LOWER(shiftLabel) LIKE '%full day%'");
   }
 
   const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -3785,11 +4763,18 @@ export function queryUsers(opts: {
     .prepare(
       `SELECT COUNT(*) as totalUsers,
               SUM(CASE WHEN isActive = 1 THEN 1 ELSE 0 END) as activeUsers,
+              SUM(CASE WHEN role = 'owner' THEN 1 ELSE 0 END) as ownerCount,
               SUM(CASE WHEN role = 'branch_manager' THEN 1 ELSE 0 END) as managerCount,
               SUM(CASE WHEN role = 'cashier' THEN 1 ELSE 0 END) as cashierCount
        FROM users`
     )
-    .get() as { totalUsers: number; activeUsers: number | null; managerCount: number | null; cashierCount: number | null };
+    .get() as {
+    totalUsers: number;
+    activeUsers: number | null;
+    ownerCount: number | null;
+    managerCount: number | null;
+    cashierCount: number | null;
+  };
 
   return {
     items: rows.map(mapUserRow),
@@ -3800,6 +4785,7 @@ export function queryUsers(opts: {
     stats: {
       totalUsers: agg.totalUsers,
       activeUsers: agg.activeUsers ?? 0,
+      ownerCount: agg.ownerCount ?? 0,
       managerCount: agg.managerCount ?? 0,
       cashierCount: agg.cashierCount ?? 0,
     },

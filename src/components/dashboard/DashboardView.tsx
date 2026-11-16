@@ -8,6 +8,7 @@ import { ErrorBanner } from '../common/ErrorBanner';
 import { useToast } from '../../contexts/ToastContext';
 import { MoneyAmount } from '../common/MoneyAmount';
 import { KpiCard } from '../common/KpiCard';
+import { formatIDR } from '../../utils/formatters';
 
 interface DashboardViewProps {
   refreshTrigger: number;
@@ -25,6 +26,16 @@ const EMPTY_SUMMARY: DashboardSummaryResponse = {
   displayPenerimaan: 0,
   displayTransaksi: 0,
   displayProduk: 0,
+  totalTax: 0,
+  enablePpn: true,
+  ppnPercent: 11,
+  marginPercent: 0,
+  avgPerTransaksi: 0,
+  cashPercent: 0,
+  transferPercent: 0,
+  voidCount: 0,
+  activeSkuCount: 0,
+  lowStockCount: 0,
   activeLabels: ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
   salesData: Array(12).fill(0),
   trxData: Array(12).fill(0),
@@ -74,6 +85,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     displayPenerimaan,
     displayTransaksi,
     displayProduk,
+    totalTax = 0,
+    enablePpn = true,
+    ppnPercent = 11,
+    marginPercent = 0,
+    avgPerTransaksi = 0,
+    cashPercent = 0,
+    transferPercent = 0,
+    voidCount = 0,
+    activeSkuCount = 0,
+    lowStockCount = 0,
     activeLabels,
     salesData,
     trxData,
@@ -84,16 +105,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-4 pb-6">
       {/* User Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-primary-border bg-gradient-to-r from-primary-soft/85 via-white to-secondary-soft/65 p-4 sm:p-6">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-10 -top-10 w-44 h-44 rounded-full bg-primary/10"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute right-24 -bottom-14 w-32 h-32 rounded-full bg-secondary/10"
-        />
-
+      <div className="relative rounded-2xl border border-primary bg-transparent p-4 sm:p-6">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
             <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-950 leading-tight tracking-tight">
@@ -181,7 +193,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           title="Total Penjualan"
           accent="primary"
           compactMobile
-          tooltip="Total uang riil yang dibayarkan pembeli (Grand Total di struk termasuk pajak/PPN)."
+          tooltip="Total uang riil yang dibayarkan pembeli (Grand Total di struk termasuk pajak/PPN jika aktif)."
           icon={<GoogleIcon name="payments" size={15} />}
           value={
             <MoneyAmount
@@ -193,13 +205,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           }
           footer={
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 text-xs min-w-0">
-              <span className="inline-flex items-center gap-0.5 font-semibold text-rose-600 font-mono shrink-0">
-                <GoogleIcon name="trending_down" size={12} />
-                <span>92.23%</span>
-              </span>
-              <span className="text-zinc-400 truncate">
-                termasuk PPN 11%
-              </span>
+              {enablePpn ? (
+                <>
+                  <span className="font-semibold text-primary font-mono shrink-0">
+                    PPN {ppnPercent}%
+                  </span>
+                  <span className="text-zinc-500 truncate">
+                    aktif &middot; {formatIDR(totalTax)}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-emerald-600 shrink-0">
+                    Bebas PPN
+                  </span>
+                  <span className="text-zinc-500 truncate">
+                    harga final struk
+                  </span>
+                </>
+              )}
             </div>
           }
         />
@@ -208,7 +232,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           title="Penjualan Kotor"
           accent="secondary"
           compactMobile
-          tooltip="Total harga murni produk yang terjual sebelum ditambah pajak atau potongan diskon."
+          tooltip="Total harga murni produk yang terjual sebelum ditambah pajak PPN."
           icon={<GoogleIcon name="receipt_long" size={15} />}
           value={
             <MoneyAmount
@@ -220,12 +244,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           }
           footer={
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 text-xs min-w-0">
-              <span className="inline-flex items-center gap-0.5 font-semibold text-rose-600 font-mono shrink-0">
-                <GoogleIcon name="trending_down" size={12} />
-                <span>96.04%</span>
+              <span className="font-semibold text-zinc-700 font-mono shrink-0">
+                {displayTransaksi > 0 ? formatIDR(avgPerTransaksi) : 'Rp 0'}
               </span>
-              <span className="text-zinc-400 truncate">
-                sebelum pajak
+              <span className="text-zinc-500 truncate">
+                {displayTransaksi > 0 ? 'rata-rata / nota' : 'belum ada transaksi'}
               </span>
             </div>
           }
@@ -235,7 +258,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           title="Laba Kotor"
           accent="emerald"
           compactMobile
-          tooltip="Keuntungan bersih penjualan setelah dikurangi harga pokok pembelian (HPP modal produk)."
+          tooltip="Estimasi keuntungan penjualan setelah dikurangi harga pokok pembelian (HPP modal produk)."
           icon={<GoogleIcon name="trending_up" size={15} />}
           value={
             <MoneyAmount
@@ -247,22 +270,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           }
           footer={
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 text-xs min-w-0">
-              <span className="inline-flex items-center gap-0.5 font-semibold text-rose-600 font-mono shrink-0">
-                <GoogleIcon name="trending_down" size={12} />
-                <span>91.4%</span>
+              <span className="inline-flex items-center gap-0.5 font-semibold text-emerald-600 font-mono shrink-0">
+                <GoogleIcon name="trending_up" size={12} />
+                <span>{marginPercent}%</span>
               </span>
-              <span className="text-zinc-400 truncate">
-                estimasi margin HPP
+              <span className="text-zinc-500 truncate">
+                margin berbasis HPP
               </span>
             </div>
           }
         />
 
         <KpiCard
-          title="Penerimaan Kas Bersih"
+          title="Penerimaan Penjualan"
           accent="primary"
           compactMobile
-          tooltip="Total penerimaan kas bersih dari transaksi penjualan aktif."
+          tooltip="Total penerimaan pembayaran bersih dari transaksi penjualan aktif (Tunai & Transfer Bank)."
           icon={<GoogleIcon name="account_balance_wallet" size={15} />}
           value={
             <MoneyAmount
@@ -275,10 +298,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           footer={
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 text-xs min-w-0">
               <span className="font-semibold text-secondary font-mono shrink-0">
-                100%
+                Tunai {cashPercent}%
               </span>
-              <span className="text-zinc-400 truncate">
-                arus kas penjualan aktif
+              <span className="text-zinc-500 truncate">
+                &middot; Transfer {transferPercent}%
               </span>
             </div>
           }
@@ -297,13 +320,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           }
           footer={
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 text-xs min-w-0">
-              <span className="inline-flex items-center gap-0.5 font-semibold text-rose-600 font-mono shrink-0">
-                <GoogleIcon name="trending_down" size={12} />
-                <span>85%</span>
-              </span>
-              <span className="text-zinc-400 truncate">
-                transaksi selesai (non-void)
-              </span>
+              {voidCount > 0 ? (
+                <>
+                  <span className="font-semibold text-rose-600 font-mono shrink-0">
+                    {voidCount} Void
+                  </span>
+                  <span className="text-zinc-500 truncate">
+                    nota dibatalkan
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-emerald-600 shrink-0">
+                    100% Selesai
+                  </span>
+                  <span className="text-zinc-500 truncate">
+                    semua nota terverifikasi
+                  </span>
+                </>
+              )}
             </div>
           }
         />
@@ -312,7 +347,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           title="Produk Terjual"
           accent="secondary"
           compactMobile
-          tooltip="Jumlah fisik produk yang terjual keluar dari stok toko."
+          tooltip="Jumlah fisik unit produk yang terjual keluar dari stok outlet."
           icon={<GoogleIcon name="deployed_code" size={15} />}
           value={
             <div className="text-lg sm:text-2xl font-bold font-mono text-zinc-950 truncate tabular-nums tracking-tight">
@@ -321,13 +356,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           }
           footer={
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 text-xs min-w-0">
-              <span className="inline-flex items-center gap-0.5 font-semibold text-rose-600 font-mono shrink-0">
-                <GoogleIcon name="trending_down" size={12} />
-                <span>88.89%</span>
-              </span>
-              <span className="text-zinc-400 truncate">
-                unit produk keluar
-              </span>
+              {lowStockCount > 0 ? (
+                <>
+                  <span className="font-semibold text-amber-600 font-mono shrink-0">
+                    {lowStockCount} SKU
+                  </span>
+                  <span className="text-zinc-500 truncate">
+                    stok menipis (&le;5 pcs)
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-emerald-600 font-mono shrink-0">
+                    {activeSkuCount} SKU
+                  </span>
+                  <span className="text-zinc-500 truncate">
+                    produk aktif tersedia
+                  </span>
+                </>
+              )}
             </div>
           }
         />

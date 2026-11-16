@@ -23,9 +23,10 @@ const CATEGORY_CODE_MAP: Record<string, string> = {
  * Contoh: PF-418, SK-705, BC-109
  * Kompatibel penuh dengan Code 128 dan QR Code.
  */
-export function generateRetailSku(category: string, _productName = ''): string {
+export function generateRetailSku(category: string, _productName = '', customPrefix?: string): string {
+  const cleanCustom = (customPrefix || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
   const normalizedCat = category.trim().toLowerCase();
-  let catCode = CATEGORY_CODE_MAP[normalizedCat];
+  let catCode = cleanCustom || CATEGORY_CODE_MAP[normalizedCat];
   if (!catCode) {
     const cleanAlpha = normalizedCat.replace(/[^a-z]/g, '');
     catCode = (cleanAlpha.slice(0, 2) || 'PR').toUpperCase();

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export const NEW_BADGE_DURATION_MS = 5 * 60 * 1000;
 
@@ -17,9 +17,17 @@ export function useNewBadgeClock(
   timestamps: Array<string | null | undefined>
 ): number {
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
+  const timestampsKey = timestamps.filter(Boolean).join('|');
+  const prevKeyRef = useRef(timestampsKey);
 
   useEffect(() => {
     const current = Date.now();
+    if (prevKeyRef.current !== timestampsKey) {
+      prevKeyRef.current = timestampsKey;
+      setNowMs(current);
+      return;
+    }
+
     let nextExpirationDelay = Infinity;
 
     for (const ts of timestamps) {
@@ -39,7 +47,8 @@ export function useNewBadgeClock(
     }, Math.max(250, Math.min(nextExpirationDelay + 250, NEW_BADGE_DURATION_MS + 1000)));
 
     return () => window.clearTimeout(timer);
-  }, [timestamps, nowMs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timestampsKey, nowMs]);
 
   return nowMs;
 }

@@ -1,9 +1,10 @@
-import React from'react';
+import React, { useState } from 'react';
 import { GoogleIcon } from '../common/GoogleIcon';
-import { CartItem } from'../../types';
-import { formatIDR } from'../../utils/formatters';
-import Tooltip from'../Tooltip';
-import { MoneyAmount } from'../common/MoneyAmount';
+import { CartItem, PromoCampaign, PromoCouponValidationResult } from '../../types';
+import { formatIDR } from '../../utils/formatters';
+import { formatPromoDate, getPromoStatusSummary } from '../../utils/promoDuration';
+import Tooltip from '../Tooltip';
+import { MoneyAmount } from '../common/MoneyAmount';
 
 interface CartPanelProps {
   cart: CartItem[];
@@ -11,9 +12,17 @@ interface CartPanelProps {
   onRemoveItem: (id: number) => void;
   onClearCart?: () => void;
   subtotal: number;
+  grossSubtotal?: number;
+  discountAmount?: number;
   tax: number;
   taxLabel?: string;
   grandTotal: number;
+  activePromos?: PromoCampaign[];
+  appliedPromo?: PromoCouponValidationResult | null;
+  promoCouponError?: string | null;
+  isValidatingPromo?: boolean;
+  onApplyPromoCode?: (code: string) => Promise<void> | void;
+  onRemovePromoCode?: () => void;
   onOpenPaymentModal: () => void;
   onBackToCatalog?: () => void;
 }
@@ -24,13 +33,39 @@ export const CartPanel: React.FC<CartPanelProps> = ({
   onRemoveItem,
   onClearCart,
   subtotal,
+  grossSubtotal,
+  discountAmount = 0,
   tax,
   taxLabel = 'PPN (11%)',
   grandTotal,
+  activePromos = [],
+  appliedPromo = null,
+  promoCouponError = null,
+  isValidatingPromo = false,
+  onApplyPromoCode,
+  onRemovePromoCode,
   onOpenPaymentModal,
   onBackToCatalog,
 }) => {
+  const [couponInput, setCouponInput] = useState('');
+  const [showPromoPicker, setShowPromoPicker] = useState(false);
   const totalQty = cart.reduce((acc, item) => acc + item.qty, 0);
+  const displayGrossSubtotal = grossSubtotal ?? subtotal + discountAmount;
+  const hasDiscount = discountAmount > 0;
+
+  const handleSubmitCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!onApplyPromoCode || !couponInput.trim() || isValidatingPromo) return;
+    await onApplyPromoCode(couponInput.trim());
+    setShowPromoPicker(false);
+  };
+
+  const handleSelectQuickPromo = async (promo: PromoCampaign) => {
+    if (!onApplyPromoCode || isValidatingPromo) return;
+    setCouponInput(promo.code);
+    await onApplyPromoCode(promo.code);
+    setShowPromoPicker(false);
+  };
 
   return (
     <div className="w-full lg:w-[340px] xl:w-[370px] flex flex-col flex-1 min-h-0">
@@ -148,20 +183,154 @@ export const CartPanel: React.FC<CartPanelProps> = ({
         )}
       </div>
 
-      {/* Cart Totals */}
-      <div className="p-3 sm:p-4 bg-white border border-zinc-200 rounded-2xl shrink-0 mt-2 shadow-2xs">
-        <div className="space-y-1 sm:space-y-1.5 mb-2.5 sm:mb-3">
+      {/* Cart Totals & Coupon */}
+      <div className="p-3 sm:p-4 bg-white border border-zinc-200 rounded-2xl shrink-0 mt-2 shadow-2xs space-y-2.5">
+        {cart.length > 0 && onApplyPromoCode && (
+          <div className="pb-2.5 border-b border-zinc-100 space-y-2">
+            {appliedPromo ? (
+              <div className="px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <GoogleIcon name="sell" size={13} className="text-emerald-700 shrink-0" />
+                    <span className="font-mono font-bold text-xs text-emerald-900">
+                      {appliedPromo.promo.code}
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded bg-emerald-600 text-white font-mono font-bold text-[10px]">
+                      -{appliedPromo.promo.discountPercent}%
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-700 truncate mt-0.5">
+                    {appliedPromo.promo.name} &bull; s/d {formatPromoDate(appliedPromo.promo.endDate)}
+                  </p>
+                </div>
+                {onRemovePromoCode && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCouponInput('');
+                      onRemovePromoCode();
+                    }}
+                    className="w-7 h-7 aspect-square rounded-full flex items-center justify-center text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer shrink-0"
+                    title="Lepas kupon promo"
+                    aria-label="Lepas kupon promo"
+                  >
+                    <GoogleIcon name="close" size={14} />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <form onSubmit={e => void handleSubmitCoupon(e)} className="flex items-center gap-1.5">
+                  <div className="relative flex-1 min-w-0">
+                    <GoogleIcon
+                      name="confirmation_number"
+                      size={14}
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
+                    />
+                    <input
+                      type="text"
+                      value={couponInput}
+                      onChange={e => setCouponInput(e.target.value.toUpperCase())}
+                      placeholder="Kode kupon promo..."
+                      className="w-full h-8 pl-8 pr-2.5 text-xs font-mono font-semibold uppercase text-zinc-900 bg-zinc-50 border border-zinc-200 rounded-lg focus:outline-none focus:border-primary focus:bg-white transition-colors"
+                    />
+                  </div>
+                  {activePromos.length > 0 && (
+                    <Tooltip content="Pilih kupon aktif" side="top">
+                      <button
+                        type="button"
+                        onClick={() => setShowPromoPicker(prev => !prev)}
+                        className={`h-8 px-2 rounded-lg border text-xs font-mono font-bold inline-flex items-center gap-1 transition-colors cursor-pointer shrink-0 ${
+                          showPromoPicker
+                            ? 'bg-amber-50 border-amber-300 text-amber-800'
+                            : 'bg-zinc-50 hover:bg-zinc-100 border-zinc-200 text-zinc-700'
+                        }`}
+                      >
+                        <GoogleIcon name="sell" size={13} />
+                        <span>{activePromos.length}</span>
+                      </button>
+                    </Tooltip>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={!couponInput.trim() || isValidatingPromo}
+                    className="h-8 px-3 rounded-lg bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-xs font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed shrink-0"
+                  >
+                    {isValidatingPromo ? '...' : 'Pakai'}
+                  </button>
+                </form>
+
+                {showPromoPicker && activePromos.length > 0 && (
+                  <div className="max-h-36 overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50/70 divide-y divide-zinc-200/70">
+                    {activePromos.map(promo => {
+                      const summary = getPromoStatusSummary(promo);
+                      return (
+                        <button
+                          key={promo.id}
+                          type="button"
+                          onClick={() => void handleSelectQuickPromo(promo)}
+                          className="w-full px-2.5 py-2 text-left hover:bg-white transition-colors cursor-pointer flex items-center justify-between gap-2"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono font-bold text-xs text-zinc-900">
+                                {promo.code}
+                              </span>
+                              <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-mono font-bold text-[10px]">
+                                -{promo.discountPercent}%
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-zinc-500 truncate">
+                              {summary.detailText}
+                              {promo.minPurchase && promo.minPurchase > 0
+                                ? ` • Min. ${formatIDR(promo.minPurchase)}`
+                                : ''}
+                            </p>
+                          </div>
+                          <span className="text-[11px] font-semibold text-primary shrink-0">
+                            Pakai
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {promoCouponError && (
+                  <p className="text-[11px] font-medium text-rose-600 flex items-start gap-1 leading-snug">
+                    <GoogleIcon name="error" size={13} className="shrink-0 mt-0.5" />
+                    <span>{promoCouponError}</span>
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        <div className="space-y-1 sm:space-y-1.5">
           <div className="flex items-center justify-between gap-3 text-xs sm:text-sm">
-            <span className="text-gray-600 font-medium shrink-0">Subtotal</span>
+            <span className="text-gray-600 font-medium shrink-0">
+              {hasDiscount ? 'Subtotal Produk' : 'Subtotal'}
+            </span>
             <div className="flex-1 min-w-0 text-right">
               <MoneyAmount
-                value={subtotal}
+                value={hasDiscount ? displayGrossSubtotal : subtotal}
                 maxFontPx={14}
                 minFontPx={11}
                 className="text-gray-900 font-semibold font-mono tabular-nums"
               />
             </div>
           </div>
+          {hasDiscount && (
+            <div className="flex items-center justify-between gap-3 text-xs sm:text-sm">
+              <span className="text-emerald-700 font-medium shrink-0 truncate">
+                Diskon ({appliedPromo?.promo.code || 'Kupon'})
+              </span>
+              <div className="flex-1 min-w-0 text-right font-mono font-semibold text-emerald-700 tabular-nums">
+                -{formatIDR(discountAmount)}
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between gap-3 text-xs sm:text-sm">
             <span className="text-gray-600 font-medium shrink-0">{taxLabel}</span>
             <div className="flex-1 min-w-0 text-right">

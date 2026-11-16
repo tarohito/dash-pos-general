@@ -353,7 +353,7 @@ export const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
               <span>Akses Global Aktif (Semua {tenants.length} outlet &amp; seluruh fitur manajemen)</span>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
               {tenants.map(t => {
                 const checked = allowedTenantIds.includes(t.id);
                 return (

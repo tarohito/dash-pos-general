@@ -25,6 +25,8 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   if (!isOpen || !transaction) return null;
 
   const isVoid = transaction.status === 'void';
+  const discountAmount = transaction.discountAmount || 0;
+  const grossSubtotal = transaction.subtotal + discountAmount;
   const methodLabel =
     transaction.paymentMethod === 'cash'
       ? 'Tunai'
@@ -265,9 +267,19 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   Subtotal ({transaction.totalQty} pcs)
                 </span>
                 <span className="font-mono font-semibold text-gray-900 tabular-nums">
-                  {formatIDR(transaction.subtotal)}
+                  {formatIDR(discountAmount > 0 ? grossSubtotal : transaction.subtotal)}
                 </span>
               </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-emerald-700">
+                  <span className="font-medium">
+                    Diskon Kupon{transaction.promoCode ? ` (${transaction.promoCode})` : ''}
+                  </span>
+                  <span className="font-mono font-semibold tabular-nums">
+                    -{formatIDR(discountAmount)}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-gray-600">{transaction.tax > 0 ? 'PPN / Pajak' : 'PPN (Non-PKP)'}</span>
                 <span className="font-mono font-semibold text-gray-900 tabular-nums">

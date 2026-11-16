@@ -20,6 +20,11 @@ import {
   MODAL_FOOTER_END_CLASS,
   ModalShell,
 } from '../common/ModalShell';
+import {
+  formatPromoDate,
+  getPromoEffectiveStatus,
+  getPromoStatusSummary,
+} from '../../utils/promoDuration';
 
 interface PromoBroadcastModalProps {
   isOpen: boolean;
@@ -148,7 +153,8 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
 
     const fallbackPromo =
       initialPromo ||
-      promos.find(p => p.isActive) ||
+      promos.find(p => getPromoEffectiveStatus(p) === 'active') ||
+      promos.find(p => getPromoEffectiveStatus(p) === 'scheduled') ||
       promos[0] ||
       null;
     setSelectedPromoId(fallbackPromo?.id ?? '');
@@ -220,6 +226,12 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
     () => promos.find(p => p.id === selectedPromoId) ?? initialPromo ?? null,
     [promos, selectedPromoId, initialPromo]
   );
+
+  const selectedPromoSummary = useMemo(
+    () => (selectedPromo ? getPromoStatusSummary(selectedPromo) : null),
+    [selectedPromo]
+  );
+  const isSelectedPromoExpired = selectedPromoSummary?.status === 'expired';
 
   const segmentCounts = useMemo(() => {
     const base = activeBuyersOnly ? audienceList.filter(c => c.hasTransacted) : audienceList;
@@ -329,6 +341,13 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
   const handleCreateBroadcast = async () => {
     if (!selectedPromo) {
       showToast('warning', 'Pilih promo yang akan di-broadcast terlebih dahulu.');
+      return;
+    }
+    if (getPromoEffectiveStatus(selectedPromo) === 'expired') {
+      showToast(
+        'warning',
+        `Masa berlaku promo "${selectedPromo.name}" sudah berakhir pada ${formatPromoDate(selectedPromo.endDate)}. Perpanjang durasi promo terlebih dahulu.`
+      );
       return;
     }
     if (targetRecipients.length === 0) {
@@ -476,6 +495,7 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
               disabled={
                 isSending ||
                 !selectedPromo ||
+                isSelectedPromoExpired ||
                 targetRecipients.length === 0 ||
                 !messageTemplate.trim() ||
                 isGatewayBlockedBySafeLimit
@@ -594,12 +614,15 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                     onChange={setSelectedPromoId}
                     placeholder="Pilih kampanye promo..."
                     icon={<GoogleIcon name="label" size={15} />}
-                    options={promos.map(p => ({
-                      value: p.id,
-                      label: p.name,
-                      sublabel: `${p.startDate} s/d ${p.endDate}${p.isActive ? '' : ' • Nonaktif'}`,
-                      badge: `${p.code} (-${p.discountPercent}%)`,
-                    }))}
+                    options={promos.map(p => {
+                      const summary = getPromoStatusSummary(p);
+                      return {
+                        value: p.id,
+                        label: p.name,
+                        sublabel: `${formatPromoDate(p.startDate)} s/d ${formatPromoDate(p.endDate)} • ${summary.label} (${summary.detailText})`,
+                        badge: `${p.code} (-${p.discountPercent}%)`,
+                      };
+                    })}
                   />
                 )}
               </div>
@@ -641,6 +664,20 @@ export const PromoBroadcastModal: React.FC<PromoBroadcastModalProps> = ({
                 )}
               </div>
             </div>
+
+            {selectedPromo && isSelectedPromoExpired && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2">
+                <GoogleIcon name="event_busy" size={16} className="shrink-0 mt-0.5 text-rose-600" />
+                <div>
+                  <strong className="font-bold block">Masa Berlaku Promo Sudah Berakhir</strong>
+                  <span>
+                    Promo <strong>{selectedPromo.name}</strong> ({selectedPromo.code}) berakhir pada{' '}
+                    {formatPromoDate(selectedPromo.endDate)}. Perpanjang durasi promo di menu Promo sebelum
+                    mengirim broadcast.
+                  </span>
+                </div>
+              </div>
+            )}
 
             {gatewayConfig.gatewayConfigured && deliveryMode === 'gateway' && (
               <div>

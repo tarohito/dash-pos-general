@@ -11,7 +11,6 @@ import { posApi } from '../../services/api';
 import { useDebounce } from '../../hooks/useDebounce';
 import {
   compressAndCropSquareToWebP,
-  formatBytes,
 } from '../../utils/imageCompressor';
 import {
   ModalShell,
@@ -56,10 +55,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [compressionInfo, setCompressionInfo] = useState<{
-    sizeBytes: number;
-    originalSizeBytes: number;
-  } | null>(null);
   const [isGeneratingSku, setIsGeneratingSku] = useState(false);
   const [skuCheckState, setSkuCheckState] = useState<{
     status: 'idle' | 'checking' | 'available' | 'duplicate';
@@ -109,7 +104,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     }
 
     setErrorMsg(null);
-    setCompressionInfo(null);
     setSkuCheckState({ status: 'idle' });
     const defaultCategory = categories[0] || 'Parfum';
 
@@ -214,15 +208,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     try {
       const result = await compressAndCropSquareToWebP(file, { targetSize: 600, quality: 0.82 });
       setFormData(prev => ({ ...prev, image: result.dataUrl }));
-      setCompressionInfo({
-        sizeBytes: result.sizeBytes,
-        originalSizeBytes: result.originalSizeBytes,
-      });
-      showToast(
-        'success',
-        `Foto berhasil dipotong 1:1 dan dikompres ke WebP (${formatBytes(result.sizeBytes)})`,
-        'Kompresi Gambar'
-      );
+      showToast('success', 'Foto produk siap digunakan.');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Gagal memproses gambar.';
       failValidation(msg);
@@ -351,7 +337,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           lebar: lebarNum,
           tinggi: tinggiNum,
           status: formData.status,
-          image: cleanImage || '/assets/products/parfum.jpg',
+          image: cleanImage,
         },
         editingProduct?.id
       );
@@ -440,8 +426,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             </p>
           </div>
 
-          {/* Kategori, Merek, Kondisi */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Kategori, Merek & Kondisi */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-zinc-700 mb-1">
                 Kategori <span className="text-red-500">*</span>
@@ -460,14 +446,14 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between gap-2 mb-1">
                 <label className="block text-xs font-semibold text-zinc-700">
                   Merek / Brand
                 </label>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, brand: 'No Brand' })}
-                  className="text-xs font-medium text-primary hover:underline cursor-pointer"
+                  className="text-xs font-medium text-primary hover:underline cursor-pointer shrink-0"
                 >
                   Set "No Brand"
                 </button>
@@ -476,33 +462,29 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 type="text"
                 value={formData.brand}
                 onChange={e => setFormData({ ...formData, brand: e.target.value })}
-                placeholder="Contoh: Kahf, Wardah, No Brand"
+                placeholder="Contoh: Samsung, Kahf, Wardah, No Brand"
                 className="w-full h-10 px-3.5 text-sm font-medium bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
+          </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1">
-                Kondisi Produk
-              </label>
-              <div className="grid grid-cols-2 gap-1.5 h-10">
-                {(['Baru', 'Bekas'] as ProductCondition[]).map(cond => (
-                  <button
-                    key={cond}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, kondisi: cond })}
-                    className={`h-full rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      formData.kondisi === cond
-                        ? 'bg-primary text-white shadow-xs'
-                        : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
-                    }`}
-                  >
-                    <GoogleIcon name={cond === 'Baru' ? 'verified' : 'history'} size={14} />
-                    <span>{cond}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="sm:w-1/2 sm:pr-1.5">
+            <label className="block text-xs font-semibold text-zinc-700 mb-1">
+              Kondisi Produk
+            </label>
+            <CustomSelect
+              value={formData.kondisi}
+              onChange={val =>
+                setFormData(prev => ({
+                  ...prev,
+                  kondisi: val === 'Bekas' ? 'Bekas' : 'Baru',
+                }))
+              }
+              options={[
+                { value: 'Baru', label: 'Baru' },
+                { value: 'Bekas', label: 'Bekas / Preloved' },
+              ]}
+            />
           </div>
 
           {/* Deskripsi Produk */}
@@ -522,7 +504,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 
         {/* SECTION 2: HARGA, STOK & IDENTITAS BARCODE */}
         <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-2xl p-4 sm:p-5 space-y-3.5">
-          <div className="flex items-center justify-between pb-2.5 border-b border-zinc-200/70">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-zinc-200/70">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <GoogleIcon name="payments" size={15} />
@@ -538,8 +520,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="min-w-0">
               <label className="block text-xs font-semibold text-zinc-700 mb-1">
                 Harga Jual (Rp) <span className="text-red-500">*</span>
               </label>
@@ -549,11 +531,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 prefix="Rp"
                 placeholder="185.000"
                 required
-                className="w-full h-10 px-3.5 text-sm font-bold font-mono text-zinc-950 bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 pr-3.5 text-sm font-bold font-mono text-zinc-950 bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
-            <div>
+            <div className="min-w-0">
               <label className="block text-xs font-semibold text-zinc-700 mb-1">
                 Harga Modal / HPP (Rp)
               </label>
@@ -562,11 +544,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 onChange={val => setFormData({ ...formData, hpp: String(val) })}
                 prefix="Rp"
                 placeholder="120.000"
-                className="w-full h-10 px-3.5 text-sm font-bold font-mono text-zinc-700 bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 pr-3.5 text-sm font-bold font-mono text-zinc-700 bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
-            <div>
+            <div className="min-w-0">
               <label className="block text-xs font-semibold text-zinc-700 mb-1">
                 Stok Fisik (pcs) <span className="text-red-500">*</span>
               </label>
@@ -576,17 +558,17 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 placeholder="24"
                 suffix="pcs"
                 required
-                className="w-full h-10 px-3.5 text-sm font-bold font-mono bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full h-10 pl-3.5 text-sm font-bold font-mono bg-white border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               />
             </div>
 
-            <div>
+            <div className="min-w-0">
               <label className="block text-xs font-semibold text-zinc-700 mb-1">
                 Status Produk
               </label>
-              <div className="flex items-center justify-between h-10 px-3.5 bg-white border border-zinc-200 rounded-xl">
+              <div className="flex items-center justify-between gap-2 h-10 px-3.5 bg-white border border-zinc-200 rounded-xl">
                 <span
-                  className={`text-sm font-semibold select-none transition-colors ${
+                  className={`text-sm font-semibold select-none truncate transition-colors ${
                     formData.status === 'Aktif' ? 'text-emerald-700' : 'text-zinc-500'
                   }`}
                 >
@@ -613,7 +595,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 
           {/* SKU / Barcode */}
           <div>
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
               <label className="block text-xs font-semibold text-zinc-700">
                 SKU Induk / Kode Barcode (Code 128) <span className="text-red-500">*</span>
               </label>
@@ -755,22 +737,17 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           </div>
         </div>
 
-        {/* SECTION 4: UPLOAD FOTO 1:1 (AUTO KOMPRES WEBP) & PRATINJAU BARCODE */}
+        {/* SECTION 4: UPLOAD FOTO & PRATINJAU BARCODE */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
-          {/* Upload Foto 1:1 Auto Kompres WebP */}
+          {/* Upload Foto Produk */}
           <div className="lg:col-span-7 bg-zinc-50/70 border border-zinc-200/80 rounded-2xl p-4 sm:p-5 space-y-3.5">
-            <div className="flex items-center justify-between pb-2.5 border-b border-zinc-200/70">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <GoogleIcon name="add_a_photo" size={15} />
-                </div>
-                <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider">
-                  4. Foto Produk 1:1 (WebP)
-                </h4>
+            <div className="flex items-center gap-2 pb-2.5 border-b border-zinc-200/70">
+              <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <GoogleIcon name="add_a_photo" size={15} />
               </div>
-              <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
-                Auto Kompres WebP
-              </span>
+              <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider">
+                4. Foto Produk
+              </h4>
             </div>
 
             {/* Hidden Native File Input */}
@@ -800,104 +777,54 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 {isCompressing ? (
                   <div className="py-8 flex flex-col items-center justify-center gap-2 text-primary">
                     <GoogleIcon name="progress_activity" size={28} className="animate-spin" />
-                    <span className="text-xs font-bold">Memotong 1:1 &amp; Mengompres ke WebP...</span>
+                    <span className="text-xs font-bold">Memproses gambar...</span>
                   </div>
                 ) : (
                   <div className="flex flex-col sm:flex-row items-center gap-4">
-                    {/* 1:1 Square Thumbnail */}
-                    <div className="relative w-24 h-24 sm:w-28 sm:h-28 aspect-square rounded-xl overflow-hidden bg-zinc-100 border border-zinc-200 shrink-0 shadow-2xs group">
-                      <img
-                        src={formData.image || '/assets/products/parfum.jpg'}
-                        alt="Preview Foto Produk 1:1"
-                        className="w-full h-full object-cover"
-                      />
-                      <span className="absolute top-1 left-1 bg-zinc-950/70 text-white text-[9px] font-mono font-bold px-1.5 py-0.5 rounded shadow-xs">
-                        1:1
-                      </span>
-                      {formData.image.startsWith('data:image/webp') && (
-                        <span className="absolute bottom-1 right-1 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs">
-                          WebP
-                        </span>
+                    {/* Square Thumbnail */}
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 aspect-square shrink-0 rounded-xl overflow-hidden bg-zinc-100 border border-zinc-200 shadow-2xs flex items-center justify-center">
+                      {formData.image ? (
+                        <img
+                          src={formData.image}
+                          alt="Preview Foto Produk"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <GoogleIcon name="add_a_photo" size={26} className="text-zinc-300" />
                       )}
                     </div>
 
-                    {/* Upload Controls & Details */}
-                    <div className="flex-1 text-center sm:text-left min-w-0">
-                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1.5">
+                    {/* Upload Controls */}
+                    <div className="flex-1 flex flex-col items-center sm:items-start gap-1.5 min-w-0">
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="h-8 px-3 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                          className="h-9 px-3.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
                         >
                           <GoogleIcon name="upload" size={14} />
                           <span>Pilih Foto Baru</span>
                         </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, image: '/assets/products/parfum.jpg' }));
-                            setCompressionInfo(null);
-                          }}
-                          className="h-8 px-2.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-medium inline-flex items-center gap-1 cursor-pointer transition-colors"
-                        >
-                          <GoogleIcon name="refresh" size={13} />
-                          <span>Reset</span>
-                        </button>
+                        {formData.image && (
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, image: '' }))}
+                            aria-label="Hapus foto produk"
+                            title="Hapus foto produk"
+                            className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-xs flex items-center justify-center cursor-pointer transition-colors active:scale-95 shrink-0"
+                          >
+                            <GoogleIcon name="delete" size={16} />
+                          </button>
+                        )}
                       </div>
-
-                      <p className="text-xs text-zinc-600 font-medium leading-relaxed">
-                        Tarik file foto ke sini atau klik tombol di atas.
+                      <p className="text-xs text-zinc-500 text-center sm:text-left leading-relaxed">
+                        Format JPG atau PNG, atau seret gambar ke kotak ini.
                       </p>
-                      <p className="text-xs text-zinc-400 mt-0.5">
-                        Foto otomatis dipotong simetris 1:1 &amp; dikompres ke WebP (600x600 px).
-                      </p>
-
-                      {compressionInfo && (
-                        <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                          <GoogleIcon name="check_circle" size={12} className="text-emerald-600" />
-                          <span>
-                            Dikompresi: {formatBytes(compressionInfo.sizeBytes)} (dari {formatBytes(compressionInfo.originalSizeBytes)})
-                          </span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Preset Foto Cepat */}
-              <div>
-                <label className="block text-xs font-semibold text-zinc-600 mb-1.5">
-                  Atau pilih cepat dari preset gambar retail:
-                </label>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {[
-                    { label: 'Parfum', img: '/assets/products/parfum.jpg' },
-                    { label: 'Serum', img: '/assets/products/serum.jpg' },
-                    { label: 'Krim', img: '/assets/products/cream.jpg' },
-                    { label: 'Body Care', img: '/assets/products/bodycare.jpg' },
-                    { label: 'Make Up', img: '/assets/products/makeup.jpg' },
-                  ].map((p, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        setFormData({ ...formData, image: p.img });
-                        setCompressionInfo(null);
-                      }}
-                      className={`p-1.5 border rounded-xl flex flex-col items-center gap-1 cursor-pointer transition-all ${
-                        formData.image === p.img
-                          ? 'border-primary bg-primary-soft ring-2 ring-primary/20'
-                          : 'border-zinc-200 bg-white hover:border-zinc-300'
-                      }`}
-                    >
-                      <img src={p.img} alt={p.label} className="w-8 h-8 object-cover rounded-lg aspect-square" />
-                      <span className="text-xs font-semibold text-zinc-700">{p.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
 

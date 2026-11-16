@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { GoogleIcon } from '../common/GoogleIcon';
-import { CategoryStatsItem } from '../../types';
+import { CategoryStatsItem, Product } from '../../types';
 import { ActionDropdownMenu } from '../common/ActionDropdownMenu';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { posApi } from '../../services/api';
@@ -9,13 +9,21 @@ import { PaginationControls } from '../common/PaginationControls';
 import { ErrorBanner } from '../common/ErrorBanner';
 import { SearchInput } from '../common/SearchInput';
 import { useToast } from '../../contexts/ToastContext';
+import { KpiCard } from '../common/KpiCard';
 import { NewBadge } from '../common/NewBadge';
 import { isRecentlyCreated, useNewBadgeClock } from '../../utils/newBadge';
+import { formatIDR } from '../../utils/formatters';
 import {
   SortableTh,
   SortDirection,
   getNextColumnSort,
 } from '../common/TableSortControls';
+import {
+  ModalShell,
+  MODAL_FOOTER_END_CLASS,
+  MODAL_BTN_SECONDARY_CLASS,
+  MODAL_BTN_PRIMARY_CLASS,
+} from '../common/ModalShell';
 
 interface CategoryListViewProps {
   refreshTrigger: number;
@@ -28,7 +36,6 @@ interface CategoryRow {
   name: string;
   count: number;
   totalStok: number;
-  totalGram: number;
   createdAt?: string;
 }
 
@@ -46,13 +53,40 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
   const [retryCount, setRetryCount] = useState(0);
 
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'filled' | 'empty'>('all');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortDir, setSortDir] = useState<SortDirection>('asc');
 
   const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [detailCategory, setDetailCategory] = useState<CategoryRow | null>(null);
+  const [detailProducts, setDetailProducts] = useState<Product[]>([]);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const { showToast } = useToast();
+
+  useEffect(() => {
+    if (!detailCategory) {
+      setDetailProducts([]);
+      return;
+    }
+    const controller = new AbortController();
+    setIsLoadingDetail(true);
+    posApi
+      .getProducts(
+        { category: detailCategory.name, page: 1, pageSize: 8, sortBy: 'newest', sortDir: 'desc' },
+        controller.signal
+      )
+      .then(res => {
+        setDetailProducts(res.items || []);
+        setIsLoadingDetail(false);
+      })
+      .catch(err => {
+        if ((err as Error).name !== 'AbortError') {
+          setDetailProducts([]);
+          setIsLoadingDetail(false);
+        }
+      });
+    return () => controller.abort();
+  }, [detailCategory]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -79,12 +113,11 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
 
   const rows = useMemo<CategoryRow[]>(() => {
     return categories.map(name => {
-      const stats = categoryStats[name] || { count: 0, totalStok: 0, totalGram: 0 };
+      const stats = categoryStats[name] || { count: 0, totalStok: 0 };
       return {
         name,
-        count: stats.count ?? 0,
-        totalStok: stats.totalStok ?? 0,
-        totalGram: stats.totalGram ?? 0,
+        count: stats.directCount ?? stats.count ?? 0,
+        totalStok: stats.directStok ?? stats.totalStok ?? 0,
         createdAt: categoryCreatedAt[name],
       };
     });
@@ -97,11 +130,13 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
     let filledCount = 0;
     let emptyCount = 0;
     let totalSku = 0;
+    let totalStok = 0;
 
     for (const row of rows) {
       if (row.count > 0) filledCount += 1;
       else emptyCount += 1;
       totalSku += row.count;
+      totalStok += row.totalStok;
     }
 
     return {
@@ -109,32 +144,40 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
       filledCount,
       emptyCount,
       totalSku,
+      totalStok,
     };
   }, [rows]);
 
   const filteredAndSortedRows = useMemo(() => {
     const q = search.trim().toLowerCase();
     const filtered = rows.filter(row => {
-      if (q && !row.name.toLowerCase().includes(q)) return false;
-      if (statusFilter === 'filled' && row.count === 0) return false;
-      if (statusFilter === 'empty' && row.count > 0) return false;
-      return true;
+      if (!q) return true;
+      const statusText = row.count > 0 ? 'terisi' : 'kosong';
+      return row.name.toLowerCase().includes(q) || statusText.includes(q);
     });
 
+    const isDefaultSort = sortBy === 'name' && sortDir === 'asc';
     const factor = sortDir === 'asc' ? 1 : -1;
     return [...filtered].sort((a, b) => {
-      const aNew = isRecentlyCreated(a.createdAt, nowMs);
-      const bNew = isRecentlyCreated(b.createdAt, nowMs);
-      if (aNew !== bNew) return aNew ? -1 : 1;
-      if (aNew && bNew) {
-        return Date.parse(b.createdAt || '') - Date.parse(a.createdAt || '');
+      if (isDefaultSort) {
+        const aNew = isRecentlyCreated(a.createdAt, nowMs);
+        const bNew = isRecentlyCreated(b.createdAt, nowMs);
+        if (aNew !== bNew) return aNew ? -1 : 1;
+        if (aNew && bNew) {
+          return Date.parse(b.createdAt || '') - Date.parse(a.createdAt || '');
+        }
       }
-      if (sortBy === 'count') return (a.count - b.count) * factor;
-      if (sortBy === 'totalStok') return (a.totalStok - b.totalStok) * factor;
-      if (sortBy === 'totalGram') return (a.totalGram - b.totalGram) * factor;
+      if (sortBy === 'count') {
+        const diff = (a.count - b.count) * factor;
+        return diff !== 0 ? diff : a.name.localeCompare(b.name, 'id-ID');
+      }
+      if (sortBy === 'totalStok') {
+        const diff = (a.totalStok - b.totalStok) * factor;
+        return diff !== 0 ? diff : a.name.localeCompare(b.name, 'id-ID');
+      }
       return a.name.localeCompare(b.name, 'id-ID') * factor;
     });
-  }, [rows, search, statusFilter, sortBy, sortDir, nowMs]);
+  }, [rows, search, sortBy, sortDir, nowMs]);
 
   const {
     currentPage,
@@ -148,11 +191,6 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
-    goToPage(1);
-  };
-
-  const handleStatusFilterChange = (nextStatus: 'all' | 'filled' | 'empty') => {
-    setStatusFilter(nextStatus);
     goToPage(1);
   };
 
@@ -174,11 +212,16 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
     }
   };
 
-  const hasActiveFilter = search.trim().length > 0 || statusFilter !== 'all';
+  const hasSearchQuery = search.trim().length > 0;
+
+  const handleClearSearch = () => {
+    setSearch('');
+    goToPage(1);
+  };
 
   return (
     <div className="space-y-4 pb-8">
-      {/* Page Header (Unboxed, Tanpa Card) */}
+      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
@@ -188,7 +231,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
             {isLoading && <GoogleIcon name="progress_activity" size={14} className="animate-spin text-primary" />}
           </div>
           <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
-            Kelola klasifikasi kategori produk serta pantau sebaran model SKU, stok fisik, dan total netto.
+            Kelola kategori produk toko agar mudah dicari di kasir dan daftar barang.
           </p>
         </div>
 
@@ -204,36 +247,80 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
         </div>
       </div>
 
-      {/* Search, Filter & Table Workspace (Unboxed, Tanpa Card Pembungkus) */}
-      <div className="space-y-3.5">
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-          <SearchInput
-            value={search}
-            onChange={handleSearchChange}
-            placeholder="Cari nama kategori produk..."
-          />
+      {/* 4 Simple KPI Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <KpiCard
+          title="Total Kategori"
+          accent="primary"
+          icon={<GoogleIcon name="category" size={16} />}
+          value={
+            <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
+              {summary.totalCategories} Kategori
+            </div>
+          }
+          footer={
+            <p className="text-xs text-zinc-500 mt-1 truncate">
+              Mendukung semua jenis produk
+            </p>
+          }
+        />
 
-          <div className="inline-flex h-9 p-0.5 bg-zinc-100/90 rounded-full border border-zinc-200 items-center overflow-x-auto max-w-full shrink-0">
-            {[
-              { id: 'all' as const, label: `Semua (${summary.totalCategories})` },
-              { id: 'filled' as const, label: `Terisi (${summary.filledCount})` },
-              { id: 'empty' as const, label: `Kosong (${summary.emptyCount})` },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => handleStatusFilterChange(tab.id)}
-                className={`h-full px-3 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer flex items-center justify-center whitespace-nowrap ${
-                  statusFilter === tab.id
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'text-zinc-500 hover:text-zinc-950'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <KpiCard
+          title="Kategori Terisi"
+          accent="emerald"
+          icon={<GoogleIcon name="check_circle" size={16} />}
+          value={
+            <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-700 tracking-tight truncate tabular-nums">
+              {summary.filledCount} Terisi
+            </div>
+          }
+          footer={
+            <p className="text-xs text-zinc-500 mt-1 truncate">
+              {summary.emptyCount} kategori belum memiliki produk
+            </p>
+          }
+        />
+
+        <KpiCard
+          title="Total Produk"
+          accent="secondary"
+          icon={<GoogleIcon name="layers" size={16} />}
+          value={
+            <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
+              {summary.totalSku} SKU
+            </div>
+          }
+          footer={
+            <p className="text-xs text-zinc-500 mt-1 truncate">
+              Total model produk di semua kategori
+            </p>
+          }
+        />
+
+        <KpiCard
+          title="Total Stok"
+          accent="accent"
+          icon={<GoogleIcon name="deployed_code" size={16} />}
+          value={
+            <div className="text-xl sm:text-2xl font-bold font-mono text-zinc-950 tracking-tight truncate tabular-nums">
+              {summary.totalStok} Pcs
+            </div>
+          }
+          footer={
+            <p className="text-xs text-zinc-500 mt-1 truncate">
+              Akumulasi unit stok lintas kategori
+            </p>
+          }
+        />
+      </div>
+
+      {/* Search & Simple Table Workspace */}
+      <div className="space-y-3">
+        <SearchInput
+          value={search}
+          onChange={handleSearchChange}
+          placeholder="Cari nama kategori atau status (terisi / kosong)..."
+        />
 
         {fetchError && (
           <ErrorBanner
@@ -243,7 +330,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
           />
         )}
 
-        {/* Table & Mobile Cards (Unboxed) */}
+        {/* Table & Mobile Cards */}
         <div className="overflow-hidden">
           {/* MOBILE LIST CARDS (md:hidden) */}
           <div className="md:hidden divide-y divide-zinc-200/80 border-t border-zinc-200">
@@ -257,11 +344,20 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                 <GoogleIcon name="layers" size={36} className="mx-auto mb-2 text-zinc-300" />
                 <p className="text-sm font-semibold text-zinc-600">Tidak ada kategori produk</p>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  {hasActiveFilter
-                    ? 'Coba ubah filter status atau kata kunci pencarian.'
+                  {hasSearchQuery
+                    ? `Pencarian "${search}" tidak cocok dengan kategori mana pun.`
                     : 'Belum ada kategori terdaftar di toko.'}
                 </p>
-                {!hasActiveFilter && (
+                {hasSearchQuery ? (
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary-soft hover:bg-primary-soft/80 rounded-xl transition-colors cursor-pointer border border-primary-border"
+                  >
+                    <GoogleIcon name="close" size={14} />
+                    <span>Bersihkan Pencarian</span>
+                  </button>
+                ) : (
                   <button
                     type="button"
                     onClick={onOpenAddCategoryModal}
@@ -273,10 +369,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                 )}
               </div>
             ) : (
-              paginatedItems.map(row => {
-                const sharePercent =
-                  summary.totalSku > 0 ? Math.round((row.count / summary.totalSku) * 100) : 0;
-                return (
+              paginatedItems.map(row => (
                   <div
                     key={row.name}
                     className="p-4 flex flex-col gap-3 hover:bg-zinc-50/70 transition-colors"
@@ -284,7 +377,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="w-10 h-10 rounded-xl bg-zinc-50 text-zinc-700 border border-zinc-200/80 flex items-center justify-center shrink-0">
-                          <GoogleIcon name="deployed_code" size={18} />
+                          <GoogleIcon name="category" size={18} />
                         </span>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 min-w-0">
@@ -292,7 +385,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                             {isRecentlyCreated(row.createdAt, nowMs) && <NewBadge />}
                           </div>
                           <p className="text-xs text-gray-500 mt-0.5 font-mono tabular-nums">
-                            {row.count} SKU · {sharePercent}% katalog
+                            {row.count} SKU
                           </p>
                         </div>
                       </div>
@@ -311,15 +404,9 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                     <div className="pt-2.5 border-t border-gray-100 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-4 text-xs text-gray-500">
                         <span>
-                          Stok:{' '}
+                          Total Stok:{' '}
                           <strong className="text-gray-900 font-mono tabular-nums">
                             {row.totalStok} pcs
-                          </strong>
-                        </span>
-                        <span>
-                          Berat:{' '}
-                          <strong className="text-zinc-950 font-mono tabular-nums">
-                            {Number(row.totalGram.toFixed(2))} gr
                           </strong>
                         </span>
                       </div>
@@ -327,6 +414,12 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                       <ActionDropdownMenu
                         ariaLabel={`Aksi untuk ${row.name}`}
                         items={[
+                          {
+                            id: 'detail',
+                            label: 'Lihat Detail',
+                            icon: <GoogleIcon name="visibility" size={14} />,
+                            onClick: () => setDetailCategory(row),
+                          },
                           {
                             id: 'edit',
                             label: 'Edit Kategori',
@@ -347,8 +440,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                       />
                     </div>
                   </div>
-                );
-              })
+                ))
             )}
           </div>
 
@@ -366,7 +458,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                     className="py-3 px-3.5 sm:px-4"
                   />
                   <SortableTh
-                    label="Model SKU"
+                    label="Jumlah Produk"
                     sortKey="count"
                     currentSortBy={sortBy}
                     currentSortDir={sortDir}
@@ -383,15 +475,6 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                     align="center"
                     className="py-3 px-3 sm:px-4"
                   />
-                  <SortableTh
-                    label="Total Berat"
-                    sortKey="totalGram"
-                    currentSortBy={sortBy}
-                    currentSortDir={sortDir}
-                    onSort={key => handleHeaderSort(key, 'desc')}
-                    align="right"
-                    className="py-3 px-3 sm:px-4"
-                  />
                   <th className="py-3 px-3 sm:px-4 text-center">Status</th>
                   <th className="py-3 px-3 sm:px-4 text-center">Aksi</th>
                 </tr>
@@ -399,7 +482,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
               <tbody className="divide-y divide-zinc-200/70 font-medium text-zinc-700">
                 {isLoading && rows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-zinc-400">
+                    <td colSpan={5} className="py-12 text-center text-zinc-400">
                       <div className="inline-flex items-center gap-2">
                         <GoogleIcon name="progress_activity" size={18} className="animate-spin text-primary" />
                         <span>Memuat daftar kategori...</span>
@@ -408,17 +491,26 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                   </tr>
                 ) : paginatedItems.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-zinc-400">
+                    <td colSpan={5} className="py-12 text-center text-zinc-400">
                       <GoogleIcon name="layers" size={36} className="mx-auto mb-2 text-zinc-300" />
                       <p className="text-sm font-semibold text-zinc-600">
                         Tidak ada kategori produk
                       </p>
                       <p className="text-xs text-zinc-400 mt-0.5">
-                        {hasActiveFilter
-                          ? 'Coba ubah filter status atau kata kunci pencarian.'
+                        {hasSearchQuery
+                          ? `Pencarian "${search}" tidak cocok dengan kategori mana pun.`
                           : 'Belum ada kategori terdaftar di toko.'}
                       </p>
-                      {!hasActiveFilter && (
+                      {hasSearchQuery ? (
+                        <button
+                          type="button"
+                          onClick={handleClearSearch}
+                          className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-primary bg-primary-soft hover:bg-primary-soft/80 rounded-xl transition-colors cursor-pointer border border-primary-border"
+                        >
+                          <GoogleIcon name="close" size={14} />
+                          <span>Bersihkan Pencarian</span>
+                        </button>
+                      ) : (
                         <button
                           type="button"
                           onClick={onOpenAddCategoryModal}
@@ -431,26 +523,18 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                     </td>
                   </tr>
                 ) : (
-                  paginatedItems.map(row => {
-                    const sharePercent =
-                      summary.totalSku > 0 ? Math.round((row.count / summary.totalSku) * 100) : 0;
-                    return (
+                  paginatedItems.map(row => (
                       <tr key={row.name} className="hover:bg-zinc-100/60 transition-colors">
                         <td className="py-3.5 px-3.5 sm:px-4">
                           <div className="flex items-center gap-3">
                             <span className="w-9 h-9 rounded-lg bg-zinc-50 text-zinc-700 border border-zinc-200/80 flex items-center justify-center shrink-0">
-                              <GoogleIcon name="deployed_code" size={16} />
+                              <GoogleIcon name="category" size={16} />
                             </span>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="font-bold text-zinc-950 text-xs sm:text-sm truncate">
-                                  {row.name}
-                                </span>
-                                {isRecentlyCreated(row.createdAt, nowMs) && <NewBadge />}
-                              </div>
-                              <span className="text-xs text-zinc-400 font-normal block mt-0.5">
-                                {sharePercent}% porsi katalog produk
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="font-bold text-zinc-950 text-xs sm:text-sm truncate">
+                                {row.name}
                               </span>
+                              {isRecentlyCreated(row.createdAt, nowMs) && <NewBadge />}
                             </div>
                           </div>
                         </td>
@@ -464,11 +548,6 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                             {row.totalStok} pcs
                           </span>
                         </td>
-                        <td className="py-3.5 px-3 sm:px-4 text-right whitespace-nowrap">
-                          <span className="font-mono font-bold text-zinc-950 text-xs sm:text-sm tabular-nums">
-                            {Number(row.totalGram.toFixed(2))} gr
-                          </span>
-                        </td>
                         <td className="py-3.5 px-3 sm:px-4 text-center whitespace-nowrap">
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${
@@ -477,13 +556,19 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                                 : 'bg-gray-100 text-gray-600 border-gray-200'
                             }`}
                           >
-                            {row.count > 0 ? 'Terisi Produk' : 'Kosong'}
+                            {row.count > 0 ? 'Terisi' : 'Kosong'}
                           </span>
                         </td>
                         <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
                           <ActionDropdownMenu
                             ariaLabel={`Aksi untuk ${row.name}`}
                             items={[
+                              {
+                                id: 'detail',
+                                label: 'Lihat Detail',
+                                icon: <GoogleIcon name="visibility" size={14} />,
+                                onClick: () => setDetailCategory(row),
+                              },
                               {
                                 id: 'edit',
                                 label: 'Edit Kategori',
@@ -504,8 +589,7 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
                           />
                         </td>
                       </tr>
-                    );
-                  })
+                    ))
                 )}
               </tbody>
             </table>
@@ -536,6 +620,120 @@ export const CategoryListView: React.FC<CategoryListViewProps> = ({
         onCancel={() => setDeletingCategory(null)}
         onConfirm={handleConfirmDelete}
       />
+
+      {/* Detail Kategori Modal */}
+      <ModalShell
+        isOpen={!!detailCategory}
+        onClose={() => setDetailCategory(null)}
+        size="md"
+        title="Detail Kategori"
+        footer={
+          detailCategory ? (
+            <div className={MODAL_FOOTER_END_CLASS}>
+              <button
+                type="button"
+                onClick={() => setDetailCategory(null)}
+                className={MODAL_BTN_SECONDARY_CLASS}
+              >
+                Tutup
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const targetName = detailCategory.name;
+                  setDetailCategory(null);
+                  onEditCategory(targetName);
+                }}
+                className={MODAL_BTN_PRIMARY_CLASS}
+              >
+                <GoogleIcon name="edit" size={15} className="shrink-0" />
+                <span>Edit Kategori</span>
+              </button>
+            </div>
+          ) : undefined
+        }
+      >
+        {detailCategory && (() => {
+          const sharePercent =
+            summary.totalSku > 0
+              ? Math.round((detailCategory.count / summary.totalSku) * 100)
+              : 0;
+          return (
+            <div className="space-y-4 text-sm">
+              <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-xl p-4 space-y-2.5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-zinc-500">Nama Kategori</span>
+                  <span className="font-bold text-zinc-950 text-right">{detailCategory.name}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-zinc-500">Status</span>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${
+                      detailCategory.count > 0
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-gray-100 text-gray-600 border-gray-200'
+                    }`}
+                  >
+                    {detailCategory.count > 0 ? 'Terisi' : 'Kosong'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-zinc-500">Jumlah Produk</span>
+                  <span className="font-mono font-bold text-zinc-900 tabular-nums">
+                    {detailCategory.count} SKU
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-zinc-500">Total Stok</span>
+                  <span className="font-mono font-semibold text-zinc-900 tabular-nums">
+                    {detailCategory.totalStok} pcs
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-zinc-500">Porsi Katalog</span>
+                  <span className="font-mono font-semibold text-zinc-800 tabular-nums">
+                    {sharePercent}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-zinc-50/70 border border-zinc-200/80 rounded-xl p-4">
+                <div className="flex items-center justify-between pb-2 border-b border-zinc-200/70 mb-2.5">
+                  <span className="text-xs font-bold text-zinc-800 uppercase tracking-wider">
+                    Produk dalam Kategori ({detailCategory.count})
+                  </span>
+                </div>
+                {isLoadingDetail ? (
+                  <div className="py-4 flex items-center justify-center gap-2 text-xs text-zinc-400">
+                    <GoogleIcon name="progress_activity" size={16} className="animate-spin text-primary" />
+                    <span>Memuat produk...</span>
+                  </div>
+                ) : detailProducts.length === 0 ? (
+                  <p className="text-xs text-zinc-500 py-3 text-center">
+                    Belum ada produk pada kategori ini.
+                  </p>
+                ) : (
+                  <div className="bg-white rounded-lg border border-zinc-200/70 divide-y divide-zinc-100 max-h-56 overflow-y-auto">
+                    {detailProducts.map(prod => (
+                      <div key={prod.id} className="p-2.5 flex items-center justify-between gap-3 text-xs">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-zinc-900 truncate">{prod.name}</p>
+                          <p className="text-zinc-400 font-mono">
+                            {prod.sku} &bull; {prod.stok} pcs
+                          </p>
+                        </div>
+                        <span className="font-mono font-bold text-zinc-900 shrink-0 tabular-nums">
+                          {formatIDR(prod.harga)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+      </ModalShell>
     </div>
   );
 };
