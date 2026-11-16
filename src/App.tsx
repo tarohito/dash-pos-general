@@ -822,8 +822,8 @@ const App: React.FC = () => {
           />
 
           {/* Right Outer Frame: Selalu fixed & overflow-hidden agar background kontainer tidak ikut discroll */}
-          <div className="flex-1 min-h-0 min-w-0 flex flex-col px-2 pt-2 pb-0 sm:px-3 sm:pt-3 sm:pb-0 lg:pl-2 lg:pr-3 lg:pt-2.5 overflow-hidden">
-            <div className="main-content-shell flex-1 min-h-0 flex flex-col rounded-t-2xl sm:rounded-t-[22px] rounded-b-none border-t border-x border-b-0 overflow-hidden relative bg-zinc-50 border-zinc-200/80">
+          <div className="flex-1 min-h-0 min-w-0 flex flex-col px-2 pt-2 pb-0 sm:px-3 sm:pt-3 sm:pb-0 lg:pl-0 lg:pr-3 lg:pt-3 overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col rounded-t-2xl sm:rounded-t-[22px] rounded-b-none border-t border-x border-b-0 overflow-hidden relative bg-zinc-50 border-zinc-200/60 shadow-none">
               {/* Background Gradient: Terkunci fix di atas, tidak bisa di-scroll */}
               <div
                 aria-hidden="true"
