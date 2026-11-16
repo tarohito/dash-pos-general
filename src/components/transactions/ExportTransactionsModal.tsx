@@ -144,11 +144,14 @@ export const ExportTransactionsModal: React.FC<ExportTransactionsModalProps> = (
     }
   };
 
+  const isInvalidCustomRange =
+    period === 'custom' && Boolean(dateFrom) && Boolean(dateTo) && dateFrom > dateTo;
+
   return (
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      size="md"
+      size="lg"
       title="Export Laporan"
       disableEscapeClose={isDownloading}
       footer={
@@ -164,7 +167,13 @@ export const ExportTransactionsModal: React.FC<ExportTransactionsModalProps> = (
           <button
             type="button"
             onClick={() => void handleDownload()}
-            disabled={isDownloading || isLoadingPreview || !preview || preview.count === 0}
+            disabled={
+              isDownloading ||
+              isLoadingPreview ||
+              isInvalidCustomRange ||
+              !preview ||
+              preview.count === 0
+            }
             className={MODAL_BTN_PRIMARY_CLASS}
           >
             <GoogleIcon
@@ -181,9 +190,9 @@ export const ExportTransactionsModal: React.FC<ExportTransactionsModalProps> = (
         {/* Period Type Tabs */}
         <div>
           <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
-            Pilih Periode
+            Periode Laporan
           </label>
-          <div className="inline-flex flex-wrap p-1 bg-zinc-100/90 border border-zinc-200 rounded-full gap-0.5 max-w-full">
+          <div className="flex flex-wrap items-center gap-1 p-1 bg-zinc-100/90 border border-zinc-200 rounded-xl">
             {PERIOD_TABS.map(tab => {
               const active = period === tab.id;
               return (
@@ -191,10 +200,10 @@ export const ExportTransactionsModal: React.FC<ExportTransactionsModalProps> = (
                   key={tab.id}
                   type="button"
                   onClick={() => setPeriod(tab.id)}
-                  className={`h-8 px-3 text-sm font-semibold rounded-full transition-all cursor-pointer whitespace-nowrap ${
+                  className={`flex-1 min-w-fit h-8 px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap text-center ${
                     active
                       ? 'bg-primary text-white shadow-xs'
-                      : 'text-zinc-600 hover:text-zinc-950'
+                      : 'text-zinc-600 hover:text-zinc-950 hover:bg-white/60'
                   }`}
                 >
                   {tab.label}
@@ -290,12 +299,20 @@ export const ExportTransactionsModal: React.FC<ExportTransactionsModalProps> = (
           </div>
         )}
 
-        {/* Compact Summary */}
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-3.5 space-y-2">
+        {/* Custom Range Warning */}
+        {isInvalidCustomRange && (
+          <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs font-medium text-amber-800 flex items-center gap-2">
+            <GoogleIcon name="warning" size={15} className="text-amber-600 shrink-0" />
+            <span>Tanggal awal tidak boleh melebihi tanggal akhir.</span>
+          </div>
+        )}
+
+        {/* Structured Preview Summary */}
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-3.5 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-bold text-zinc-800 flex items-center gap-1.5">
-              <GoogleIcon name="table_chart" size={16} className="text-primary" />
-              <span>{preview?.periodLabel || 'Menyiapkan data...'}</span>
+            <span className="text-sm font-bold text-zinc-900 flex items-center gap-1.5 min-w-0">
+              <GoogleIcon name="table_chart" size={16} className="text-primary shrink-0" />
+              <span className="truncate">{preview?.periodLabel || 'Menyiapkan data...'}</span>
             </span>
             {isLoadingPreview && (
               <GoogleIcon name="progress_activity" size={14} className="animate-spin text-primary shrink-0" />
@@ -306,18 +323,31 @@ export const ExportTransactionsModal: React.FC<ExportTransactionsModalProps> = (
             <p className="text-xs text-red-600 font-medium">{previewError}</p>
           ) : preview ? (
             <>
-              <div className="flex items-center justify-between gap-2 text-sm pt-0.5">
-                <span className="text-zinc-500">Total Data:</span>
-                <span className="font-mono font-bold text-zinc-950 tabular-nums">
-                  {preview.count} Nota ({preview.totalQty} pcs) &bull;{' '}
-                  <span className="text-primary">{formatIDR(preview.totalOmzet)}</span>
-                </span>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-white border border-zinc-200/80 rounded-lg px-2.5 py-2">
+                  <span className="text-[11px] font-medium text-zinc-500 block">Jumlah Nota</span>
+                  <span className="text-sm font-bold font-mono text-zinc-950 tabular-nums">
+                    {preview.count} Nota
+                  </span>
+                </div>
+                <div className="bg-white border border-zinc-200/80 rounded-lg px-2.5 py-2">
+                  <span className="text-[11px] font-medium text-zinc-500 block">Total Qty</span>
+                  <span className="text-sm font-bold font-mono text-zinc-950 tabular-nums">
+                    {preview.totalQty} pcs
+                  </span>
+                </div>
+                <div className="bg-white border border-zinc-200/80 rounded-lg px-2.5 py-2 min-w-0">
+                  <span className="text-[11px] font-medium text-zinc-500 block">Total Omzet</span>
+                  <span className="text-sm font-bold font-mono text-primary tabular-nums truncate block">
+                    {formatIDR(preview.totalOmzet)}
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-start justify-between gap-2 text-sm">
-                <span className="text-zinc-500 shrink-0">File Excel:</span>
+              <div className="pt-2 border-t border-zinc-200/70 flex items-center justify-between gap-2">
+                <span className="text-xs font-medium text-zinc-500 shrink-0">Nama File</span>
                 <span
-                  className="font-mono text-xs font-semibold text-primary-text bg-primary-soft px-2 py-0.5 rounded-md break-all text-right"
+                  className="font-mono text-xs font-semibold text-primary-text bg-primary-soft border border-primary-border/60 px-2.5 py-1 rounded-lg truncate min-w-0"
                   title={preview.filename}
                 >
                   {preview.filename}
@@ -325,7 +355,7 @@ export const ExportTransactionsModal: React.FC<ExportTransactionsModalProps> = (
               </div>
 
               {preview.count === 0 && (
-                <p className="text-xs text-amber-700 font-medium pt-1">
+                <p className="text-xs text-amber-700 font-medium">
                   Belum ada transaksi pada periode yang dipilih.
                 </p>
               )}

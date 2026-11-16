@@ -226,7 +226,6 @@ export async function generateTransactionsExcelBuffer(
   const voidTxs = transactions.filter(t => t.status === 'void');
 
   const totalQtyAll = activeTxs.reduce((s, t) => s + (t.totalQty || 0), 0);
-  const totalBeratAll = activeTxs.reduce((s, t) => s + (t.totalBerat || 0), 0);
   const totalSubtotalAll = activeTxs.reduce((s, t) => s + (t.subtotal || 0), 0);
   const totalTaxAll = activeTxs.reduce((s, t) => s + (t.tax || 0), 0);
   const totalGrandAll = activeTxs.reduce((s, t) => s + (t.grandTotal || 0), 0);
@@ -244,9 +243,10 @@ export async function generateTransactionsExcelBuffer(
   // ==========================================================
   const summarySheet = workbook.addWorksheet('Ringkasan Laporan', {
     views: [{ showGridLines: true }],
+    properties: { tabColor: { argb: 'FF6D28D9' } },
   });
 
-  summarySheet.mergeCells('A1:E1');
+  summarySheet.mergeCells('A1:D1');
   const sTitle = summarySheet.getCell('A1');
   sTitle.value = `LAPORAN TRANSAKSI PENJUALAN — ${storeTitle}`;
   sTitle.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -254,7 +254,7 @@ export async function generateTransactionsExcelBuffer(
   sTitle.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
   summarySheet.getRow(1).height = 30;
 
-  summarySheet.mergeCells('A2:E2');
+  summarySheet.mergeCells('A2:D2');
   const sSub = summarySheet.getCell('A2');
   sSub.value = `Periode: ${periodLabel}  •  Diekspor: ${exportedAt}${meta.exportedBy ? ` oleh ${meta.exportedBy}` : ''}`;
   sSub.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF4C1D95' } };
@@ -283,7 +283,6 @@ export async function generateTransactionsExcelBuffer(
     ['Total Transaksi Lunas', activeTxs.length, '#,##0'],
     ['Total Transaksi VOID', voidTxs.length, '#,##0'],
     ['Total Produk Terjual (pcs)', totalQtyAll, '#,##0'],
-    ['Total Berat Terjual (gr)', Number(totalBeratAll.toFixed(2)), '#,##0.00'],
     ['Total Penjualan Sebelum PPN (Rp)', totalSubtotalAll, '"Rp "#,##0'],
     ['Total Pajak PPN (Rp)', totalTaxAll, '"Rp "#,##0'],
     ['Grand Total Omzet Penjualan (Rp)', totalGrandAll, '"Rp "#,##0'],
@@ -294,9 +293,9 @@ export async function generateTransactionsExcelBuffer(
   let curRow = 4;
   const kpiHdr = summarySheet.getRow(curRow);
   kpiHdr.values = ['Ringkasan Kinerja Penjualan', 'Nilai'];
-  summarySheet.mergeCells(`B${curRow}:E${curRow}`);
+  summarySheet.mergeCells(`B${curRow}:D${curRow}`);
   kpiHdr.height = 24;
-  for (let c = 1; c <= 5; c++) {
+  for (let c = 1; c <= 4; c++) {
     const cell = kpiHdr.getCell(c);
     cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18181B' } };
@@ -310,10 +309,10 @@ export async function generateTransactionsExcelBuffer(
     const row = summarySheet.getRow(curRow);
     row.getCell(1).value = label;
     row.getCell(2).value = val;
-    summarySheet.mergeCells(`B${curRow}:E${curRow}`);
-    row.height = 20;
+    summarySheet.mergeCells(`B${curRow}:D${curRow}`);
+    row.height = 21;
     const isHighlight = label.startsWith('Grand Total') || label.startsWith('Estimasi Laba');
-    for (let c = 1; c <= 5; c++) {
+    for (let c = 1; c <= 4; c++) {
       const cell = row.getCell(c);
       cell.font = {
         name: 'Calibri',
@@ -337,7 +336,7 @@ export async function generateTransactionsExcelBuffer(
   // Rekap per Metode Pembayaran
   curRow += 2;
   const payHeaderRow = summarySheet.getRow(curRow);
-  payHeaderRow.values = ['Rekap Metode Pembayaran (Lunas)', 'Jumlah Nota', 'Qty (pcs)', 'Total Berat (gr)', 'Total Bayar (Rp)'];
+  payHeaderRow.values = ['Rekap Metode Pembayaran (Lunas)', 'Jumlah Nota', 'Qty (pcs)', 'Total Bayar (Rp)'];
   payHeaderRow.height = 24;
   payHeaderRow.eachCell((cell, colNumber) => {
     cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -362,7 +361,6 @@ export async function generateTransactionsExcelBuffer(
       grp.label,
       matching.length,
       matching.reduce((s, t) => s + t.totalQty, 0),
-      Number(matching.reduce((s, t) => s + t.totalBerat, 0).toFixed(2)),
       matching.reduce((s, t) => s + t.grandTotal, 0),
     ];
     row.height = 20;
@@ -374,14 +372,28 @@ export async function generateTransactionsExcelBuffer(
     });
     row.getCell(2).numFmt = '#,##0';
     row.getCell(3).numFmt = '#,##0';
-    row.getCell(4).numFmt = '#,##0.00';
-    row.getCell(5).numFmt = '"Rp "#,##0';
+    row.getCell(4).numFmt = '"Rp "#,##0';
   }
+
+  // Total baris metode pembayaran
+  curRow += 1;
+  const payTotalRow = summarySheet.getRow(curRow);
+  payTotalRow.values = ['Total Pembayaran Lunas', activeTxs.length, totalQtyAll, totalGrandAll];
+  payTotalRow.height = 22;
+  payTotalRow.eachCell((cell, colNumber) => {
+    cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF4C1D95' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_ROW_FILL } };
+    cell.alignment = { vertical: 'middle', horizontal: colNumber === 1 ? 'left' : 'right' };
+    applyThinBorder(cell, BRAND_HEADER_FILL);
+  });
+  payTotalRow.getCell(2).numFmt = '#,##0';
+  payTotalRow.getCell(3).numFmt = '#,##0';
+  payTotalRow.getCell(4).numFmt = '"Rp "#,##0';
 
   // Rekap per Kategori Produk
   curRow += 2;
   const catHeaderRow = summarySheet.getRow(curRow);
-  catHeaderRow.values = ['Rekap Per Kategori Produk (Lunas)', 'Qty Terjual (pcs)', 'Total Berat (gr)', 'HPP (Rp)', 'Total Penjualan (Rp)'];
+  catHeaderRow.values = ['Rekap Per Kategori Produk (Lunas)', 'Qty Terjual (pcs)', 'HPP (Rp)', 'Total Penjualan (Rp)'];
   catHeaderRow.height = 24;
   catHeaderRow.eachCell((cell, colNumber) => {
     cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -390,13 +402,12 @@ export async function generateTransactionsExcelBuffer(
     applyThinBorder(cell, BRAND_HEADER_FILL);
   });
 
-  const categoryAgg = new Map<string, { qty: number; berat: number; hpp: number; subtotal: number }>();
+  const categoryAgg = new Map<string, { qty: number; hpp: number; subtotal: number }>();
   for (const tx of activeTxs) {
     for (const it of tx.items) {
       const catName = it.category || 'Lainnya';
-      const prev = categoryAgg.get(catName) ?? { qty: 0, berat: 0, hpp: 0, subtotal: 0 };
+      const prev = categoryAgg.get(catName) ?? { qty: 0, hpp: 0, subtotal: 0 };
       prev.qty += it.qty;
-      prev.berat += it.berat * it.qty;
       prev.hpp += (it.hpp || 0) * it.qty;
       prev.subtotal += it.subtotal;
       categoryAgg.set(catName, prev);
@@ -406,12 +417,21 @@ export async function generateTransactionsExcelBuffer(
   if (sortedCategories.length === 0) {
     curRow += 1;
     const row = summarySheet.getRow(curRow);
-    row.values = ['Belum ada data penjualan kategori pada periode ini', 0, 0, 0, 0];
+    row.values = ['Belum ada data penjualan kategori pada periode ini', 0, 0, 0];
+    row.height = 20;
+    row.eachCell((cell, colNumber) => {
+      cell.font = { name: 'Calibri', size: 10, italic: colNumber === 1, color: { argb: 'FF71717A' } };
+      cell.alignment = { vertical: 'middle', horizontal: colNumber === 1 ? 'left' : 'right' };
+      applyThinBorder(cell);
+    });
+    row.getCell(2).numFmt = '#,##0';
+    row.getCell(3).numFmt = '"Rp "#,##0';
+    row.getCell(4).numFmt = '"Rp "#,##0';
   } else {
     sortedCategories.forEach(([catName, agg], idx) => {
       curRow += 1;
       const row = summarySheet.getRow(curRow);
-      row.values = [catName, agg.qty, Number(agg.berat.toFixed(2)), agg.hpp, agg.subtotal];
+      row.values = [catName, agg.qty, agg.hpp, agg.subtotal];
       row.height = 20;
       row.eachCell((cell, colNumber) => {
         cell.font = { name: 'Calibri', size: 10, color: { argb: 'FF18181B' } };
@@ -420,22 +440,40 @@ export async function generateTransactionsExcelBuffer(
         applyThinBorder(cell);
       });
       row.getCell(2).numFmt = '#,##0';
-      row.getCell(3).numFmt = '#,##0.00';
+      row.getCell(3).numFmt = '"Rp "#,##0';
       row.getCell(4).numFmt = '"Rp "#,##0';
-      row.getCell(5).numFmt = '"Rp "#,##0';
     });
+
+    curRow += 1;
+    const catTotalRow = summarySheet.getRow(curRow);
+    catTotalRow.values = ['Total Penjualan Kategori (Sebelum PPN)', totalQtyAll, totalHppAll, totalSubtotalAll];
+    catTotalRow.height = 22;
+    catTotalRow.eachCell((cell, colNumber) => {
+      cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF4C1D95' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_ROW_FILL } };
+      cell.alignment = { vertical: 'middle', horizontal: colNumber === 1 ? 'left' : 'right' };
+      applyThinBorder(cell, BRAND_HEADER_FILL);
+    });
+    catTotalRow.getCell(2).numFmt = '#,##0';
+    catTotalRow.getCell(3).numFmt = '"Rp "#,##0';
+    catTotalRow.getCell(4).numFmt = '"Rp "#,##0';
   }
 
-  autoFitColumns(summarySheet, 18, 42);
+  autoFitColumns(summarySheet, 20, 42);
+  summarySheet.getColumn(1).width = 36;
+  summarySheet.getColumn(2).width = 20;
+  summarySheet.getColumn(3).width = 20;
+  summarySheet.getColumn(4).width = 24;
 
   // ==========================================================
   // SHEET 2: REKAP TRANSAKSI
   // ==========================================================
   const txSheet = workbook.addWorksheet('Rekap Transaksi', {
     views: [{ state: 'frozen', ySplit: 4, showGridLines: true }],
+    properties: { tabColor: { argb: 'FF059669' } },
   });
 
-  txSheet.mergeCells('A1:Q1');
+  txSheet.mergeCells('A1:O1');
   const txTitle = txSheet.getCell('A1');
   txTitle.value = `REKAP TRANSAKSI PENJUALAN — ${storeTitle}`;
   txTitle.font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -443,7 +481,7 @@ export async function generateTransactionsExcelBuffer(
   txTitle.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
   txSheet.getRow(1).height = 28;
 
-  txSheet.mergeCells('A2:Q2');
+  txSheet.mergeCells('A2:O2');
   const txSub = txSheet.getCell('A2');
   txSub.value = `Periode: ${periodLabel}  •  Jumlah Nota: ${transactions.length}  •  Diekspor: ${exportedAt}`;
   txSub.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF4C1D95' } };
@@ -460,9 +498,7 @@ export async function generateTransactionsExcelBuffer(
     'Pelanggan',
     'Kode Member',
     'Nama Produk',
-    'Jumlah SKU',
     'Qty (pcs)',
-    'Berat (gr)',
     'Subtotal (Rp)',
     'PPN (Rp)',
     'Total Bayar (Rp)',
@@ -473,32 +509,30 @@ export async function generateTransactionsExcelBuffer(
 
   const txHeaderRow = txSheet.getRow(4);
   txHeaderRow.values = txHeaders;
-  txHeaderRow.height = 24;
+  txHeaderRow.height = 25;
   txHeaderRow.eachCell((cell, colNumber) => {
     cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND_HEADER_FILL } };
     cell.alignment = {
       vertical: 'middle',
-      horizontal: [1, 9, 10, 11, 12, 13, 14].includes(colNumber) ? 'right' : 'left',
+      horizontal: [1, 9, 10, 11, 12].includes(colNumber) ? 'right' : 'left',
       wrapText: true,
     };
     applyThinBorder(cell, BRAND_HEADER_FILL);
   });
 
   transactions.forEach((tx, idx) => {
-    const productSummary = tx.items
-      .map(it => {
-        const metaParts = [
-          it.sku,
-          it.category,
-          it.brand && it.brand !== 'No Brand' ? it.brand : '',
-          it.kondisi,
-        ]
-          .filter(Boolean)
-          .join(' / ');
-        return `${it.name} (${it.qty} pcs${metaParts ? ` [${metaParts}]` : ''})`;
-      })
-      .join('; ');
+    const productLines = tx.items.map(it => {
+      const criteria = [
+        it.category,
+        it.brand && it.brand !== 'No Brand' ? it.brand : '',
+        it.kondisi,
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      return `• ${it.name} (${it.qty} pcs${criteria ? ` — ${criteria}` : ''})`;
+    });
+    const productSummary = productLines.join('\n');
 
     const statusText =
       tx.status === 'void'
@@ -515,9 +549,7 @@ export async function generateTransactionsExcelBuffer(
       tx.customerName,
       tx.customerMemberCode || '-',
       productSummary || '-',
-      tx.items.length,
       tx.totalQty,
-      Number((tx.totalBerat || 0).toFixed(2)),
       tx.subtotal,
       tx.tax,
       tx.grandTotal,
@@ -525,14 +557,14 @@ export async function generateTransactionsExcelBuffer(
       getPaymentDetailText(tx),
       statusText,
     ];
-    row.height = 21;
+    row.height = Math.max(22, Math.min(96, Math.max(1, productLines.length) * 15 + 6));
     const isVoid = tx.status === 'void';
     row.eachCell((cell, colNumber) => {
       cell.font = {
         name: 'Calibri',
         size: 10,
         color: { argb: isVoid ? 'FFB91C1C' : 'FF18181B' },
-        strike: isVoid && colNumber === 14,
+        strike: isVoid && colNumber === 12,
       };
       cell.fill = {
         type: 'pattern',
@@ -541,17 +573,16 @@ export async function generateTransactionsExcelBuffer(
       };
       cell.alignment = {
         vertical: 'middle',
-        horizontal: [1, 9, 10, 11, 12, 13, 14].includes(colNumber) ? 'right' : 'left',
+        horizontal: [1, 9, 10, 11, 12].includes(colNumber) ? 'right' : 'left',
+        wrapText: colNumber === 8 || colNumber === 15,
       };
       applyThinBorder(cell);
     });
     row.getCell(1).numFmt = '#,##0';
     row.getCell(9).numFmt = '#,##0';
-    row.getCell(10).numFmt = '#,##0';
-    row.getCell(11).numFmt = '#,##0.00';
+    row.getCell(10).numFmt = '"Rp "#,##0';
+    row.getCell(11).numFmt = '"Rp "#,##0';
     row.getCell(12).numFmt = '"Rp "#,##0';
-    row.getCell(13).numFmt = '"Rp "#,##0';
-    row.getCell(14).numFmt = '"Rp "#,##0';
   });
 
   // Totals Row for Sheet 2
@@ -566,48 +597,48 @@ export async function generateTransactionsExcelBuffer(
     '',
     '',
     '',
-    '',
     totalQtyAll,
-    Number(totalBeratAll.toFixed(2)),
     totalSubtotalAll,
     totalTaxAll,
     totalGrandAll,
     '',
     '',
-    voidTxs.length > 0 ? `${voidTxs.length} Nota VOID tidak dihitung dalam omzet` : 'Semua Nota Terverifikasi',
+    voidTxs.length > 0 ? `${voidTxs.length} Nota VOID tidak dihitung` : 'Semua Nota Terverifikasi',
   ];
-  txTotalRow.height = 23;
+  txTotalRow.height = 24;
   txTotalRow.eachCell((cell, colNumber) => {
     cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF4C1D95' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_ROW_FILL } };
     cell.alignment = {
       vertical: 'middle',
-      horizontal: [10, 11, 12, 13, 14].includes(colNumber) ? 'right' : 'left',
+      horizontal: [9, 10, 11, 12].includes(colNumber) ? 'right' : 'left',
     };
     applyThinBorder(cell, BRAND_HEADER_FILL);
   });
-  txTotalRow.getCell(10).numFmt = '#,##0';
-  txTotalRow.getCell(11).numFmt = '#,##0.00';
+  txTotalRow.getCell(9).numFmt = '#,##0';
+  txTotalRow.getCell(10).numFmt = '"Rp "#,##0';
+  txTotalRow.getCell(11).numFmt = '"Rp "#,##0';
   txTotalRow.getCell(12).numFmt = '"Rp "#,##0';
-  txTotalRow.getCell(13).numFmt = '"Rp "#,##0';
-  txTotalRow.getCell(14).numFmt = '"Rp "#,##0';
 
   txSheet.autoFilter = {
     from: { row: 4, column: 1 },
     to: { row: Math.max(4, txTotalRowIdx - 1), column: txHeaders.length },
   };
-  autoFitColumns(txSheet, 10, 48);
+  autoFitColumns(txSheet, 11, 44);
   txSheet.getColumn(1).width = 6;
-  txSheet.getColumn(8).width = 48;
+  txSheet.getColumn(8).width = 44;
+  txSheet.getColumn(14).width = 28;
+  txSheet.getColumn(15).width = 24;
 
   // ==========================================================
-  // SHEET 3: DETAIL ITEM PRODUK (SEMUA KRITERIA PRODUK)
+  // SHEET 3: DETAIL ITEM PRODUK
   // ==========================================================
   const itemSheet = workbook.addWorksheet('Detail Item Produk', {
     views: [{ state: 'frozen', ySplit: 4, showGridLines: true }],
+    properties: { tabColor: { argb: 'FF2563EB' } },
   });
 
-  itemSheet.mergeCells('A1:U1');
+  itemSheet.mergeCells('A1:Q1');
   const itemTitle = itemSheet.getCell('A1');
   itemTitle.value = `DETAIL ITEM PRODUK TERJUAL — ${storeTitle}`;
   itemTitle.font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -615,9 +646,9 @@ export async function generateTransactionsExcelBuffer(
   itemTitle.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
   itemSheet.getRow(1).height = 28;
 
-  itemSheet.mergeCells('A2:U2');
+  itemSheet.mergeCells('A2:Q2');
   const itemSub = itemSheet.getCell('A2');
-  itemSub.value = `Periode: ${periodLabel}  •  Mencakup SKU Barcode, Kategori, Merek / Brand, Kondisi, Dimensi, Berat, HPP & Laba`;
+  itemSub.value = `Periode: ${periodLabel}  •  Rincian Nama Produk, Kategori, Merek / Brand, Kondisi, Harga Jual, HPP & Laba`;
   itemSub.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF4C1D95' } };
   itemSub.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: SUBHEADER_FILL } };
   itemSub.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
@@ -630,15 +661,11 @@ export async function generateTransactionsExcelBuffer(
     'Waktu',
     'Kasir',
     'Pelanggan',
-    'SKU Barcode',
     'Nama Produk',
     'Kategori',
     'Merek / Brand',
     'Kondisi',
-    'Dimensi P×L×T (cm)',
-    'Berat Satuan (gr)',
     'Qty (pcs)',
-    'Total Berat (gr)',
     'HPP (Rp)',
     'Harga Jual (Rp)',
     'Subtotal (Rp)',
@@ -649,13 +676,13 @@ export async function generateTransactionsExcelBuffer(
 
   const itemHeaderRow = itemSheet.getRow(4);
   itemHeaderRow.values = itemHeaders;
-  itemHeaderRow.height = 24;
+  itemHeaderRow.height = 25;
   itemHeaderRow.eachCell((cell, colNumber) => {
     cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND_HEADER_FILL } };
     cell.alignment = {
       vertical: 'middle',
-      horizontal: [1, 13, 14, 15, 16, 17, 18, 19].includes(colNumber) ? 'right' : 'left',
+      horizontal: [1, 11, 12, 13, 14, 15].includes(colNumber) ? 'right' : 'left',
       wrapText: true,
     };
     applyThinBorder(cell, BRAND_HEADER_FILL);
@@ -663,8 +690,8 @@ export async function generateTransactionsExcelBuffer(
 
   let itemRowIdx = 4;
   let itemLineNo = 0;
+  let activeItemLineCount = 0;
   let sumDetailQty = 0;
-  let sumDetailBerat = 0;
   let sumDetailSubtotal = 0;
   let sumDetailProfit = 0;
 
@@ -676,17 +703,12 @@ export async function generateTransactionsExcelBuffer(
     for (const it of tx.items) {
       itemRowIdx += 1;
       itemLineNo += 1;
-      const itemTotalBerat = Number(((it.berat || 0) * (it.qty || 0)).toFixed(2));
       const hppVal = it.hpp || 0;
       const profitVal = hppVal > 0 ? it.subtotal - hppVal * it.qty : 0;
-      const dimText =
-        it.panjang && it.lebar && it.tinggi
-          ? `${it.panjang} × ${it.lebar} × ${it.tinggi}`
-          : '-';
 
       if (!isVoid) {
+        activeItemLineCount += 1;
         sumDetailQty += it.qty || 0;
-        sumDetailBerat += itemTotalBerat;
         sumDetailSubtotal += it.subtotal || 0;
         sumDetailProfit += profitVal;
       }
@@ -699,15 +721,11 @@ export async function generateTransactionsExcelBuffer(
         tx.timeStr,
         tx.cashier,
         tx.customerName,
-        it.sku,
         it.name,
         it.category || '-',
         it.brand || 'No Brand',
         it.kondisi || 'Baru',
-        dimText,
-        Number((it.berat || 0).toFixed(2)),
         it.qty,
-        itemTotalBerat,
         hppVal,
         it.harga,
         it.subtotal,
@@ -715,7 +733,7 @@ export async function generateTransactionsExcelBuffer(
         methodLabel,
         statusLabel,
       ];
-      row.height = 20;
+      row.height = 21;
       row.eachCell((cell, colNumber) => {
         cell.font = {
           name: 'Calibri',
@@ -729,28 +747,23 @@ export async function generateTransactionsExcelBuffer(
         };
         cell.alignment = {
           vertical: 'middle',
-          horizontal: [1, 13, 14, 15, 16, 17, 18, 19].includes(colNumber) ? 'right' : 'left',
+          horizontal: [1, 11, 12, 13, 14, 15].includes(colNumber) ? 'right' : 'left',
         };
         applyThinBorder(cell);
       });
       row.getCell(1).numFmt = '#,##0';
-      row.getCell(13).numFmt = '#,##0.00';
-      row.getCell(14).numFmt = '#,##0';
-      row.getCell(15).numFmt = '#,##0.00';
-      row.getCell(16).numFmt = '"Rp "#,##0';
-      row.getCell(17).numFmt = '"Rp "#,##0';
-      row.getCell(18).numFmt = '"Rp "#,##0';
-      row.getCell(19).numFmt = '"Rp "#,##0';
+      row.getCell(11).numFmt = '#,##0';
+      row.getCell(12).numFmt = '"Rp "#,##0';
+      row.getCell(13).numFmt = '"Rp "#,##0';
+      row.getCell(14).numFmt = '"Rp "#,##0';
+      row.getCell(15).numFmt = '"Rp "#,##0';
     }
   }
 
   const itemTotalRow = itemSheet.getRow(itemRowIdx + 1);
   itemTotalRow.values = [
     '',
-    `TOTAL ITEM AKTIF (${itemLineNo} Baris)`,
-    '',
-    '',
-    '',
+    `TOTAL ITEM AKTIF (${activeItemLineCount} Baris)`,
     '',
     '',
     '',
@@ -760,7 +773,6 @@ export async function generateTransactionsExcelBuffer(
     '',
     '',
     sumDetailQty,
-    Number(sumDetailBerat.toFixed(2)),
     '',
     '',
     sumDetailSubtotal,
@@ -768,28 +780,27 @@ export async function generateTransactionsExcelBuffer(
     '',
     '',
   ];
-  itemTotalRow.height = 23;
+  itemTotalRow.height = 24;
   itemTotalRow.eachCell((cell, colNumber) => {
     cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF4C1D95' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL_ROW_FILL } };
     cell.alignment = {
       vertical: 'middle',
-      horizontal: [14, 15, 18, 19].includes(colNumber) ? 'right' : 'left',
+      horizontal: [11, 14, 15].includes(colNumber) ? 'right' : 'left',
     };
     applyThinBorder(cell, BRAND_HEADER_FILL);
   });
-  itemTotalRow.getCell(14).numFmt = '#,##0';
-  itemTotalRow.getCell(15).numFmt = '#,##0.00';
-  itemTotalRow.getCell(18).numFmt = '"Rp "#,##0';
-  itemTotalRow.getCell(19).numFmt = '"Rp "#,##0';
+  itemTotalRow.getCell(11).numFmt = '#,##0';
+  itemTotalRow.getCell(14).numFmt = '"Rp "#,##0';
+  itemTotalRow.getCell(15).numFmt = '"Rp "#,##0';
 
   itemSheet.autoFilter = {
     from: { row: 4, column: 1 },
     to: { row: Math.max(4, itemRowIdx), column: itemHeaders.length },
   };
-  autoFitColumns(itemSheet, 10, 38);
+  autoFitColumns(itemSheet, 11, 38);
   itemSheet.getColumn(1).width = 6;
-  itemSheet.getColumn(8).width = 34;
+  itemSheet.getColumn(7).width = 34;
 
   const arrayBuffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(arrayBuffer);
@@ -811,14 +822,11 @@ export function generateTransactionsCsvString(transactions: Transaction[]): stri
     'Kasir',
     'Pelanggan',
     'Kode Member',
-    'SKU Barcode',
     'Nama Produk',
     'Kategori',
     'Merek / Brand',
     'Kondisi',
     'Qty (pcs)',
-    'Berat Satuan (gr)',
-    'Total Berat (gr)',
     'Harga Jual (Rp)',
     'Subtotal (Rp)',
     'PPN (Rp)',
@@ -840,14 +848,11 @@ export function generateTransactionsCsvString(transactions: Transaction[]): stri
           tx.cashier,
           tx.customerName,
           tx.customerMemberCode || '-',
-          it.sku,
           it.name,
           it.category || '-',
           it.brand || 'No Brand',
           it.kondisi || 'Baru',
           it.qty,
-          Number((it.berat || 0).toFixed(2)),
-          Number(((it.berat || 0) * (it.qty || 0)).toFixed(2)),
           it.harga,
           it.subtotal,
           tx.tax,
