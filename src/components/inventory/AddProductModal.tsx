@@ -466,24 +466,41 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               <label className="block text-xs font-semibold text-zinc-800 mb-1">
                 Status Produk
               </label>
-              <div className="grid grid-cols-2 gap-1.5 h-[38px]">
-                {(['Aktif', 'Nonaktif'] as ProductStatus[]).map(st => (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, status: st })}
-                    className={`h-full rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      formData.status === st
-                        ? st === 'Aktif'
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'bg-zinc-600 text-white shadow-xs'
-                        : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
+              <div className="flex items-center justify-between h-[38px] px-3 bg-white border border-zinc-200 rounded-xl">
+                <span
+                  onClick={() =>
+                    setFormData(prev => ({
+                      ...prev,
+                      status: prev.status === 'Aktif' ? 'Nonaktif' : 'Aktif',
+                    }))
+                  }
+                  className={`text-xs font-bold cursor-pointer select-none transition-colors ${
+                    formData.status === 'Aktif' ? 'text-emerald-700' : 'text-zinc-500'
+                  }`}
+                >
+                  {formData.status === 'Aktif' ? 'Aktif (Dijual)' : 'Nonaktif'}
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={formData.status === 'Aktif'}
+                  onClick={() =>
+                    setFormData(prev => ({
+                      ...prev,
+                      status: prev.status === 'Aktif' ? 'Nonaktif' : 'Aktif',
+                    }))
+                  }
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
+                    formData.status === 'Aktif' ? 'bg-emerald-500' : 'bg-zinc-300'
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                      formData.status === 'Aktif' ? 'translate-x-4' : 'translate-x-0'
                     }`}
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full ${st === 'Aktif' ? 'bg-emerald-300' : 'bg-zinc-400'}`} />
-                    <span>{st}</span>
-                  </button>
-                ))}
+                  />
+                </button>
               </div>
             </div>
           </div>

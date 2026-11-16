@@ -140,6 +140,29 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
     }
   };
 
+  const handleToggleProductStatus = async (product: Product) => {
+    if (!canManageInventory) return;
+    const newStatus = product.status === 'Nonaktif' ? 'Aktif' : 'Nonaktif';
+    // Optimistic UI update
+    setItems(prev =>
+      prev.map(item => (item.id === product.id ? { ...item, status: newStatus } : item))
+    );
+    try {
+      await posApi.updateProduct(product.id, { status: newStatus });
+      showToast(
+        'success',
+        `Status produk "${product.name}" diubah menjadi ${newStatus}.`,
+        'Status Produk'
+      );
+    } catch {
+      // Revert if API fails
+      setItems(prev =>
+        prev.map(item => (item.id === product.id ? { ...item, status: product.status } : item))
+      );
+      showToast('error', 'Gagal memperbarui status produk.');
+    }
+  };
+
   return (
     <div className="space-y-4 pb-8">
       {/* Page Header (Unboxed, Tanpa Card) */}
@@ -345,7 +368,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end gap-1 shrink-0">
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
                         <span
                           className={`inline-flex items-center px-2 py-0.5 rounded font-mono font-bold text-xs border ${
                             p.stok > 5
@@ -357,13 +380,30 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                         >
                           {p.stok} pcs
                         </span>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
-                          p.status === 'Nonaktif'
-                            ? 'bg-zinc-100 text-zinc-600 border-zinc-200'
-                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        }`}>
-                          {p.status ?? 'Aktif'}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            role="switch"
+                            disabled={!canManageInventory}
+                            aria-checked={(p.status ?? 'Aktif') === 'Aktif'}
+                            onClick={() => handleToggleProductStatus(p)}
+                            className={`relative inline-flex h-4.5 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${
+                              (p.status ?? 'Aktif') === 'Aktif' ? 'bg-emerald-500' : 'bg-zinc-300'
+                            }`}
+                          >
+                            <span
+                              aria-hidden="true"
+                              className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                                (p.status ?? 'Aktif') === 'Aktif' ? 'translate-x-3.5' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                          <span className={`text-[10px] font-bold ${
+                            (p.status ?? 'Aktif') === 'Aktif' ? 'text-emerald-700' : 'text-zinc-500'
+                          }`}>
+                            {p.status ?? 'Aktif'}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
@@ -553,13 +593,26 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
                           {Number(p.berat.toFixed(2))} gr
                         </td>
                         <td className="py-3.5 px-3 text-center whitespace-nowrap align-middle">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold border ${
-                            p.status === 'Nonaktif'
-                              ? 'bg-zinc-100 text-zinc-600 border-zinc-200'
-                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          }`}>
-                            {p.status ?? 'Aktif'}
-                          </span>
+                          <button
+                            type="button"
+                            role="switch"
+                            disabled={!canManageInventory}
+                            aria-checked={(p.status ?? 'Aktif') === 'Aktif'}
+                            onClick={() => handleToggleProductStatus(p)}
+                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60 ${
+                              (p.status ?? 'Aktif') === 'Aktif' ? 'bg-emerald-500' : 'bg-zinc-300'
+                            }`}
+                            title={`Status: ${p.status ?? 'Aktif'}. Klik untuk ${
+                              (p.status ?? 'Aktif') === 'Aktif' ? 'nonaktifkan' : 'aktifkan'
+                            }`}
+                          >
+                            <span
+                              aria-hidden="true"
+                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                                (p.status ?? 'Aktif') === 'Aktif' ? 'translate-x-4' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
                         </td>
                         <td className="py-3.5 px-3 text-center whitespace-nowrap align-middle">
                           <ActionDropdownMenu
