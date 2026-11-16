@@ -149,7 +149,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({
             Inventaris &amp; Daftar Produk
           </h3>
           <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
-            Katalog produk standar Shopee Seller Centre &amp; POS: merek, kondisi, harga jual, stok fisik, dan cetak label barcode.
+            Kelola katalog produk, pantau stok fisik, harga jual, performa penjualan, dan cetak label barcode.
           </p>
         </div>
 
