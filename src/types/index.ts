@@ -609,77 +609,63 @@ export interface BootstrapPayload {
   storeSettings: StoreSettings;
 }
 
-export type BroadcastAudienceMode = 'all' | 'segment' | 'selected';
-export type BroadcastDeliveryMode = 'wa_me' | 'gateway';
-export type BroadcastRecipientStatus = 'pending' | 'sent' | 'failed';
+export type AuditSeverity = 'info' | 'warning' | 'critical';
 
-export interface BroadcastCustomerAudienceItem {
-  id: string;
-  memberCode: string;
-  name: string;
-  phone: string;
-  waPhone: string;
-  type: 'Reguler' | 'VIP' | 'Mitra / Toko';
-  preferredKadar?: string;
-  totalTxCount: number;
-  hasTransacted: boolean;
-}
+export type AuditEntityType =
+  | 'auth'
+  | 'transaction'
+  | 'product'
+  | 'category'
+  | 'promo'
+  | 'tenant'
+  | 'user'
+  | 'settings'
+  | 'backup';
 
-export interface PromoBroadcastRecipient {
+export interface AuditLogRecord {
   id: string;
-  broadcastId: string;
-  customerId: string;
-  customerName: string;
-  memberCode: string;
-  customerType: string;
-  phone: string;
-  waPhone: string;
-  personalizedMessage: string;
-  status: BroadcastRecipientStatus;
-  errorMessage?: string;
-  sentAt?: string;
-}
-
-export interface PromoBroadcastRecord {
-  id: string;
-  tenantId: string;
-  promoId: string;
-  promoName: string;
-  promoCode: string;
-  discountPercent: number;
-  audienceMode: BroadcastAudienceMode;
-  audienceSegment?: string;
-  deliveryMode: BroadcastDeliveryMode;
-  messageTemplate: string;
-  totalRecipients: number;
-  sentCount: number;
-  failedCount: number;
-  createdBy: string;
+  tenantId?: string;
+  tenantName?: string;
+  actorId?: string;
+  actorName: string;
+  actorRole: UserRole | 'system';
+  action: string;
+  entityType: AuditEntityType | string;
+  entityId?: string;
+  entityLabel?: string;
+  severity: AuditSeverity;
+  summary: string;
+  details?: Record<string, unknown>;
+  ipAddress?: string;
   createdAt: string;
-  isJobRunning?: boolean;
-  recipients?: PromoBroadcastRecipient[];
 }
 
-export interface PromoBroadcastCreatePayload {
-  promoId: string;
-  audienceMode: BroadcastAudienceMode;
-  audienceSegment?: 'VIP' | 'Reguler' | 'Mitra / Toko';
-  customerIds?: string[];
-  activeBuyersOnly?: boolean;
-  deliveryMode: BroadcastDeliveryMode;
-  messageTemplate: string;
-  delayMinSec?: number;
-  delayMaxSec?: number;
+export interface AuditLogsStatsSummary {
+  totalLogs: number;
+  todayLogs: number;
+  warningAndCriticalLogs: number;
+  uniqueActors: number;
 }
 
-export interface PromoBroadcastConfig {
-  gatewayConfigured: boolean;
-  providerLabel: string;
-  dailySafeLimit: number;
-  dailySentCount: number;
-  maxBatchSize: number;
-  defaultDelayMinSec: number;
-  defaultDelayMaxSec: number;
+export interface AuditLogsPageResponse extends PaginatedResponse<AuditLogRecord> {
+  stats: AuditLogsStatsSummary;
 }
 
+export interface BackupTableStat {
+  tableName: string;
+  label: string;
+  rowCount: number;
+}
 
+export interface BackupDatabaseInfo {
+  fileName: string;
+  fileSizeBytes: number;
+  walSizeBytes: number;
+  journalMode: string;
+  totalRecords: number;
+  tables: BackupTableStat[];
+  lastBackupAt?: string;
+  lastBackupBy?: string;
+  lastBackupFormat?: string;
+  generatedAt: string;
+}

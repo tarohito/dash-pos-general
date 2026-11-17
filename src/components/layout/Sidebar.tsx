@@ -95,6 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { name: 'Promo', group: 'catalog', icon: 'sell' as GoogleIconName, roles: ['owner', 'branch_manager'] as UserRole[] },
     { name: 'Multi-Outlet', group: 'admin', icon: 'storefront' as GoogleIconName, roles: ['owner', 'branch_manager'] as UserRole[] },
     { name: 'Manajemen User', group: 'admin', icon: 'manage_accounts' as GoogleIconName, roles: ['owner'] as UserRole[] },
+    { name: 'Audit & Backup', group: 'admin', icon: 'verified_user' as GoogleIconName, roles: ['owner'] as UserRole[] },
     { name: 'Pengaturan', group: 'admin', icon: 'settings' as GoogleIconName, roles: ['owner', 'branch_manager'] as UserRole[] },
   ];
 
@@ -489,17 +490,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {/* Menu Options */}
                     <div className="p-1 space-y-0.5">
                       {currentUser.role === 'owner' && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onSelectMenu('Manajemen User');
-                            setIsProfileMenuOpen(false);
-                          }}
-                          className="w-full flex items-center gap-2 px-2.5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 rounded-lg transition-colors text-left cursor-pointer"
-                        >
-                          <GoogleIcon name="manage_accounts" size={16} className="text-zinc-400 shrink-0" />
-                          <span>Manajemen User &amp; Akses</span>
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onSelectMenu('Manajemen User');
+                              setIsProfileMenuOpen(false);
+                            }}
+                            className="w-full flex items-center gap-2 px-2.5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 rounded-lg transition-colors text-left cursor-pointer"
+                          >
+                            <GoogleIcon name="manage_accounts" size={16} className="text-zinc-400 shrink-0" />
+                            <span>Manajemen User &amp; Akses</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onSelectMenu('Audit & Backup');
+                              setIsProfileMenuOpen(false);
+                            }}
+                            className="w-full flex items-center gap-2 px-2.5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 rounded-lg transition-colors text-left cursor-pointer"
+                          >
+                            <GoogleIcon name="verified_user" size={16} className="text-zinc-400 shrink-0" />
+                            <span>Audit Log &amp; Backup Data</span>
+                          </button>
+                        </>
                       )}
 
                       {currentUser.role !== 'cashier' && (

@@ -24,7 +24,8 @@ interface PaymentModalProps {
   taxLabel?: string;
   grandTotal: number;
   customerName: string;
-  onCustomerChange: (customer: { id?: string; name: string }) => void;
+  customerPhone: string;
+  onCustomerChange: (customer: { id?: string; name: string; phone: string }) => void;
   onConfirmPayment: (paymentData: {
     method: 'cash' | 'transfer';
     cashReceived?: number;
@@ -45,6 +46,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   taxLabel = 'PPN (11%)',
   grandTotal,
   customerName,
+  customerPhone,
   onCustomerChange,
   onConfirmPayment,
 }) => {
@@ -91,6 +93,15 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     if (cart.length === 0) {
       failValidation('Keranjang belanja masih kosong.');
       return;
+    }
+
+    const trimmedPhone = customerPhone.trim();
+    if (trimmedPhone) {
+      const digitsOnly = trimmedPhone.replace(/\D/g, '');
+      if (digitsOnly.length < 8 || digitsOnly.length > 16) {
+        failValidation('Nomor WhatsApp pelanggan tidak valid (masukkan 8–16 digit angka).');
+        return;
+      }
     }
 
     const numericCash =
@@ -221,30 +232,69 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           </div>
         </div>
 
-        {/* Nama Pembeli (Opsional) */}
-        <div>
-          <label
-            htmlFor="buyer-name-input"
-            className="block text-xs font-semibold text-zinc-700 mb-1.5"
-          >
-            Nama Pembeli <span className="text-zinc-400 font-normal">(Opsional)</span>
-          </label>
-          <div className="relative">
-            <GoogleIcon
-              name="person"
-              size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
-            />
-            <input
-              id="buyer-name-input"
-              type="text"
-              value={customerName === 'Pelanggan Umum' ? '' : customerName}
-              onChange={e =>
-                onCustomerChange({ id: undefined, name: e.target.value || 'Pelanggan Umum' })
-              }
-              placeholder="Pelanggan Umum"
-              className="w-full h-10 pl-10 pr-3.5 text-sm bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white font-medium transition-colors"
-            />
+        {/* Data Pembeli & WhatsApp (Opsional) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label
+              htmlFor="buyer-name-input"
+              className="block text-xs font-semibold text-zinc-700 mb-1.5"
+            >
+              Nama Pembeli <span className="text-zinc-400 font-normal">(Opsional)</span>
+            </label>
+            <div className="relative">
+              <GoogleIcon
+                name="person"
+                size={16}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
+              />
+              <input
+                id="buyer-name-input"
+                type="text"
+                value={customerName === 'Pelanggan Umum' ? '' : customerName}
+                onChange={e =>
+                  onCustomerChange({
+                    id: undefined,
+                    name: e.target.value || 'Pelanggan Umum',
+                    phone: customerPhone,
+                  })
+                }
+                placeholder="Pelanggan Umum"
+                className="w-full h-10 pl-10 pr-3.5 text-sm bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white font-medium transition-colors"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              htmlFor="buyer-whatsapp-input"
+              className="block text-xs font-semibold text-zinc-700 mb-1.5"
+            >
+              No. WhatsApp <span className="text-zinc-400 font-normal">(Opsional)</span>
+            </label>
+            <div className="relative">
+              <GoogleIcon
+                name="smartphone"
+                size={16}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
+              />
+              <input
+                id="buyer-whatsapp-input"
+                type="tel"
+                inputMode="tel"
+                maxLength={20}
+                value={customerPhone}
+                onChange={e => {
+                  const sanitized = e.target.value.replace(/[^0-9+\-\s]/g, '');
+                  onCustomerChange({
+                    id: undefined,
+                    name: customerName,
+                    phone: sanitized,
+                  });
+                }}
+                placeholder="Cth: 081234567890"
+                className="w-full h-10 pl-10 pr-3.5 text-sm bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white font-mono tabular-nums font-medium transition-colors"
+              />
+            </div>
           </div>
         </div>
 

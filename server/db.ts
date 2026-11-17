@@ -4,10 +4,12 @@ import fs from 'fs';
 import path from 'path';
 import type {
   AppThemeId,
-  BroadcastAudienceMode,
-  BroadcastCustomerAudienceItem,
-  BroadcastDeliveryMode,
-  BroadcastRecipientStatus,
+  AuditEntityType,
+  AuditLogRecord,
+  AuditLogsPageResponse,
+  AuditSeverity,
+  BackupDatabaseInfo,
+  BackupTableStat,
   BuybackGoldItem,
   BuybackItem,
   BuybacksPageResponse,
@@ -24,8 +26,6 @@ import type {
   PaymentDetails,
   Product,
   ProductsPageResponse,
-  PromoBroadcastRecipient,
-  PromoBroadcastRecord,
   PromoCampaign,
   PromoCouponValidationResult,
   PromosPageResponse,
@@ -64,7 +64,7 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-const DB_PATH = path.join(DATA_DIR, 'epaper-pos.db');
+export const DB_PATH = path.join(DATA_DIR, 'epaper-pos.db');
 export const db = new Database(DB_PATH);
 
 db.pragma('journal_mode = WAL');
@@ -346,42 +346,31 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_shift_closings_date ON shift_closings(shiftDate DESC);
   CREATE INDEX IF NOT EXISTS idx_shift_closings_cashier ON shift_closings(cashierId);
 
-  CREATE TABLE IF NOT EXISTS promo_broadcasts (
+  DROP TABLE IF EXISTS promo_broadcast_recipients;
+  DROP TABLE IF EXISTS promo_broadcasts;
+
+  CREATE TABLE IF NOT EXISTS audit_logs (
     id TEXT PRIMARY KEY,
-    tenantId TEXT NOT NULL,
-    promoId TEXT NOT NULL,
-    promoName TEXT NOT NULL,
-    promoCode TEXT NOT NULL,
-    discountPercent REAL NOT NULL DEFAULT 0,
-    audienceMode TEXT NOT NULL,
-    audienceSegment TEXT,
-    deliveryMode TEXT NOT NULL,
-    messageTemplate TEXT NOT NULL,
-    totalRecipients INTEGER NOT NULL DEFAULT 0,
-    sentCount INTEGER NOT NULL DEFAULT 0,
-    failedCount INTEGER NOT NULL DEFAULT 0,
-    createdBy TEXT NOT NULL,
+    tenantId TEXT,
+    tenantName TEXT,
+    actorId TEXT,
+    actorName TEXT NOT NULL,
+    actorRole TEXT NOT NULL,
+    action TEXT NOT NULL,
+    entityType TEXT NOT NULL,
+    entityId TEXT,
+    entityLabel TEXT,
+    severity TEXT NOT NULL DEFAULT 'info',
+    summary TEXT NOT NULL,
+    detailsJson TEXT NOT NULL DEFAULT '{}',
+    ipAddress TEXT,
     createdAt TEXT NOT NULL
   );
 
-  CREATE TABLE IF NOT EXISTS promo_broadcast_recipients (
-    id TEXT PRIMARY KEY,
-    broadcastId TEXT NOT NULL,
-    customerId TEXT NOT NULL,
-    customerName TEXT NOT NULL,
-    memberCode TEXT NOT NULL,
-    customerType TEXT NOT NULL,
-    phone TEXT NOT NULL,
-    waPhone TEXT NOT NULL,
-    personalizedMessage TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending',
-    errorMessage TEXT,
-    sentAt TEXT,
-    FOREIGN KEY (broadcastId) REFERENCES promo_broadcasts(id) ON DELETE CASCADE
-  );
-
-  CREATE INDEX IF NOT EXISTS idx_promo_broadcasts_tenant ON promo_broadcasts(tenantId, createdAt DESC);
-  CREATE INDEX IF NOT EXISTS idx_promo_broadcast_recipients_bid ON promo_broadcast_recipients(broadcastId, status);
+  CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(createdAt DESC);
+  CREATE INDEX IF NOT EXISTS idx_audit_logs_severity ON audit_logs(severity);
+  CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entityType);
+  CREATE INDEX IF NOT EXISTS idx_audit_logs_tenant ON audit_logs(tenantId);
 `);
 
 function ensureColumn(table: string, column: string, definition: string): void {
@@ -409,6 +398,7 @@ ensureColumn('transactions', 'status', "TEXT NOT NULL DEFAULT 'completed'");
 ensureColumn('transactions', 'voidReason', 'TEXT');
 ensureColumn('transactions', 'voidedAt', 'TEXT');
 ensureColumn('transactions', 'customerId', 'TEXT');
+ensureColumn('transactions', 'customerPhone', 'TEXT');
 ensureColumn('transactions', 'promoCode', 'TEXT');
 ensureColumn('transactions', 'promoName', 'TEXT');
 ensureColumn('transactions', 'discountAmount', 'INTEGER NOT NULL DEFAULT 0');
@@ -3182,6 +3172,7 @@ export function queryTransactions(opts: {
     const orClauses = [
       'LOWER(t.invoiceNo) LIKE ?',
       'LOWER(t.customerName) LIKE ?',
+      "LOWER(COALESCE(t.customerPhone, '')) LIKE ?",
       'LOWER(t.cashier) LIKE ?',
       "LOWER(COALESCE(c.memberCode, '')) LIKE ?",
       "LOWER(COALESCE(t.promoCode, '')) LIKE ?",
@@ -3194,6 +3185,7 @@ export function queryTransactions(opts: {
       "EXISTS (SELECT 1 FROM transaction_items ti LEFT JOIN products p ON p.id = ti.productId WHERE ti.transactionId = t.id AND (LOWER(ti.name) LIKE ? OR LOWER(ti.sku) LIKE ? OR LOWER(COALESCE(p.category, '')) LIKE ?))",
     ];
     const searchParams: Array<string | number> = [
+      like,
       like,
       like,
       like,
@@ -3270,7 +3262,8 @@ export function queryTransactions(opts: {
     .prepare(
       `SELECT t.id, t.invoiceNo, t.dateTime, t.dateStr, t.timeStr, t.cashier, t.customerId,
               c.memberCode AS customerMemberCode, t.customerName,
-              c.phone AS customerPhone, c.address AS customerAddress,
+              COALESCE(NULLIF(TRIM(t.customerPhone), ''), c.phone) AS customerPhone,
+              c.address AS customerAddress,
               t.totalQty, t.totalBerat, t.subtotal,
               COALESCE(t.discountAmount, 0) AS discountAmount, t.promoCode, t.promoName,
               t.tax, t.grandTotal, t.paymentMethod, t.paymentDetailsJson,
@@ -3432,7 +3425,8 @@ export function queryTransactions(opts: {
 export function getTransactionById(id: string, tenantId?: string): Transaction | null {
   const txQuery = `SELECT t.id, t.invoiceNo, t.dateTime, t.dateStr, t.timeStr, t.cashier, t.customerId,
                           c.memberCode AS customerMemberCode, t.customerName,
-                          c.phone AS customerPhone, c.address AS customerAddress,
+                          COALESCE(NULLIF(TRIM(t.customerPhone), ''), c.phone) AS customerPhone,
+                          c.address AS customerAddress,
                           t.totalQty, t.totalBerat, t.subtotal,
                           COALESCE(t.discountAmount, 0) AS discountAmount, t.promoCode, t.promoName,
                           t.tax, t.grandTotal, t.paymentMethod, t.paymentDetailsJson,
@@ -3613,7 +3607,8 @@ export function queryTransactionsForExport(opts: {
     .prepare(
       `SELECT t.id, t.invoiceNo, t.dateTime, t.dateStr, t.timeStr, t.cashier, t.customerId,
               c.memberCode AS customerMemberCode, t.customerName,
-              c.phone AS customerPhone, c.address AS customerAddress,
+              COALESCE(NULLIF(TRIM(t.customerPhone), ''), c.phone) AS customerPhone,
+              c.address AS customerAddress,
               t.totalQty, t.totalBerat, t.subtotal, t.tax, t.grandTotal, t.paymentMethod, t.paymentDetailsJson,
               COALESCE(t.status, 'completed') AS status, t.voidReason, t.voidedAt
        FROM transactions t
@@ -6429,377 +6424,335 @@ export function seedShiftClosingsIfNeeded(): void {
   tx();
 }
 
-export function normalizeIndonesianWaPhone(rawPhone: string): string {
-  const digits = String(rawPhone ?? '').replace(/[^0-9]/g, '');
-  if (!digits) return '';
-  if (digits.startsWith('0')) return `62${digits.slice(1)}`;
-  if (digits.startsWith('8')) return `62${digits}`;
-  return digits;
-}
+// ============================================================
+// AUDIT LOG & SQLITE BACKUP (OWNER ONLY)
+// ============================================================
+export function recordAuditLog(opts: {
+  tenantId?: string | null;
+  tenantName?: string | null;
+  actorId?: string | null;
+  actorName: string;
+  actorRole: UserRole | 'system';
+  action: string;
+  entityType: AuditEntityType | string;
+  entityId?: string | number | null;
+  entityLabel?: string | null;
+  severity?: AuditSeverity;
+  summary: string;
+  details?: Record<string, unknown>;
+  ipAddress?: string | null;
+}): AuditLogRecord | null {
+  try {
+    const id = `AUD-${Date.now()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+    const createdAt = new Date().toISOString();
+    const cleanTenantId = opts.tenantId?.trim() || null;
+    let resolvedTenantName = opts.tenantName?.trim() || null;
+    if (cleanTenantId && !resolvedTenantName) {
+      const row = db.prepare('SELECT name FROM tenants WHERE id = ?').get(cleanTenantId) as
+        | { name: string }
+        | undefined;
+      resolvedTenantName = row?.name || null;
+    }
 
-export function getBroadcastAudienceCustomers(): BroadcastCustomerAudienceItem[] {
-  const rows = db
-    .prepare(
-      `SELECT c.id, c.memberCode, c.name, c.phone, c.type, c.preferredKadar,
-              (COALESCE(c.totalTransactions, 0) + COALESCE((
-                SELECT COUNT(*) FROM transactions t
-                WHERE COALESCE(t.status, 'completed') != 'void'
-                  AND (t.customerId = c.id OR (t.customerId IS NULL AND LOWER(t.customerName) = LOWER(c.name)))
-              ), 0) + COALESCE((
-                SELECT COUNT(*) FROM buybacks b
-                WHERE COALESCE(b.status, 'completed') != 'void'
-                  AND (b.customerId = c.id OR (b.customerId IS NULL AND LOWER(b.customerName) = LOWER(c.name)))
-              ), 0)) AS totalTxCount
-       FROM customers c
-       WHERE TRIM(COALESCE(c.phone, '')) != ''
-       ORDER BY CASE WHEN totalTxCount > 0 THEN 0 ELSE 1 END,
-                CASE WHEN c.type = 'VIP' THEN 0 WHEN c.type = 'Mitra / Toko' THEN 1 ELSE 2 END,
-                LOWER(c.name) ASC`
-    )
-    .all() as Array<{
-    id: string;
-    memberCode: string;
-    name: string;
-    phone: string;
-    type: 'Reguler' | 'VIP' | 'Mitra / Toko';
-    preferredKadar: string | null;
-    totalTxCount: number;
-  }>;
+    const severity: AuditSeverity =
+      opts.severity === 'critical' || opts.severity === 'warning' ? opts.severity : 'info';
+    const entityIdStr =
+      opts.entityId !== undefined && opts.entityId !== null ? String(opts.entityId) : null;
+    const detailsJson = JSON.stringify(opts.details ?? {});
 
-  const result: BroadcastCustomerAudienceItem[] = [];
-  for (const row of rows) {
-    const waPhone = normalizeIndonesianWaPhone(row.phone);
-    if (waPhone.length < 9) continue;
-    const totalTxCount = Number(row.totalTxCount) || 0;
-    result.push({
-      id: row.id,
-      memberCode: row.memberCode,
-      name: row.name,
-      phone: row.phone,
-      waPhone,
-      type: row.type,
-      preferredKadar: row.preferredKadar ?? undefined,
-      totalTxCount,
-      hasTransacted: totalTxCount > 0,
-    });
-  }
-  return result;
-}
-
-const SAFE_GREETINGS = [
-  'Halo',
-  'Salam hangat',
-  'Selamat datang kembali',
-  'Halo Kak',
-];
-
-function formatRupiahSimple(amount: number): string {
-  return `Rp ${Math.round(amount).toLocaleString('id-ID')}`;
-}
-
-export function renderPromoBroadcastMessage(
-  template: string,
-  params: {
-    customerName: string;
-    memberCode: string;
-    promoName: string;
-    promoCode: string;
-    discountPercent: number;
-    startDate: string;
-    endDate: string;
-    minPurchase?: number;
-    storeName: string;
-    variantIndex?: number;
-  }
-): string {
-  const periode = `${params.startDate} s/d ${params.endDate}`;
-  const minBelanja =
-    params.minPurchase && params.minPurchase > 0
-      ? formatRupiahSimple(params.minPurchase)
-      : 'Tanpa minimal belanja';
-  const greeting = SAFE_GREETINGS[(params.variantIndex ?? 0) % SAFE_GREETINGS.length];
-
-  return template
-    .replace(/\{sapaan\}/gi, greeting)
-    .replace(/\{nama\}/gi, params.customerName)
-    .replace(/\{kode_member\}/gi, params.memberCode)
-    .replace(/\{nama_promo\}/gi, params.promoName)
-    .replace(/\{kode_promo\}/gi, params.promoCode)
-    .replace(/\{diskon\}/gi, `${params.discountPercent}%`)
-    .replace(/\{periode\}/gi, periode)
-    .replace(/\{min_belanja\}/gi, minBelanja)
-    .replace(/\{nama_toko\}/gi, params.storeName);
-}
-
-interface BroadcastDbRow {
-  id: string;
-  tenantId: string;
-  promoId: string;
-  promoName: string;
-  promoCode: string;
-  discountPercent: number;
-  audienceMode: BroadcastAudienceMode;
-  audienceSegment: string | null;
-  deliveryMode: BroadcastDeliveryMode;
-  messageTemplate: string;
-  totalRecipients: number;
-  sentCount: number;
-  failedCount: number;
-  createdBy: string;
-  createdAt: string;
-}
-
-interface BroadcastRecipientDbRow {
-  id: string;
-  broadcastId: string;
-  customerId: string;
-  customerName: string;
-  memberCode: string;
-  customerType: string;
-  phone: string;
-  waPhone: string;
-  personalizedMessage: string;
-  status: BroadcastRecipientStatus;
-  errorMessage: string | null;
-  sentAt: string | null;
-}
-
-function mapBroadcastRow(row: BroadcastDbRow, recipients?: PromoBroadcastRecipient[]): PromoBroadcastRecord {
-  return {
-    id: row.id,
-    tenantId: row.tenantId,
-    promoId: row.promoId,
-    promoName: row.promoName,
-    promoCode: row.promoCode,
-    discountPercent: row.discountPercent,
-    audienceMode: row.audienceMode,
-    audienceSegment: row.audienceSegment ?? undefined,
-    deliveryMode: row.deliveryMode,
-    messageTemplate: row.messageTemplate,
-    totalRecipients: row.totalRecipients,
-    sentCount: row.sentCount,
-    failedCount: row.failedCount,
-    createdBy: row.createdBy,
-    createdAt: row.createdAt,
-    recipients,
-  };
-}
-
-function mapBroadcastRecipientRow(row: BroadcastRecipientDbRow): PromoBroadcastRecipient {
-  return {
-    id: row.id,
-    broadcastId: row.broadcastId,
-    customerId: row.customerId,
-    customerName: row.customerName,
-    memberCode: row.memberCode,
-    customerType: row.customerType,
-    phone: row.phone,
-    waPhone: row.waPhone,
-    personalizedMessage: row.personalizedMessage,
-    status: row.status,
-    errorMessage: row.errorMessage ?? undefined,
-    sentAt: row.sentAt ?? undefined,
-  };
-}
-
-export function createPromoBroadcastBatch(opts: {
-  tenantId: string;
-  promo: {
-    id: string;
-    name: string;
-    code: string;
-    discountPercent: number;
-    startDate: string;
-    endDate: string;
-    minPurchase?: number;
-  };
-  storeName: string;
-  audienceMode: BroadcastAudienceMode;
-  audienceSegment?: string;
-  customers: BroadcastCustomerAudienceItem[];
-  deliveryMode: BroadcastDeliveryMode;
-  messageTemplate: string;
-  createdBy: string;
-}): PromoBroadcastRecord {
-  const broadcastId = `BRC-${Date.now()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
-  const createdAt = new Date().toISOString();
-
-  const tx = db.transaction(() => {
     db.prepare(
-      `INSERT INTO promo_broadcasts (
-        id, tenantId, promoId, promoName, promoCode, discountPercent,
-        audienceMode, audienceSegment, deliveryMode, messageTemplate,
-        totalRecipients, sentCount, failedCount, createdBy, createdAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`
+      `INSERT INTO audit_logs (
+        id, tenantId, tenantName, actorId, actorName, actorRole, action,
+        entityType, entityId, entityLabel, severity, summary, detailsJson, ipAddress, createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
-      broadcastId,
-      opts.tenantId,
-      opts.promo.id,
-      opts.promo.name,
-      opts.promo.code,
-      opts.promo.discountPercent,
-      opts.audienceMode,
-      opts.audienceSegment ?? null,
-      opts.deliveryMode,
-      opts.messageTemplate,
-      opts.customers.length,
-      opts.createdBy,
+      id,
+      cleanTenantId,
+      resolvedTenantName,
+      opts.actorId?.trim() || null,
+      (opts.actorName || 'Sistem').trim(),
+      opts.actorRole || 'system',
+      opts.action,
+      opts.entityType,
+      entityIdStr,
+      opts.entityLabel?.trim() || null,
+      severity,
+      opts.summary,
+      detailsJson,
+      opts.ipAddress?.trim() || null,
       createdAt
     );
 
-    const insertRecipient = db.prepare(
-      `INSERT INTO promo_broadcast_recipients (
-        id, broadcastId, customerId, customerName, memberCode, customerType,
-        phone, waPhone, personalizedMessage, status, errorMessage, sentAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, NULL)`
-    );
-
-    opts.customers.forEach((cust, idx) => {
-      const recId = `BRR-${Date.now()}-${idx}-${crypto.randomBytes(2).toString('hex')}`;
-      const personalizedMessage = renderPromoBroadcastMessage(opts.messageTemplate, {
-        customerName: cust.name,
-        memberCode: cust.memberCode,
-        promoName: opts.promo.name,
-        promoCode: opts.promo.code,
-        discountPercent: opts.promo.discountPercent,
-        startDate: opts.promo.startDate,
-        endDate: opts.promo.endDate,
-        minPurchase: opts.promo.minPurchase,
-        storeName: opts.storeName,
-        variantIndex: idx,
-      });
-
-      insertRecipient.run(
-        recId,
-        broadcastId,
-        cust.id,
-        cust.name,
-        cust.memberCode,
-        cust.type,
-        cust.phone,
-        cust.waPhone,
-        personalizedMessage
-      );
-    });
-  });
-
-  tx();
-  return getPromoBroadcastById(broadcastId, opts.tenantId)!;
+    return {
+      id,
+      tenantId: cleanTenantId ?? undefined,
+      tenantName: resolvedTenantName ?? undefined,
+      actorId: opts.actorId?.trim() || undefined,
+      actorName: (opts.actorName || 'Sistem').trim(),
+      actorRole: opts.actorRole || 'system',
+      action: opts.action,
+      entityType: opts.entityType,
+      entityId: entityIdStr ?? undefined,
+      entityLabel: opts.entityLabel?.trim() || undefined,
+      severity,
+      summary: opts.summary,
+      details: opts.details,
+      ipAddress: opts.ipAddress?.trim() || undefined,
+      createdAt,
+    };
+  } catch {
+    return null;
+  }
 }
 
-export function listPromoBroadcasts(tenantId: string, limit = 30): PromoBroadcastRecord[] {
+interface AuditLogDbRow {
+  id: string;
+  tenantId: string | null;
+  tenantName: string | null;
+  actorId: string | null;
+  actorName: string;
+  actorRole: UserRole | 'system';
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  entityLabel: string | null;
+  severity: AuditSeverity;
+  summary: string;
+  detailsJson: string;
+  ipAddress: string | null;
+  createdAt: string;
+}
+
+function mapAuditLogRow(row: AuditLogDbRow): AuditLogRecord {
+  return {
+    id: row.id,
+    tenantId: row.tenantId ?? undefined,
+    tenantName: row.tenantName ?? undefined,
+    actorId: row.actorId ?? undefined,
+    actorName: row.actorName,
+    actorRole: row.actorRole,
+    action: row.action,
+    entityType: row.entityType,
+    entityId: row.entityId ?? undefined,
+    entityLabel: row.entityLabel ?? undefined,
+    severity:
+      row.severity === 'critical' || row.severity === 'warning' ? row.severity : 'info',
+    summary: row.summary,
+    details: safeJsonParse<Record<string, unknown>>(row.detailsJson, {}),
+    ipAddress: row.ipAddress ?? undefined,
+    createdAt: row.createdAt,
+  };
+}
+
+export function queryAuditLogs(opts: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  severity?: string;
+  entityType?: string;
+  tenantId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  sortDir?: 'asc' | 'desc';
+}): AuditLogsPageResponse {
+  const page = Math.max(1, Math.floor(opts.page ?? 1));
+  const pageSize = Math.min(200, Math.max(1, Math.floor(opts.pageSize ?? 15)));
+  const search = (opts.search ?? '').trim().toLowerCase();
+  const severity = (opts.severity ?? 'all').trim().toLowerCase();
+  const entityType = (opts.entityType ?? 'all').trim().toLowerCase();
+  const tenantId = (opts.tenantId ?? 'all').trim();
+  const dateFrom = (opts.dateFrom ?? '').trim();
+  const dateTo = (opts.dateTo ?? '').trim();
+  const sortDir = normalizeSortDir(opts.sortDir);
+
+  const conditions: string[] = [];
+  const params: Array<string | number> = [];
+
+  if (search) {
+    const like = `%${search}%`;
+    conditions.push(
+      `(LOWER(actorName) LIKE ? OR LOWER(action) LIKE ? OR LOWER(entityType) LIKE ? OR LOWER(COALESCE(entityLabel, '')) LIKE ? OR LOWER(summary) LIKE ? OR LOWER(COALESCE(tenantName, '')) LIKE ? OR LOWER(COALESCE(ipAddress, '')) LIKE ?)`
+    );
+    params.push(like, like, like, like, like, like, like);
+  }
+
+  if (severity && severity !== 'all') {
+    conditions.push('severity = ?');
+    params.push(severity);
+  }
+
+  if (entityType && entityType !== 'all') {
+    conditions.push('LOWER(entityType) = ?');
+    params.push(entityType);
+  }
+
+  if (tenantId && tenantId !== 'all') {
+    conditions.push('tenantId = ?');
+    params.push(tenantId);
+  }
+
+  if (dateFrom && /^\d{4}-\d{2}-\d{2}$/.test(dateFrom)) {
+    conditions.push('substr(createdAt, 1, 10) >= ?');
+    params.push(dateFrom);
+  }
+
+  if (dateTo && /^\d{4}-\d{2}-\d{2}$/.test(dateTo)) {
+    conditions.push('substr(createdAt, 1, 10) <= ?');
+    params.push(dateTo);
+  }
+
+  const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const total = (
+    db.prepare(`SELECT COUNT(*) as cnt FROM audit_logs ${whereSql}`).get(...params) as { cnt: number }
+  ).cnt;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const offset = (safePage - 1) * pageSize;
+
   const rows = db
-    .prepare('SELECT * FROM promo_broadcasts WHERE tenantId = ? ORDER BY createdAt DESC LIMIT ?')
-    .all(tenantId, limit) as BroadcastDbRow[];
-  return rows.map(row => mapBroadcastRow(row));
-}
+    .prepare(`SELECT * FROM audit_logs ${whereSql} ORDER BY createdAt ${sortDir}, rowid ${sortDir} LIMIT ? OFFSET ?`)
+    .all(...params, pageSize, offset) as AuditLogDbRow[];
 
-export function getPromoBroadcastById(broadcastId: string, tenantId: string): PromoBroadcastRecord | null {
-  const row = db
-    .prepare('SELECT * FROM promo_broadcasts WHERE id = ? AND tenantId = ?')
-    .get(broadcastId, tenantId) as BroadcastDbRow | undefined;
-  if (!row) return null;
-
-  const recipients = db
-    .prepare('SELECT * FROM promo_broadcast_recipients WHERE broadcastId = ? ORDER BY rowid ASC')
-    .all(broadcastId) as BroadcastRecipientDbRow[];
-
-  return mapBroadcastRow(row, recipients.map(mapBroadcastRecipientRow));
-}
-
-export function updatePromoBroadcastRecipientStatus(opts: {
-  broadcastId: string;
-  recipientId: string;
-  tenantId: string;
-  status: BroadcastRecipientStatus;
-  errorMessage?: string;
-}): PromoBroadcastRecord | null {
-  const parent = db
-    .prepare('SELECT id FROM promo_broadcasts WHERE id = ? AND tenantId = ?')
-    .get(opts.broadcastId, opts.tenantId) as { id: string } | undefined;
-  if (!parent) return null;
-
-  const sentAt = opts.status === 'sent' ? new Date().toISOString() : null;
-  const errMsg = opts.status === 'failed' ? (opts.errorMessage ?? 'Pengiriman gagal') : null;
-
-  const tx = db.transaction(() => {
-    db.prepare(
-      `UPDATE promo_broadcast_recipients
-       SET status = ?, errorMessage = ?, sentAt = ?
-       WHERE id = ? AND broadcastId = ?`
-    ).run(opts.status, errMsg, sentAt, opts.recipientId, opts.broadcastId);
-
-    const counts = db
-      .prepare(
-        `SELECT
-          SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sentCount,
-          SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failedCount
-         FROM promo_broadcast_recipients
-         WHERE broadcastId = ?`
-      )
-      .get(opts.broadcastId) as { sentCount: number | null; failedCount: number | null };
-
-    db.prepare('UPDATE promo_broadcasts SET sentCount = ?, failedCount = ? WHERE id = ?').run(
-      counts.sentCount ?? 0,
-      counts.failedCount ?? 0,
-      opts.broadcastId
-    );
-  });
-
-  tx();
-  return getPromoBroadcastById(opts.broadcastId, opts.tenantId);
-}
-
-export function getDailyBroadcastSentCount(tenantId: string): number {
-  const todayPrefix = new Date().toISOString().slice(0, 10);
-  const row = db
+  const todayPrefix = getTodayWibDateStr();
+  const agg = db
     .prepare(
-      `SELECT COUNT(*) as cnt
-       FROM promo_broadcast_recipients r
-       INNER JOIN promo_broadcasts b ON b.id = r.broadcastId
-       WHERE b.tenantId = ? AND r.status = 'sent' AND r.sentAt LIKE ?`
+      `SELECT COUNT(*) AS totalLogs,
+              SUM(CASE WHEN substr(createdAt, 1, 10) = ? THEN 1 ELSE 0 END) AS todayLogs,
+              SUM(CASE WHEN severity IN ('warning', 'critical') THEN 1 ELSE 0 END) AS warningAndCriticalLogs,
+              COUNT(DISTINCT actorName) AS uniqueActors
+       FROM audit_logs`
     )
-    .get(tenantId, `${todayPrefix}%`) as { cnt: number };
-  return row?.cnt ?? 0;
+    .get(todayPrefix) as {
+    totalLogs: number;
+    todayLogs: number | null;
+    warningAndCriticalLogs: number | null;
+    uniqueActors: number | null;
+  };
+
+  return {
+    items: rows.map(mapAuditLogRow),
+    total,
+    page: safePage,
+    pageSize,
+    totalPages,
+    stats: {
+      totalLogs: agg.totalLogs ?? 0,
+      todayLogs: agg.todayLogs ?? 0,
+      warningAndCriticalLogs: agg.warningAndCriticalLogs ?? 0,
+      uniqueActors: agg.uniqueActors ?? 0,
+    },
+  };
 }
 
-export function cancelPendingPromoBroadcastRecipients(
-  broadcastId: string,
-  tenantId: string,
-  reason = 'Dihentikan oleh pengguna (Mode Aman)'
-): PromoBroadcastRecord | null {
-  const parent = db
-    .prepare('SELECT id FROM promo_broadcasts WHERE id = ? AND tenantId = ?')
-    .get(broadcastId, tenantId) as { id: string } | undefined;
-  if (!parent) return null;
-
-  const tx = db.transaction(() => {
-    db.prepare(
-      `UPDATE promo_broadcast_recipients
-       SET status = 'failed', errorMessage = ?
-       WHERE broadcastId = ? AND status = 'pending'`
-    ).run(reason, broadcastId);
-
-    const counts = db
-      .prepare(
-        `SELECT
-          SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sentCount,
-          SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failedCount
-         FROM promo_broadcast_recipients
-         WHERE broadcastId = ?`
-      )
-      .get(broadcastId) as { sentCount: number | null; failedCount: number | null };
-
-    db.prepare('UPDATE promo_broadcasts SET sentCount = ?, failedCount = ? WHERE id = ?').run(
-      counts.sentCount ?? 0,
-      counts.failedCount ?? 0,
-      broadcastId
-    );
-  });
-
-  tx();
-  return getPromoBroadcastById(broadcastId, tenantId);
+export async function createDatabaseBackupSnapshot(destPath: string): Promise<void> {
+  await db.backup(destPath);
 }
+
+export function getBackupDatabaseInfo(): BackupDatabaseInfo {
+  const tableConfigs: Array<{ tableName: string; label: string }> = [
+    { tableName: 'tenants', label: 'Outlet / Cabang' },
+    { tableName: 'products', label: 'Produk Katalog' },
+    { tableName: 'categories', label: 'Kategori Produk' },
+    { tableName: 'transactions', label: 'Transaksi Penjualan' },
+    { tableName: 'transaction_items', label: 'Item Transaksi' },
+    { tableName: 'customers', label: 'Data Pelanggan' },
+    { tableName: 'promos', label: 'Kupon Promo' },
+    { tableName: 'shift_closings', label: 'Tutup Kasir / Shift' },
+    { tableName: 'users', label: 'Akun Pengguna' },
+    { tableName: 'store_settings', label: 'Pengaturan Toko' },
+    { tableName: 'audit_logs', label: 'Jejak Audit Log' },
+  ];
+
+  const tables: BackupTableStat[] = [];
+  let totalRecords = 0;
+
+  for (const tc of tableConfigs) {
+    try {
+      const cnt = (db.prepare(`SELECT COUNT(*) as cnt FROM ${tc.tableName}`).get() as { cnt: number }).cnt;
+      tables.push({ tableName: tc.tableName, label: tc.label, rowCount: cnt });
+      totalRecords += cnt;
+    } catch {
+      tables.push({ tableName: tc.tableName, label: tc.label, rowCount: 0 });
+    }
+  }
+
+  let fileSizeBytes = 0;
+  let walSizeBytes = 0;
+  try {
+    fileSizeBytes = fs.statSync(DB_PATH).size;
+  } catch {
+    fileSizeBytes = 0;
+  }
+  try {
+    const walPath = `${DB_PATH}-wal`;
+    if (fs.existsSync(walPath)) {
+      walSizeBytes = fs.statSync(walPath).size;
+    }
+  } catch {
+    walSizeBytes = 0;
+  }
+
+  const journalMode = String(db.pragma('journal_mode', { simple: true }) || 'wal').toUpperCase();
+
+  const lastBackup = db
+    .prepare(
+      `SELECT actorName, detailsJson, createdAt
+       FROM audit_logs
+       WHERE action = 'DOWNLOAD_BACKUP'
+       ORDER BY createdAt DESC, rowid DESC
+       LIMIT 1`
+    )
+    .get() as { actorName: string; detailsJson: string; createdAt: string } | undefined;
+
+  const lastDetails = safeJsonParse<{ format?: string }>(lastBackup?.detailsJson, {});
+
+  return {
+    fileName: path.basename(DB_PATH),
+    fileSizeBytes,
+    walSizeBytes,
+    journalMode,
+    totalRecords,
+    tables,
+    lastBackupAt: lastBackup?.createdAt,
+    lastBackupBy: lastBackup?.actorName,
+    lastBackupFormat: lastDetails.format,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+export function exportStructuredBackupJson(actorName: string): Record<string, unknown> {
+  const safeUsers = db
+    .prepare(
+      `SELECT id, username, email, fullName, role, shiftLabel, allowedTenantIdsJson, defaultTenantId, isActive, themePreference, createdAt, lastLoginAt
+       FROM users ORDER BY rowid ASC`
+    )
+    .all();
+
+  return {
+    metadata: {
+      app: 'LogicPOS',
+      format: 'structured-json-backup-v1',
+      exportedAt: new Date().toISOString(),
+      exportedBy: actorName,
+      dbFile: path.basename(DB_PATH),
+    },
+    tables: {
+      tenants: db.prepare('SELECT * FROM tenants ORDER BY rowid ASC').all(),
+      store_settings: db.prepare('SELECT * FROM store_settings ORDER BY rowid ASC').all(),
+      categories: db.prepare('SELECT * FROM categories ORDER BY sortOrder ASC, rowid ASC').all(),
+      products: db.prepare('SELECT * FROM products ORDER BY id ASC').all(),
+      customers: db.prepare('SELECT * FROM customers ORDER BY rowid ASC').all(),
+      promos: db.prepare('SELECT * FROM promos ORDER BY rowid ASC').all(),
+      transactions: db.prepare('SELECT * FROM transactions ORDER BY dateTime DESC, rowid DESC').all(),
+      transaction_items: db.prepare('SELECT * FROM transaction_items ORDER BY id ASC').all(),
+      buybacks: db.prepare('SELECT * FROM buybacks ORDER BY rowid ASC').all(),
+      shift_closings: db.prepare('SELECT * FROM shift_closings ORDER BY closedAt DESC, rowid DESC').all(),
+      users: safeUsers,
+      audit_logs: db.prepare('SELECT * FROM audit_logs ORDER BY createdAt DESC, rowid DESC LIMIT 2000').all(),
+    },
+  };
+}
+
 
 
 

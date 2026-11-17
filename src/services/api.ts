@@ -1,8 +1,8 @@
 import type {
+  AuditLogsPageResponse,
   AuthLoginResponse,
+  BackupDatabaseInfo,
   BootstrapPayload,
-  BroadcastCustomerAudienceItem,
-  BroadcastRecipientStatus,
   BuybackCreatePayload,
   BuybackItem,
   BuybacksPageResponse,
@@ -15,9 +15,6 @@ import type {
   PaymentDetails,
   Product,
   ProductsPageResponse,
-  PromoBroadcastConfig,
-  PromoBroadcastCreatePayload,
-  PromoBroadcastRecord,
   PromoCampaign,
   PromoCouponValidationResult,
   PromosPageResponse,
@@ -392,6 +389,7 @@ export const posApi = {
     cashier: string;
     customerId?: string;
     customerName: string;
+    customerPhone?: string;
     items: Array<{ id: number; qty: number }>;
     paymentMethod: 'cash' | 'debit' | 'transfer' | 'qris';
     paymentDetails: PaymentDetails;
@@ -613,39 +611,6 @@ export const posApi = {
       method: 'POST',
       body: JSON.stringify({ code, items }),
     }),
-  getPromoBroadcastConfig: (signal?: AbortSignal) =>
-    requestJson<PromoBroadcastConfig>('/api/promos/broadcast-config', { signal }),
-  getPromoBroadcastAudience: (signal?: AbortSignal) =>
-    requestJson<BroadcastCustomerAudienceItem[]>('/api/promos/broadcast-audience', { signal }),
-  getPromoBroadcasts: (signal?: AbortSignal) =>
-    requestJson<PromoBroadcastRecord[]>('/api/promos/broadcasts', { signal }),
-  getPromoBroadcastById: (broadcastId: string, signal?: AbortSignal) =>
-    requestJson<PromoBroadcastRecord>(`/api/promos/broadcasts/${encodeURIComponent(broadcastId)}`, { signal }),
-  createPromoBroadcast: (promoId: string, payload: PromoBroadcastCreatePayload) =>
-    requestJson<PromoBroadcastRecord>(`/api/promos/${encodeURIComponent(promoId)}/broadcast`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  updatePromoBroadcastRecipient: (
-    broadcastId: string,
-    recipientId: string,
-    status: BroadcastRecipientStatus,
-    errorMessage?: string
-  ) =>
-    requestJson<PromoBroadcastRecord>(
-      `/api/promos/broadcasts/${encodeURIComponent(broadcastId)}/recipients/${encodeURIComponent(recipientId)}`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({ status, errorMessage }),
-      }
-    ),
-  cancelPromoBroadcast: (broadcastId: string) =>
-    requestJson<PromoBroadcastRecord>(
-      `/api/promos/broadcasts/${encodeURIComponent(broadcastId)}/cancel`,
-      {
-        method: 'POST',
-      }
-    ),
 
   // Tenants
   getTenants: () => requestJson<Tenant[]>('/api/tenants'),
@@ -719,5 +684,68 @@ export const posApi = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+
+  // Audit Log & Data Backup (Owner Only)
+  getAuditLogs: (
+    params: {
+      page?: number;
+      pageSize?: number;
+      search?: string;
+      severity?: string;
+      entityType?: string;
+      tenantId?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      sortDir?: 'asc' | 'desc';
+    } = {},
+    signal?: AbortSignal
+  ) =>
+    requestJson<AuditLogsPageResponse>(
+      `/api/admin/audit-logs${toQueryString({
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 15,
+        search: params.search,
+        severity: params.severity && params.severity !== 'all' ? params.severity : undefined,
+        entityType: params.entityType && params.entityType !== 'all' ? params.entityType : undefined,
+        tenantId: params.tenantId && params.tenantId !== 'all' ? params.tenantId : undefined,
+        dateFrom: params.dateFrom || undefined,
+        dateTo: params.dateTo || undefined,
+        sortDir: params.sortDir,
+      })}`,
+      { signal }
+    ),
+  getBackupInfo: (signal?: AbortSignal) =>
+    requestJson<BackupDatabaseInfo>('/api/admin/backup/info', { signal }),
+  downloadBackupFile: async (format: 'sqlite' | 'json'): Promise<{ blob: Blob; filename: string }> => {
+    const url = `/api/admin/backup/download${toQueryString({ format })}`;
+    const headers: Record<string, string> = {};
+    if (memoryFallbackToken) {
+      headers['X-Session-Token'] = memoryFallbackToken;
+    }
+    const res = await fetch(url, {
+      credentials: 'same-origin',
+      headers,
+    });
+    if (!res.ok) {
+      if (res.status === 401) {
+        clearClientSessionState();
+        unauthorizedHandler?.();
+      }
+      const errData = await res.json().catch(() => ({}));
+      throw new ApiError(
+        (errData as { error?: string }).error || `Gagal mengunduh backup (${res.status})`,
+        res.status
+      );
+    }
+    const headerName = res.headers.get('X-Backup-Filename');
+    const disp = res.headers.get('Content-Disposition') || '';
+    const dispMatch = /filename="?([^"]+)"?/i.exec(disp);
+    const filename =
+      headerName ||
+      dispMatch?.[1] ||
+      (format === 'json' ? 'LogicPOS_Backup.json' : 'LogicPOS_Database.db');
+    const blob = await res.blob();
+    return { blob, filename };
+  },
 };
 

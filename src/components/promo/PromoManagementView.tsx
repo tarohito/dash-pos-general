@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { GoogleIcon } from '../common/GoogleIcon';
 import { PromoCampaign, Product, PromoStatsSummary } from '../../types';
 import { AddEditPromoModal } from './AddEditPromoModal';
-import { PromoBroadcastModal } from './PromoBroadcastModal';
 import { PaginationControls } from '../common/PaginationControls';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -54,7 +53,6 @@ function getLifecycleBadgeStyle(status: PromoEffectiveStatus): string {
 
 interface PromoManagementViewProps {
   refreshTrigger: number;
-  storeName?: string;
   onSavePromo: (promo: PromoCampaign, isEdit?: boolean) => Promise<void>;
   onDeletePromo: (id: string) => Promise<void>;
   onTogglePromoStatus: (id: string) => Promise<void>;
@@ -62,7 +60,6 @@ interface PromoManagementViewProps {
 
 export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
   refreshTrigger,
-  storeName,
   onSavePromo,
   onDeletePromo,
   onTogglePromoStatus,
@@ -76,8 +73,6 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
   const [editingPromo, setEditingPromo] = useState<PromoCampaign | null>(null);
   const [detailPromo, setDetailPromo] = useState<PromoCampaign | null>(null);
   const [deletingPromo, setDeletingPromo] = useState<PromoCampaign | null>(null);
-  const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
-  const [broadcastPromo, setBroadcastPromo] = useState<PromoCampaign | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -254,17 +249,6 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              setBroadcastPromo(null);
-              setIsBroadcastOpen(true);
-            }}
-            className={BTN_SECONDARY_CLASS}
-          >
-            <GoogleIcon name="chat" size={15} />
-            <span>Broadcast WA</span>
-          </button>
           <button
             type="button"
             onClick={handleOpenAddModal}
@@ -479,16 +463,6 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                               onClick: () => setDetailPromo(promo),
                             },
                             {
-                              id: 'broadcast',
-                              label: 'Broadcast WA',
-                              icon: <GoogleIcon name="chat" size={14} />,
-                              tone: 'whatsapp',
-                              onClick: () => {
-                                setBroadcastPromo(promo);
-                                setIsBroadcastOpen(true);
-                              },
-                            },
-                            {
                               id: 'edit',
                               label: 'Edit Promo',
                               icon: <GoogleIcon name="edit" size={14} />,
@@ -650,16 +624,6 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
                                   onClick: () => setDetailPromo(promo),
                                 },
                                 {
-                                  id: 'broadcast',
-                                  label: 'Broadcast WA',
-                                  icon: <GoogleIcon name="chat" size={14} />,
-                                  tone: 'whatsapp',
-                                  onClick: () => {
-                                    setBroadcastPromo(promo);
-                                    setIsBroadcastOpen(true);
-                                  },
-                                },
-                                {
                                   id: 'edit',
                                   label: 'Edit Promo',
                                   icon: <GoogleIcon name="edit" size={14} />,
@@ -709,19 +673,6 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
         footer={
           detailPromo ? (
             <div className={MODAL_FOOTER_END_CLASS}>
-              <button
-                type="button"
-                onClick={() => {
-                  const target = detailPromo;
-                  setDetailPromo(null);
-                  setBroadcastPromo(target);
-                  setIsBroadcastOpen(true);
-                }}
-                className={BTN_SECONDARY_CLASS}
-              >
-                <GoogleIcon name="chat" size={15} className="shrink-0" />
-                <span>Broadcast WA</span>
-              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -913,22 +864,6 @@ export const PromoManagementView: React.FC<PromoManagementViewProps> = ({
         onClose={() => setIsModalOpen(false)}
         onSave={onSavePromo}
         editingPromo={editingPromo}
-      />
-
-      {/* Promo WhatsApp Broadcast Modal */}
-      <PromoBroadcastModal
-        isOpen={isBroadcastOpen}
-        onClose={() => {
-          setIsBroadcastOpen(false);
-          setBroadcastPromo(null);
-        }}
-        promos={
-          broadcastPromo && !items.some(p => p.id === broadcastPromo.id)
-            ? [broadcastPromo, ...items]
-            : items
-        }
-        initialPromo={broadcastPromo}
-        storeName={storeName}
       />
 
       <ConfirmModal

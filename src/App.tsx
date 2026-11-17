@@ -58,6 +58,9 @@ const TenantManagementView = lazy(() =>
 const UserManagementView = lazy(() =>
   import('./components/users/UserManagementView').then(m => ({ default: m.UserManagementView }))
 );
+const AuditBackupView = lazy(() =>
+  import('./components/admin/AuditBackupView').then(m => ({ default: m.AuditBackupView }))
+);
 const StoreSettingsView = lazy(() =>
   import('./components/settings/StoreSettingsView').then(m => ({ default: m.StoreSettingsView }))
 );
@@ -139,7 +142,7 @@ const ViewLoadingFallback: React.FC = () => (
 );
 
 function isMenuAllowedForRole(menu: string, role: UserRole): boolean {
-  if (menu === 'Manajemen User') return role === 'owner';
+  if (menu === 'Manajemen User' || menu === 'Audit & Backup') return role === 'owner';
   if (
     menu === 'Dashboard' ||
     menu === 'Promo' ||
@@ -221,6 +224,7 @@ const App: React.FC = () => {
     setPromoCouponError(null);
     setActivePromos([]);
     setCustomerName('Pelanggan Umum');
+    setCustomerPhone('');
     setIsAdminMenuOpen(false);
     setIsPaymentModalOpen(false);
     setIsReceiptModalOpen(false);
@@ -284,6 +288,9 @@ const App: React.FC = () => {
       void import('./components/settings/StoreSettingsView');
       void import('./components/dashboard/DashboardView');
       void import('./components/tenant/TenantManagementView');
+      if (currentUser.role === 'owner') {
+        void import('./components/admin/AuditBackupView');
+      }
     }, 400);
     return () => window.clearTimeout(idleTimer);
   }, [currentUser]);
@@ -298,6 +305,7 @@ const App: React.FC = () => {
       setAppliedPromo(null);
       setPromoCouponError(null);
       setCustomerName('Pelanggan Umum');
+      setCustomerPhone('');
       // Fetch fresh categories and settings silently in background without full-screen loading flash
       try {
         const data = await posApi.bootstrap();
@@ -353,6 +361,7 @@ const App: React.FC = () => {
       setAppliedPromo(null);
       setPromoCouponError(null);
       setCustomerName('Pelanggan Umum');
+      setCustomerPhone('');
       refreshActiveOutletViews();
       void refreshTenantsMetadata();
       void posApi.getStoreSettings().then(res => setStoreSettings(res.storeSettings)).catch(() => {});
@@ -380,6 +389,7 @@ const App: React.FC = () => {
         setAppliedPromo(null);
         setPromoCouponError(null);
         setCustomerName('Pelanggan Umum');
+        setCustomerPhone('');
         refreshActiveOutletViews();
         void posApi.getStoreSettings().then(res => setStoreSettings(res.storeSettings)).catch(() => {});
         setEditingTenant(null);
@@ -487,6 +497,7 @@ const App: React.FC = () => {
   // Payment & Receipts Modals State
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [customerName, setCustomerName] = useState('Pelanggan Umum');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState<Transaction | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
 
@@ -809,6 +820,7 @@ const App: React.FC = () => {
       const result = await posApi.createTransaction({
         cashier: currentUser?.fullName || 'Kasir',
         customerName: customerName.trim() || 'Pelanggan Umum',
+        customerPhone: customerPhone.trim() || undefined,
         items: cart.map(item => ({ id: item.id, qty: item.qty })),
         paymentMethod: paymentData.method,
         paymentDetails: {
@@ -826,6 +838,7 @@ const App: React.FC = () => {
       setAppliedPromo(null);
       setPromoCouponError(null);
       setCustomerName('Pelanggan Umum');
+      setCustomerPhone('');
       setProductsRefreshKey(k => k + 1);
       setTransactionsRefreshKey(k => k + 1);
       setDashboardRefreshKey(k => k + 1);
@@ -1092,7 +1105,6 @@ const App: React.FC = () => {
                     ) : activeMenu === 'Promo' && canManageOperations ? (
                       <PromoManagementView
                         refreshTrigger={promosRefreshKey}
-                        storeName={activeTenant?.name}
                         onSavePromo={handleSavePromo}
                         onDeletePromo={handleDeletePromo}
                         onTogglePromoStatus={handleTogglePromoStatus}
@@ -1159,6 +1171,8 @@ const App: React.FC = () => {
                         tenants={tenants}
                         onUpdateCurrentUser={setCurrentUser}
                       />
+                    ) : activeMenu === 'Audit & Backup' && isOwner ? (
+                      <AuditBackupView tenants={tenants} />
                     ) : activeMenu === 'Pengaturan' && canManageOperations ? (
                       <StoreSettingsView
                         activeTenant={activeTenant}
@@ -1287,8 +1301,10 @@ const App: React.FC = () => {
               taxLabel={taxLabel}
               grandTotal={grandTotal}
               customerName={customerName}
+              customerPhone={customerPhone}
               onCustomerChange={cust => {
                 setCustomerName(cust.name);
+                setCustomerPhone(cust.phone);
               }}
               onConfirmPayment={handleConfirmPayment}
             />

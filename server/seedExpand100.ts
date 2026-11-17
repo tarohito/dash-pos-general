@@ -666,74 +666,6 @@ function sync5PromosPerOutlet(db: BetterSqlite3.Database, todayStr: string): voi
   }
 }
 
-function sync5PromoBroadcastsFromRealData(
-  db: BetterSqlite3.Database,
-  todayStr: string
-): void {
-  db.prepare('DELETE FROM promo_broadcast_recipients').run();
-  db.prepare('DELETE FROM promo_broadcasts').run();
-
-  const tmsPromos = db
-    .prepare('SELECT id, name, code, discountPercent FROM promos WHERE tenantId = ? ORDER BY rowid ASC LIMIT 5')
-    .all('tenant-tms-001') as Array<{ id: string; name: string; code: string; discountPercent: number }>;
-
-  const custs = db
-    .prepare('SELECT id, memberCode, name, phone, type FROM customers ORDER BY rowid ASC LIMIT 5')
-    .all() as Array<{ id: string; memberCode: string; name: string; phone: string; type: string }>;
-
-  const insertBrc = db.prepare(`
-    INSERT INTO promo_broadcasts (
-      id, tenantId, promoId, promoName, promoCode, discountPercent,
-      audienceMode, audienceSegment, deliveryMode, messageTemplate,
-      totalRecipients, sentCount, failedCount, createdBy, createdAt
-    ) VALUES (?, 'tenant-tms-001', ?, ?, ?, ?, ?, ?, 'wa_me', ?, 1, 1, 0, 'H. Ahmad Fauzi', ?)
-  `);
-
-  const insertBrcRec = db.prepare(`
-    INSERT INTO promo_broadcast_recipients (
-      id, broadcastId, customerId, customerName, memberCode, customerType,
-      phone, waPhone, personalizedMessage, status, errorMessage, sentAt
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', NULL, ?)
-  `);
-
-  for (let idx = 0; idx < 5; idx++) {
-    const pr = tmsPromos[idx % tmsPromos.length];
-    const cust = custs[idx % custs.length];
-    if (!pr || !cust) continue;
-
-    const brcId = `BRC-SEED-00${idx + 1}`;
-    const createdAt = `${addDays(todayStr, -idx)}T10:00:00.000Z`;
-    const template = `Halo {nama}, nikmati ${pr.name} diskon ${pr.discountPercent}% dengan kode ${pr.code}!`;
-
-    insertBrc.run(
-      brcId,
-      pr.id,
-      pr.name,
-      pr.code,
-      pr.discountPercent,
-      idx % 2 === 0 ? 'segment' : 'selected',
-      idx % 2 === 0 ? cust.type : null,
-      template,
-      createdAt
-    );
-
-    const cleanDigits = cust.phone.replace(/[^0-9]/g, '');
-    const waPhone = cleanDigits.startsWith('0') ? `62${cleanDigits.slice(1)}` : cleanDigits;
-    insertBrcRec.run(
-      `BRR-SEED-00${idx + 1}`,
-      brcId,
-      cust.id,
-      cust.name,
-      cust.memberCode,
-      cust.type,
-      cust.phone,
-      waPhone,
-      `Halo ${cust.name}, nikmati ${pr.name} diskon ${pr.discountPercent}% dengan kode ${pr.code}!`,
-      createdAt
-    );
-  }
-}
-
 export function compactSeedTo5V1(
   db: BetterSqlite3.Database,
   hashPassword: (password: string) => string
@@ -1019,7 +951,7 @@ export function compactSeedTo5V1(
     db.prepare(`DELETE FROM customers WHERE id NOT IN (${custPlaceholders})`).run(...KEPT_CUSTOMER_IDS);
     db.prepare('UPDATE customers SET totalSpent = 0, totalTransactions = 0').run();
 
-    // 5..9: Build 150 real products/outlet, 5 holiday promos/outlet, 150 real transactions/outlet, 5 real shift closings, 5 broadcasts
+    // 5..8: Build 150 real products/outlet, 5 holiday promos/outlet, 150 real transactions/outlet, 5 real shift closings
     db.prepare(`DELETE FROM products WHERE tenantId NOT IN (${tenantPlaceholders})`).run(...KEPT_TENANT_IDS);
     const tenantTags: Record<(typeof KEPT_TENANT_IDS)[number], string> = {
       'tenant-tms-001': 'MKI',
@@ -1034,7 +966,6 @@ export function compactSeedTo5V1(
     sync5PromosPerOutlet(db, todayStr);
     generate150TransactionsForAllOutlets(db, todayStr);
     rebuild5ShiftClosingsFromRealTransactions(db, todayStr);
-    sync5PromoBroadcastsFromRealData(db, todayStr);
 
     db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('seeded_compact_5_v1', '1');
     db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('seeded_expand_100_v1', '1');
@@ -1056,7 +987,6 @@ export function migrateHolidayPromosV1(db: BetterSqlite3.Database): void {
   const todayStr = getTodayWibDateStr();
   const migrateTx = db.transaction(() => {
     sync5PromosPerOutlet(db, todayStr);
-    sync5PromoBroadcastsFromRealData(db, todayStr);
     db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('seeded_promo_holiday_v1', '1');
   });
 
@@ -1095,9 +1025,8 @@ export function expandProductsAndTransactionsV1(db: BetterSqlite3.Database): voi
     // 4. Populate 150 real transactions per outlet (750 total across 5 outlets) derived strictly from DB rows
     generate150TransactionsForAllOutlets(db, todayStr);
 
-    // 5. Recompute shift_closings and promo_broadcasts strictly from real DB records
+    // 5. Recompute shift_closings strictly from real DB records
     rebuild5ShiftClosingsFromRealTransactions(db, todayStr);
-    sync5PromoBroadcastsFromRealData(db, todayStr);
 
     db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('seeded_promo_holiday_v1', '1');
     db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('seeded_real_hundreds_v1', '1');

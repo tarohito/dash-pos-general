@@ -317,7 +317,7 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
         <SearchInput
           value={txSearchQuery}
           onChange={setTxSearchQuery}
-          placeholder="Cari no. nota, pelanggan, kasir, metode (tunai/transfer), status, kupon, atau produk..."
+          placeholder="Cari no. nota, pelanggan, no. WA, kasir, metode (tunai/transfer), status, kupon, atau produk..."
         />
 
         {fetchError && (
@@ -404,6 +404,12 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                       <div className="text-xs space-y-1.5">
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-bold text-zinc-950 truncate">{tx.customerName}</span>
+                          {tx.customerPhone && (
+                            <span className="inline-flex items-center gap-1 font-mono text-[11px] text-zinc-500 tabular-nums shrink-0">
+                              <GoogleIcon name="smartphone" size={12} className="text-zinc-400" />
+                              {tx.customerPhone}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center justify-between gap-2 text-zinc-600">
                           <span className="font-semibold text-zinc-900 truncate min-w-0 flex-1">
@@ -552,6 +558,15 @@ export const DailyTransactionsView: React.FC<DailyTransactionsViewProps> = ({
                             >
                               {tx.customerName}
                             </span>
+                            {tx.customerPhone && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[11px] text-zinc-500 font-mono tabular-nums mt-0.5 max-w-full truncate"
+                                title={tx.customerPhone}
+                              >
+                                <GoogleIcon name="smartphone" size={11} className="text-zinc-400 shrink-0" />
+                                <span className="truncate">{tx.customerPhone}</span>
+                              </span>
+                            )}
                           </td>
 
                           <td className="py-3.5 px-3 align-middle">

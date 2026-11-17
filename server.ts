@@ -1,15 +1,15 @@
 import http from 'http';
 import express from 'express';
 import compression from 'compression';
+import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import type {
-  BroadcastRecipientStatus,
   BuybackCreatePayload,
   CategoryPayload,
   Customer,
   PaymentDetails,
   Product,
-  PromoBroadcastCreatePayload,
   PromoCampaign,
   ShiftClosingCreatePayload,
   StoreSettingsUpdatePayload,
@@ -26,12 +26,11 @@ import type {
 } from './src/types/index.ts';
 import {
   authenticateUser,
-  cancelPendingPromoBroadcastRecipients,
   checkLoginRateLimit,
   checkProductSkuAvailability,
   clearLoginFailures,
   createCategoryItem,
-  createPromoBroadcastBatch,
+  createDatabaseBackupSnapshot,
   createSession,
   createShiftClosing,
   createUserAccount,
@@ -39,6 +38,7 @@ import {
   deleteCategoryItem,
   deleteSession,
   deleteUserAccount,
+  exportStructuredBackupJson,
   generateNextMemberCode,
   generateUniqueProductSku,
   getAccessibleTenantsForUser,
@@ -46,20 +46,18 @@ import {
   getAllCategories,
   getAllCategoryItems,
   getAllTenants,
-  getBroadcastAudienceCustomers,
+  getBackupDatabaseInfo,
   getBuybackById,
   getCategoriesWithStats,
-  getDailyBroadcastSentCount,
   getDashboardSummary,
   getLiveShiftSummary,
-  getPromoBroadcastById,
   getSessionContext,
   getStoreSettings,
   getTransactionById,
   isTenantAllowedForUser,
-  listPromoBroadcasts,
   lookupProductByCode,
   parseProductAttributes,
+  queryAuditLogs,
   queryBuybacks,
   queryCustomers,
   queryProducts,
@@ -68,13 +66,13 @@ import {
   queryTransactions,
   queryTransactionsForExport,
   queryUsers,
+  recordAuditLog,
   recordLoginFailure,
   safeTimingEqual,
   seedInitialDataIfEmpty,
   syncExpiredPromos,
   toggleCategoryItemActive,
   updateCategoryItem,
-  updatePromoBroadcastRecipientStatus,
   updateSessionTenant,
   updateStoreSettings,
   updateUserAccount,
@@ -307,6 +305,17 @@ app.post('/api/auth/login', (req, res) => {
       if (rateCheck.retryAfterSec) {
         res.setHeader('Retry-After', String(rateCheck.retryAfterSec));
       }
+      recordAuditLog({
+        actorName: identifier,
+        actorRole: 'system',
+        action: 'LOGIN_LOCKED',
+        entityType: 'auth',
+        entityLabel: identifier,
+        severity: 'warning',
+        summary: `Percobaan login diblokir sementara karena batas gagal terlampaui (${identifier})`,
+        details: { identifier, retryAfterSec: rateCheck.retryAfterSec ?? null },
+        ipAddress: clientIp,
+      });
       res.status(429).json({
         error: rateCheck.message || 'Terlalu banyak percobaan login gagal. Silakan coba lagi nanti.',
       });
@@ -316,6 +325,17 @@ app.post('/api/auth/login', (req, res) => {
     const user = authenticateUser(identifier, password);
     if (!user) {
       recordLoginFailure(identifier, clientIp);
+      recordAuditLog({
+        actorName: identifier,
+        actorRole: 'system',
+        action: 'LOGIN_FAILED',
+        entityType: 'auth',
+        entityLabel: identifier,
+        severity: 'warning',
+        summary: `Percobaan login gagal untuk kredensial "${identifier}"`,
+        details: { identifier },
+        ipAddress: clientIp,
+      });
       res.status(401).json({ error: 'Username/email atau kata sandi salah, atau akun tidak aktif.' });
       return;
     }
@@ -330,6 +350,21 @@ app.post('/api/auth/login', (req, res) => {
 
     const { rawToken, csrfToken, activeTenantId } = createSession(user, req.headers['user-agent']);
     const tenants = getAccessibleTenantsForUser(user);
+
+    recordAuditLog({
+      tenantId: activeTenantId,
+      actorId: user.id,
+      actorName: user.fullName,
+      actorRole: user.role,
+      action: 'LOGIN_SUCCESS',
+      entityType: 'auth',
+      entityId: user.id,
+      entityLabel: user.username,
+      severity: 'info',
+      summary: `${user.fullName} (${user.role}) berhasil login ke sistem`,
+      details: { username: user.username, role: user.role, activeTenantId },
+      ipAddress: clientIp,
+    });
 
     res.setHeader('Set-Cookie', buildSessionCookie(req, rawToken, 7 * 24 * 3600));
     res.json({
@@ -360,6 +395,19 @@ app.post('/api/auth/logout', (req, res) => {
           res.status(403).json({ error: 'Token keamanan CSRF tidak valid.' });
           return;
         }
+        recordAuditLog({
+          tenantId: ctx.activeTenantId,
+          actorId: ctx.user.id,
+          actorName: ctx.user.fullName,
+          actorRole: ctx.user.role,
+          action: 'LOGOUT',
+          entityType: 'auth',
+          entityId: ctx.user.id,
+          entityLabel: ctx.user.username,
+          severity: 'info',
+          summary: `${ctx.user.fullName} keluar (logout) dari sesi`,
+          ipAddress: getClientIp(req),
+        });
       }
       deleteSession(rawToken);
     }
@@ -436,8 +484,23 @@ app.get('/api/users', requireRoles('owner'), (req, res) => {
 
 app.post('/api/users', requireRoles('owner'), (req, res) => {
   try {
+    const auth = getAuth(req);
     const payload = req.body as UserCreatePayload;
     const created = createUserAccount(payload);
+    recordAuditLog({
+      tenantId: auth.activeTenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'CREATE_USER',
+      entityType: 'user',
+      entityId: created.id,
+      entityLabel: `${created.fullName} (@${created.username})`,
+      severity: 'info',
+      summary: `Menambahkan akun pengguna baru "${created.fullName}" dengan peran ${created.role}`,
+      details: { role: created.role, username: created.username, allowedTenantIds: created.allowedTenantIds },
+      ipAddress: getClientIp(req),
+    });
     res.status(201).json(created);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Gagal membuat akun pengguna.';
@@ -449,7 +512,28 @@ app.post('/api/users', requireRoles('owner'), (req, res) => {
 app.put('/api/users/:id', requireRoles('owner'), (req, res) => {
   try {
     const auth = getAuth(req);
-    const updated = updateUserAccount(String(req.params.id), req.body as UserUpdatePayload, auth.user.id);
+    const payload = req.body as UserUpdatePayload;
+    const prevRow = db.prepare('SELECT role, isActive FROM users WHERE id = ?').get(String(req.params.id)) as
+      | { role: string; isActive: number }
+      | undefined;
+    const updated = updateUserAccount(String(req.params.id), payload, auth.user.id);
+    const roleOrStatusChanged =
+      (prevRow && prevRow.role !== updated.role) ||
+      (prevRow && Boolean(prevRow.isActive) !== updated.isActive);
+    recordAuditLog({
+      tenantId: auth.activeTenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'UPDATE_USER',
+      entityType: 'user',
+      entityId: updated.id,
+      entityLabel: `${updated.fullName} (@${updated.username})`,
+      severity: roleOrStatusChanged ? 'warning' : 'info',
+      summary: `Memperbarui akun "${updated.fullName}" (${updated.role}, ${updated.isActive ? 'Aktif' : 'Nonaktif'})`,
+      details: { role: updated.role, isActive: updated.isActive, allowedTenantIds: updated.allowedTenantIds },
+      ipAddress: getClientIp(req),
+    });
     res.json(updated);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Gagal memperbarui akun pengguna.';
@@ -462,7 +546,24 @@ app.delete('/api/users/:id', requireRoles('owner'), (req, res) => {
   try {
     const auth = getAuth(req);
     const userId = String(req.params.id);
+    const target = db.prepare('SELECT fullName, username, role FROM users WHERE id = ?').get(userId) as
+      | { fullName: string; username: string; role: string }
+      | undefined;
     deleteUserAccount(userId, auth.user.id);
+    recordAuditLog({
+      tenantId: auth.activeTenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'DELETE_USER',
+      entityType: 'user',
+      entityId: userId,
+      entityLabel: target ? `${target.fullName} (@${target.username})` : userId,
+      severity: 'critical',
+      summary: `Menghapus permanen akun pengguna ${target ? `"${target.fullName}"` : userId}`,
+      details: target ? { username: target.username, role: target.role } : undefined,
+      ipAddress: getClientIp(req),
+    });
     res.json({ deletedId: userId });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Gagal menghapus akun pengguna.';
@@ -666,6 +767,21 @@ app.post('/api/products', requireRoles('owner', 'branch_manager'), (req, res) =>
     });
 
     const created = createTx();
+    const auth = getAuth(req);
+    recordAuditLog({
+      tenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'CREATE_PRODUCT',
+      entityType: 'product',
+      entityId: created.id,
+      entityLabel: `${created.sku} • ${created.name}`,
+      severity: 'info',
+      summary: `Menambahkan produk "${created.name}" (${created.sku}) stok ${created.stok} pcs`,
+      details: { sku: created.sku, category: created.category, harga: created.harga, stok: created.stok },
+      ipAddress: getClientIp(req),
+    });
     res.status(201).json(created);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Gagal menyimpan produk.';
@@ -771,6 +887,21 @@ app.put('/api/products/:id', requireRoles('owner', 'branch_manager'), (req, res)
     });
 
     const updated = updateTx();
+    const auth = getAuth(req);
+    recordAuditLog({
+      tenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'UPDATE_PRODUCT',
+      entityType: 'product',
+      entityId: updated.id,
+      entityLabel: `${updated.sku} • ${updated.name}`,
+      severity: 'info',
+      summary: `Memperbarui produk "${updated.name}" (${updated.sku}) — harga Rp ${updated.harga.toLocaleString('id-ID')}, stok ${updated.stok} pcs`,
+      details: { sku: updated.sku, harga: updated.harga, stok: updated.stok, status: updated.status },
+      ipAddress: getClientIp(req),
+    });
     res.json(updated);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Gagal memperbarui produk.';
@@ -799,11 +930,28 @@ app.delete('/api/products/:id', requireRoles('owner', 'branch_manager'), (req, r
       });
       return;
     }
+    const existingProd = db
+      .prepare('SELECT sku, name FROM products WHERE id = ? AND tenantId = ?')
+      .get(id, tenantId) as { sku: string; name: string } | undefined;
     const result = db.prepare('DELETE FROM products WHERE id = ? AND tenantId = ?').run(id, tenantId);
     if (result.changes === 0) {
       res.status(404).json({ error: 'Produk tidak ditemukan di outlet aktif.' });
       return;
     }
+    const auth = getAuth(req);
+    recordAuditLog({
+      tenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'DELETE_PRODUCT',
+      entityType: 'product',
+      entityId: id,
+      entityLabel: existingProd ? `${existingProd.sku} • ${existingProd.name}` : String(id),
+      severity: 'warning',
+      summary: `Menghapus produk ${existingProd ? `"${existingProd.name}" (${existingProd.sku})` : `#${id}`}`,
+      ipAddress: getClientIp(req),
+    });
     res.json({ deletedId: id });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal menghapus produk.' });
@@ -832,8 +980,22 @@ app.get('/api/categories', (req, res) => {
 
 app.post('/api/categories', requireRoles('owner', 'branch_manager'), (req, res) => {
   try {
+    const auth = getAuth(req);
     const payload = (req.body ?? {}) as CategoryPayload;
     const item = createCategoryItem(payload);
+    recordAuditLog({
+      tenantId: auth.activeTenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'CREATE_CATEGORY',
+      entityType: 'category',
+      entityId: item.name,
+      entityLabel: item.name,
+      severity: 'info',
+      summary: `Menambahkan kategori "${item.name}"`,
+      ipAddress: getClientIp(req),
+    });
     res.status(201).json({
       name: item.name,
       item,
@@ -850,9 +1012,23 @@ app.post('/api/categories', requireRoles('owner', 'branch_manager'), (req, res) 
 
 app.put('/api/categories/:oldName', requireRoles('owner', 'branch_manager'), (req, res) => {
   try {
+    const auth = getAuth(req);
     const oldName = decodeURIComponent(String(req.params.oldName)).trim();
     const payload = (req.body ?? {}) as CategoryPayload;
     const { item } = updateCategoryItem(oldName, payload);
+    recordAuditLog({
+      tenantId: auth.activeTenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'UPDATE_CATEGORY',
+      entityType: 'category',
+      entityId: item.name,
+      entityLabel: oldName === item.name ? item.name : `${oldName} → ${item.name}`,
+      severity: 'info',
+      summary: oldName === item.name ? `Memperbarui kategori "${item.name}"` : `Mengubah nama kategori "${oldName}" menjadi "${item.name}"`,
+      ipAddress: getClientIp(req),
+    });
     res.json({
       oldName,
       newName: item.name,
@@ -873,9 +1049,23 @@ app.put('/api/categories/:oldName', requireRoles('owner', 'branch_manager'), (re
 
 app.patch('/api/categories/:name/toggle', requireRoles('owner', 'branch_manager'), (req, res) => {
   try {
+    const auth = getAuth(req);
     const name = decodeURIComponent(String(req.params.name)).trim();
     const isActive = Boolean((req.body as { isActive?: boolean })?.isActive);
     const item = toggleCategoryItemActive(name, isActive);
+    recordAuditLog({
+      tenantId: auth.activeTenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'TOGGLE_CATEGORY',
+      entityType: 'category',
+      entityId: item.name,
+      entityLabel: item.name,
+      severity: 'info',
+      summary: `${item.isActive ? 'Mengaktifkan' : 'Menonaktifkan'} kategori "${item.name}"`,
+      ipAddress: getClientIp(req),
+    });
     res.json({
       item,
       categories: getAllCategories(),
@@ -890,8 +1080,22 @@ app.patch('/api/categories/:name/toggle', requireRoles('owner', 'branch_manager'
 
 app.delete('/api/categories/:name', requireRoles('owner', 'branch_manager'), (req, res) => {
   try {
+    const auth = getAuth(req);
     const name = decodeURIComponent(String(req.params.name)).trim();
     const deletedName = deleteCategoryItem(name);
+    recordAuditLog({
+      tenantId: auth.activeTenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'DELETE_CATEGORY',
+      entityType: 'category',
+      entityId: deletedName,
+      entityLabel: deletedName,
+      severity: 'warning',
+      summary: `Menghapus kategori "${deletedName}"`,
+      ipAddress: getClientIp(req),
+    });
     res.json({
       deletedName,
       categories: getAllCategories(),
@@ -1078,6 +1282,7 @@ app.post('/api/transactions', (req, res) => {
       cashier?: string;
       customerId?: string;
       customerName?: string;
+      customerPhone?: string;
       items?: Array<{ id: number; qty: number }>;
       paymentMethod?: 'cash' | 'debit' | 'transfer' | 'qris';
       paymentDetails?: PaymentDetails;
@@ -1093,15 +1298,32 @@ app.post('/api/transactions', (req, res) => {
     const cashier = auth.user.fullName || (body.cashier ?? '').trim() || 'Kasir';
     let resolvedCustomerId = (body.customerId ?? '').trim() || undefined;
     let customerName = (body.customerName ?? '').trim() || 'Pelanggan Umum';
+    const rawCustomerPhone = (body.customerPhone ?? '').trim();
+    let customerPhone: string | undefined;
+
+    if (rawCustomerPhone) {
+      const cleaned = rawCustomerPhone.replace(/\s+/g, '');
+      const digitsOnly = cleaned.replace(/\D/g, '');
+      if (!/^[+\d-]+$/.test(cleaned) || digitsOnly.length < 8 || digitsOnly.length > 16) {
+        res.status(400).json({
+          error: 'Nomor WhatsApp pelanggan tidak valid (masukkan 8–16 digit angka).',
+        });
+        return;
+      }
+      customerPhone = cleaned.replace(/-/g, '');
+    }
 
     if (resolvedCustomerId) {
       const cust = db
-        .prepare('SELECT id, name FROM customers WHERE id = ?')
-        .get(resolvedCustomerId) as { id: string; name: string } | undefined;
+        .prepare('SELECT id, name, phone FROM customers WHERE id = ?')
+        .get(resolvedCustomerId) as { id: string; name: string; phone?: string } | undefined;
       if (cust) {
         resolvedCustomerId = cust.id;
         if (customerName === 'Pelanggan Umum') {
           customerName = cust.name;
+        }
+        if (!customerPhone && cust.phone) {
+          customerPhone = cust.phone;
         }
       } else {
         resolvedCustomerId = undefined;
@@ -1211,6 +1433,7 @@ app.post('/api/transactions', (req, res) => {
         cashier,
         customerId: resolvedCustomerId,
         customerName,
+        customerPhone,
         items: resolvedItems,
         totalQty,
         totalBerat: parseFloat(totalBerat.toFixed(2)),
@@ -1225,8 +1448,8 @@ app.post('/api/transactions', (req, res) => {
       };
 
       db.prepare(
-        `INSERT INTO transactions (id, tenantId, invoiceNo, dateTime, dateStr, timeStr, cashier, customerId, customerName, totalQty, totalBerat, subtotal, discountAmount, promoCode, promoName, tax, grandTotal, paymentMethod, paymentDetailsJson)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO transactions (id, tenantId, invoiceNo, dateTime, dateStr, timeStr, cashier, customerId, customerName, customerPhone, totalQty, totalBerat, subtotal, discountAmount, promoCode, promoName, tax, grandTotal, paymentMethod, paymentDetailsJson)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(
         newTx.id,
         tenantId,
@@ -1237,6 +1460,7 @@ app.post('/api/transactions', (req, res) => {
         newTx.cashier,
         newTx.customerId ?? null,
         newTx.customerName,
+        newTx.customerPhone ?? null,
         newTx.totalQty,
         newTx.totalBerat,
         newTx.subtotal,
@@ -1335,7 +1559,22 @@ app.post('/api/transactions/:id/void', requireRoles('owner', 'branch_manager'), 
     });
 
     voidTx();
+    const auth = getAuth(req);
     const updated = getTransactionById(String(id));
+    recordAuditLog({
+      tenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'VOID_TRANSACTION',
+      entityType: 'transaction',
+      entityId: String(id),
+      entityLabel: updated?.invoiceNo || String(id),
+      severity: 'critical',
+      summary: `Membatalkan (VOID) transaksi ${updated?.invoiceNo || id} senilai Rp ${(updated?.grandTotal ?? 0).toLocaleString('id-ID')} (${restoreStock ? 'stok dikembalikan' : 'stok tidak dikembalikan'})`,
+      details: { reason, restoreStock, grandTotal: updated?.grandTotal ?? 0 },
+      ipAddress: getClientIp(req),
+    });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal melakukan void transaksi.' });
@@ -1764,221 +2003,8 @@ app.delete('/api/customers/:id', requireRoles('owner', 'branch_manager'), (req, 
 });
 
 // ============================================================
-// PROMOS CRUD & BROADCAST QUEUE
+// PROMOS CRUD
 // ============================================================
-function getBroadcastSafeLimits() {
-  return {
-    dailySafeLimit: 50,
-    maxBatchSize: 50,
-    defaultDelayMinSec: 8,
-    defaultDelayMaxSec: 15,
-  };
-}
-
-app.get('/api/promos/broadcast-config', requireRoles('owner', 'branch_manager'), (req, res) => {
-  const { activeTenantId } = getAuth(req);
-  const limits = getBroadcastSafeLimits();
-  res.json({
-    gatewayConfigured: false,
-    providerLabel: 'Antrean WA Web (wa.me)',
-    dailySafeLimit: limits.dailySafeLimit,
-    dailySentCount: getDailyBroadcastSentCount(activeTenantId),
-    maxBatchSize: limits.maxBatchSize,
-    defaultDelayMinSec: limits.defaultDelayMinSec,
-    defaultDelayMaxSec: limits.defaultDelayMaxSec,
-  });
-});
-
-app.get('/api/promos/broadcast-audience', requireRoles('owner', 'branch_manager'), (_req, res) => {
-  try {
-    res.json(getBroadcastAudienceCustomers());
-  } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal memuat daftar nomor WA pelanggan.' });
-  }
-});
-
-app.get('/api/promos/broadcasts', requireRoles('owner', 'branch_manager'), (req, res) => {
-  try {
-    const { activeTenantId } = getAuth(req);
-    const items = listPromoBroadcasts(activeTenantId).map(b => ({
-      ...b,
-      isJobRunning: false,
-    }));
-    res.json(items);
-  } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal memuat riwayat broadcast promo.' });
-  }
-});
-
-app.get('/api/promos/broadcasts/:broadcastId', requireRoles('owner', 'branch_manager'), (req, res) => {
-  try {
-    const { activeTenantId } = getAuth(req);
-    const broadcastId = String(req.params.broadcastId);
-    const record = getPromoBroadcastById(broadcastId, activeTenantId);
-    if (!record) {
-      res.status(404).json({ error: 'Riwayat broadcast tidak ditemukan di outlet aktif.' });
-      return;
-    }
-    res.json({
-      ...record,
-      isJobRunning: false,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal memuat detail broadcast.' });
-  }
-});
-
-app.post('/api/promos/broadcasts/:broadcastId/cancel', requireRoles('owner', 'branch_manager'), (req, res) => {
-  try {
-    const { activeTenantId } = getAuth(req);
-    const broadcastId = String(req.params.broadcastId);
-    const updated = cancelPendingPromoBroadcastRecipients(broadcastId, activeTenantId);
-    if (!updated) {
-      res.status(404).json({ error: 'Riwayat broadcast tidak ditemukan di outlet aktif.' });
-      return;
-    }
-    res.json({
-      ...updated,
-      isJobRunning: false,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal menghentikan antrean broadcast.' });
-  }
-});
-
-app.patch(
-  '/api/promos/broadcasts/:broadcastId/recipients/:recipientId',
-  requireRoles('owner', 'branch_manager'),
-  (req, res) => {
-    try {
-      const { activeTenantId } = getAuth(req);
-      const body = (req.body ?? {}) as { status?: BroadcastRecipientStatus; errorMessage?: string };
-      const status = body.status;
-      if (status !== 'pending' && status !== 'sent' && status !== 'failed') {
-        res.status(400).json({ error: 'Status penerima tidak valid.' });
-        return;
-      }
-      const updated = updatePromoBroadcastRecipientStatus({
-        broadcastId: String(req.params.broadcastId),
-        recipientId: String(req.params.recipientId),
-        tenantId: activeTenantId,
-        status,
-        errorMessage: body.errorMessage,
-      });
-      if (!updated) {
-        res.status(404).json({ error: 'Data penerima broadcast tidak ditemukan.' });
-        return;
-      }
-      res.json({
-        ...updated,
-        isJobRunning: false,
-      });
-    } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal memperbarui status pengiriman.' });
-    }
-  }
-);
-
-app.post('/api/promos/:id/broadcast', requireRoles('owner', 'branch_manager'), async (req, res) => {
-  try {
-    const auth = getAuth(req);
-    const tenantId = auth.activeTenantId;
-    const promoId = String(req.params.id);
-    const promoRow = db.prepare('SELECT * FROM promos WHERE id = ? AND tenantId = ?').get(promoId, tenantId) as
-      | {
-          id: string;
-          name: string;
-          code: string;
-          discountPercent: number;
-          startDate: string;
-          endDate: string;
-          minPurchase: number | null;
-        }
-      | undefined;
-
-    if (!promoRow) {
-      res.status(404).json({ error: 'Promo tidak ditemukan di outlet aktif.' });
-      return;
-    }
-
-    const today = syncExpiredPromos(tenantId);
-    if (promoRow.endDate < today) {
-      res.status(400).json({
-        error: `Masa berlaku promo "${promoRow.name}" sudah berakhir pada ${formatPromoDate(promoRow.endDate)}. Perpanjang durasi promo terlebih dahulu.`,
-      });
-      return;
-    }
-
-    const body = (req.body ?? {}) as Partial<PromoBroadcastCreatePayload>;
-    const audienceMode = body.audienceMode ?? 'all';
-    const messageTemplate = (body.messageTemplate ?? '').trim();
-    if (!messageTemplate) {
-      res.status(400).json({ error: 'Isi pesan promo tidak boleh kosong.' });
-      return;
-    }
-
-    const allAudience = getBroadcastAudienceCustomers();
-    let targets = allAudience;
-    if (audienceMode === 'segment') {
-      if (!body.audienceSegment) {
-        res.status(400).json({ error: 'Segmen pelanggan wajib dipilih.' });
-        return;
-      }
-      targets = allAudience.filter(c => c.type === body.audienceSegment);
-    } else if (audienceMode === 'selected') {
-      const idSet = new Set(Array.isArray(body.customerIds) ? body.customerIds : []);
-      if (idSet.size === 0) {
-        res.status(400).json({ error: 'Pilih minimal 1 pelanggan tujuan broadcast.' });
-        return;
-      }
-      targets = allAudience.filter(c => idSet.has(c.id));
-    }
-
-    if (body.activeBuyersOnly) {
-      targets = targets.filter(c => c.hasTransacted);
-    }
-
-    if (targets.length === 0) {
-      res.status(400).json({
-        error: body.activeBuyersOnly
-          ? 'Tidak ada pelanggan aktif (pernah transaksi) dengan nomor WhatsApp valid pada target yang dipilih.'
-          : 'Tidak ada pelanggan dengan nomor WhatsApp valid pada target yang dipilih.',
-      });
-      return;
-    }
-
-    const tenantRow = db.prepare('SELECT name FROM tenants WHERE id = ?').get(tenantId) as
-      | { name: string }
-      | undefined;
-
-    const batch = createPromoBroadcastBatch({
-      tenantId,
-      promo: {
-        id: promoRow.id,
-        name: promoRow.name,
-        code: promoRow.code,
-        discountPercent: promoRow.discountPercent,
-        startDate: promoRow.startDate,
-        endDate: promoRow.endDate,
-        minPurchase: promoRow.minPurchase ?? undefined,
-      },
-      storeName: tenantRow?.name || 'Toko',
-      audienceMode,
-      audienceSegment: body.audienceSegment,
-      customers: targets,
-      deliveryMode: 'wa_me',
-      messageTemplate,
-      createdBy: auth.user.fullName,
-    });
-
-    res.status(201).json({
-      ...batch,
-      isJobRunning: false,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal membuat broadcast promo.' });
-  }
-});
 
 app.get('/api/promos/active', (req, res) => {
   try {
@@ -2126,6 +2152,21 @@ app.post('/api/promos', requireRoles('owner', 'branch_manager'), (req, res) => {
       description: string | null;
       createdAt?: string | null;
     };
+    const auth = getAuth(req);
+    recordAuditLog({
+      tenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'CREATE_PROMO',
+      entityType: 'promo',
+      entityId: createdRow.id,
+      entityLabel: `${createdRow.code} (${createdRow.discountPercent}%)`,
+      severity: 'info',
+      summary: `Membuat promo "${createdRow.name}" (${createdRow.code}, diskon ${createdRow.discountPercent}%)`,
+      details: { code: createdRow.code, discountPercent: createdRow.discountPercent, startDate, endDate },
+      ipAddress: getClientIp(req),
+    });
     res.status(201).json({
       id: createdRow.id,
       name: createdRow.name,
@@ -2226,6 +2267,20 @@ app.put('/api/promos/:id', requireRoles('owner', 'branch_manager'), (req, res) =
       tenantId
     );
     const updatedRow = db.prepare('SELECT * FROM promos WHERE id = ?').get(id) as typeof existingRow;
+    const auth = getAuth(req);
+    recordAuditLog({
+      tenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'UPDATE_PROMO',
+      entityType: 'promo',
+      entityId: updatedRow.id,
+      entityLabel: `${updatedRow.code} (${updatedRow.discountPercent}%)`,
+      severity: 'info',
+      summary: `Memperbarui promo "${updatedRow.name}" (${updatedRow.code}, ${updatedRow.discountPercent}%)`,
+      ipAddress: getClientIp(req),
+    });
     res.json({
       id: updatedRow.id,
       name: updatedRow.name,
@@ -2279,6 +2334,20 @@ app.patch('/api/promos/:id/toggle', requireRoles('owner', 'branch_manager'), (re
       description: string | null;
       createdAt?: string | null;
     };
+    const auth = getAuth(req);
+    recordAuditLog({
+      tenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'TOGGLE_PROMO',
+      entityType: 'promo',
+      entityId: updatedRow.id,
+      entityLabel: updatedRow.code,
+      severity: 'info',
+      summary: `${updatedRow.isActive ? 'Mengaktifkan' : 'Menonaktifkan'} promo "${updatedRow.name}" (${updatedRow.code})`,
+      ipAddress: getClientIp(req),
+    });
     res.json({
       id: updatedRow.id,
       name: updatedRow.name,
@@ -2300,12 +2369,29 @@ app.patch('/api/promos/:id/toggle', requireRoles('owner', 'branch_manager'), (re
 
 app.delete('/api/promos/:id', requireRoles('owner', 'branch_manager'), (req, res) => {
   try {
-    const tenantId = getAuth(req).activeTenantId;
+    const auth = getAuth(req);
+    const tenantId = auth.activeTenantId;
+    const existingPromo = db.prepare('SELECT name, code FROM promos WHERE id = ? AND tenantId = ?').get(req.params.id, tenantId) as
+      | { name: string; code: string }
+      | undefined;
     const result = db.prepare('DELETE FROM promos WHERE id = ? AND tenantId = ?').run(req.params.id, tenantId);
     if (result.changes === 0) {
       res.status(404).json({ error: 'Promo tidak ditemukan di outlet aktif.' });
       return;
     }
+    recordAuditLog({
+      tenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'DELETE_PROMO',
+      entityType: 'promo',
+      entityId: String(req.params.id),
+      entityLabel: existingPromo ? `${existingPromo.code} • ${existingPromo.name}` : String(req.params.id),
+      severity: 'warning',
+      summary: `Menghapus promo ${existingPromo ? `"${existingPromo.name}" (${existingPromo.code})` : String(req.params.id)}`,
+      ipAddress: getClientIp(req),
+    });
     res.json({ deletedId: req.params.id });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal menghapus promo.' });
@@ -2355,6 +2441,20 @@ app.post('/api/tenants', requireRoles('owner'), (req, res) => {
       updateSessionTenant(auth.token, newTenant.id);
     });
     insertTx();
+    recordAuditLog({
+      tenantId: newTenant.id,
+      tenantName: newTenant.name,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'CREATE_TENANT',
+      entityType: 'tenant',
+      entityId: newTenant.id,
+      entityLabel: `${newTenant.code} • ${newTenant.name}`,
+      severity: 'info',
+      summary: `Mendaftarkan outlet baru "${newTenant.name}" (${newTenant.code})`,
+      ipAddress: getClientIp(req),
+    });
     res.status(201).json(newTenant);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal mendaftarkan outlet.' });
@@ -2446,6 +2546,20 @@ app.put('/api/tenants/:id', requireRoles('owner'), (req, res) => {
     );
 
     const updated = getAllTenants().find(t => t.id === id);
+    recordAuditLog({
+      tenantId: id,
+      tenantName: updated?.name || name,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'UPDATE_TENANT',
+      entityType: 'tenant',
+      entityId: id,
+      entityLabel: `${code} • ${name}`,
+      severity: status === 'Nonaktif' ? 'warning' : 'info',
+      summary: `Memperbarui profil outlet "${name}" (${code}, status ${status})`,
+      ipAddress: getClientIp(req),
+    });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal memperbarui outlet.' });
@@ -2485,6 +2599,20 @@ app.patch('/api/tenants/:id/status', requireRoles('owner'), (req, res) => {
 
     db.prepare('UPDATE tenants SET status = ? WHERE id = ?').run(nextStatus, id);
     const updated = getAllTenants().find(t => t.id === id);
+    recordAuditLog({
+      tenantId: id,
+      tenantName: updated?.name || existing.name,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'TOGGLE_TENANT_STATUS',
+      entityType: 'tenant',
+      entityId: id,
+      entityLabel: `${existing.code} • ${existing.name}`,
+      severity: nextStatus === 'Nonaktif' ? 'warning' : 'info',
+      summary: `Mengubah status outlet "${existing.name}" menjadi ${nextStatus}`,
+      ipAddress: getClientIp(req),
+    });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal mengubah status outlet.' });
@@ -2560,8 +2688,6 @@ app.delete('/api/tenants/:id', requireRoles('owner'), (req, res) => {
       )?.id || auth.activeTenantId;
 
     const deleteTx = db.transaction(() => {
-      db.prepare('DELETE FROM promo_broadcast_recipients WHERE broadcastId IN (SELECT id FROM promo_broadcasts WHERE tenantId = ?)').run(id);
-      db.prepare('DELETE FROM promo_broadcasts WHERE tenantId = ?').run(id);
       db.prepare('DELETE FROM store_settings WHERE tenantId = ?').run(id);
 
       const userRows = db
@@ -2594,6 +2720,20 @@ app.delete('/api/tenants/:id', requireRoles('owner'), (req, res) => {
       db.prepare('DELETE FROM tenants WHERE id = ?').run(id);
     });
     deleteTx();
+
+    recordAuditLog({
+      tenantId: auth.activeTenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'DELETE_TENANT',
+      entityType: 'tenant',
+      entityId: id,
+      entityLabel: `${existing.code} • ${existing.name}`,
+      severity: 'critical',
+      summary: `Menghapus permanen outlet "${existing.name}" (${existing.code})`,
+      ipAddress: getClientIp(req),
+    });
 
     res.json({ deletedId: id });
   } catch (err) {
@@ -2657,6 +2797,25 @@ app.put('/api/settings', requireRoles('owner', 'branch_manager'), (req, res) => 
       req.body as StoreSettingsUpdatePayload,
       auth.user.fullName
     );
+    recordAuditLog({
+      tenantId: auth.activeTenantId,
+      tenantName: result.tenant?.name,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'UPDATE_SETTINGS',
+      entityType: 'settings',
+      entityId: auth.activeTenantId,
+      entityLabel: result.tenant?.name || auth.activeTenantId,
+      severity: 'warning',
+      summary: `Memperbarui pengaturan toko & preferensi struk outlet "${result.tenant?.name || auth.activeTenantId}"`,
+      details: {
+        enablePpn: result.storeSettings.enablePpn,
+        ppnPercent: result.storeSettings.ppnPercent,
+        appTheme: result.storeSettings.appTheme,
+      },
+      ipAddress: getClientIp(req),
+    });
     res.json(result);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Gagal menyimpan pengaturan toko.';
@@ -2724,6 +2883,111 @@ app.post('/api/shifts/close', (req, res) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Gagal menyimpan laporan tutup kasir.';
     res.status(400).json({ error: msg });
+  }
+});
+
+// ============================================================
+// AUDIT LOG & DATA BACKUP (OWNER ONLY)
+// ============================================================
+app.get('/api/admin/audit-logs', requireRoles('owner'), (req, res) => {
+  try {
+    const page = Number(req.query.page ?? 1) || 1;
+    const pageSize = Number(req.query.pageSize ?? 15) || 15;
+    const search = String(req.query.search ?? '');
+    const severity = String(req.query.severity ?? 'all');
+    const entityType = String(req.query.entityType ?? 'all');
+    const tenantId = String(req.query.tenantId ?? 'all');
+    const dateFrom = String(req.query.dateFrom ?? '').trim();
+    const dateTo = String(req.query.dateTo ?? '').trim();
+    const sortDir = req.query.sortDir === 'asc' ? 'asc' : 'desc';
+    res.json(
+      queryAuditLogs({
+        page,
+        pageSize,
+        search,
+        severity,
+        entityType,
+        tenantId,
+        dateFrom,
+        dateTo,
+        sortDir,
+      })
+    );
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal memuat jejak audit.' });
+  }
+});
+
+app.get('/api/admin/backup/info', requireRoles('owner'), (_req, res) => {
+  try {
+    res.json(getBackupDatabaseInfo());
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal membaca info database.' });
+  }
+});
+
+app.get('/api/admin/backup/download', requireRoles('owner'), async (req, res) => {
+  const auth = getAuth(req);
+  const rawFormat = String(req.query.format ?? 'sqlite').toLowerCase();
+  const format = rawFormat === 'json' ? 'json' : 'sqlite';
+  const now = new Date();
+  const stamp = `${now.toISOString().slice(0, 10)}_${now.toTimeString().slice(0, 8).replace(/:/g, '-')}`;
+
+  if (format === 'json') {
+    try {
+      const payload = exportStructuredBackupJson(auth.user.fullName);
+      const filename = `LogicPOS_Backup_${stamp}.json`;
+      const jsonStr = JSON.stringify(payload, null, 2);
+      recordAuditLog({
+        tenantId: auth.activeTenantId,
+        actorId: auth.user.id,
+        actorName: auth.user.fullName,
+        actorRole: auth.user.role,
+        action: 'DOWNLOAD_BACKUP',
+        entityType: 'backup',
+        entityLabel: filename,
+        severity: 'info',
+        summary: `Mengunduh arsip backup data terstruktur (${filename})`,
+        details: { format: 'json', sizeBytes: Buffer.byteLength(jsonStr, 'utf8') },
+        ipAddress: getClientIp(req),
+      });
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('X-Backup-Filename', filename);
+      res.send(jsonStr);
+      return;
+    } catch (err) {
+      res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal mengekspor backup JSON.' });
+      return;
+    }
+  }
+
+  const filename = `LogicPOS_Database_${stamp}.db`;
+  const tmpPath = path.join(os.tmpdir(), `logicpos-backup-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`);
+  try {
+    await createDatabaseBackupSnapshot(tmpPath);
+    const buffer = await fs.promises.readFile(tmpPath);
+    recordAuditLog({
+      tenantId: auth.activeTenantId,
+      actorId: auth.user.id,
+      actorName: auth.user.fullName,
+      actorRole: auth.user.role,
+      action: 'DOWNLOAD_BACKUP',
+      entityType: 'backup',
+      entityLabel: filename,
+      severity: 'info',
+      summary: `Mengunduh snapshot database SQLite (${filename})`,
+      details: { format: 'sqlite', sizeBytes: buffer.length },
+      ipAddress: getClientIp(req),
+    });
+    res.setHeader('Content-Type', 'application/x-sqlite3');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('X-Backup-Filename', filename);
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Gagal membuat snapshot backup SQLite.' });
+  } finally {
+    await fs.promises.unlink(tmpPath).catch(() => {});
   }
 });
 
